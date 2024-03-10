@@ -1,5 +1,9 @@
 import numpy as np
 from itertools import combinations_with_replacement
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from joblib import Parallel, delayed
+import sympy as sp
 
 
 def parse_dig_vtrace_file(input_data):
@@ -65,6 +69,51 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
+def find_models(terms, extended_data):
+    X = extended_data[:, len(terms) : -1]  # Exclude target and constant term
+    models = {}
+
+    def fit_model(target_idx):
+        y = extended_data[:, target_idx]
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+
+        model = LinearRegression()
+        model.fit(X_train, y_train)
+
+        score = model.score(X_test, y_test)
+        coefficients = model.coef_
+        intercept = model.intercept_
+
+        return terms[target_idx], model, score, coefficients, intercept
+
+    results = Parallel(n_jobs=-1)(delayed(fit_model)(i) for i in range(len(terms)))
+
+    for term, model, score, coefficients, intercept in results:
+        models[term] = {
+            "model": model,
+            "score": score,
+            "coefficients": coefficients,
+            "intercept": intercept,
+        }
+
+    return models
+
+
+def display_equations(models, extended_terms):
+    for term, content in models.items():
+        equation = sp.Eq(
+            sp.symbols(term),
+            sum(
+                content["coefficients"][i] * sp.symbols(extended_terms[i])
+                for i in range(len(content["coefficients"]))
+            )
+            + content["intercept"],
+        )
+        print(f"Model for {term}: {equation}")
+
+
 if __name__ == "__main__":  # noqa E123
     # Example usage
     input_data = """
@@ -98,13 +147,22 @@ vtrace2; 295; 11; 296; 11; -251
     print(parsed_data)
 
     for trace, content in parsed_data.items():
+        terms = content["terms"]
+        data = content["data"]
         print(f"{trace}")
-        print(f"{content['terms']}")
-        print(f"{content['data']}\n")
+        print(f"{terms}")
+        print(f"{data}\n")
 
-        extended_terms, extended_data = process_trace(
-            content["terms"], content["data"], 2
-        )
+        extended_terms, extended_data = process_trace(terms, data, 2)
 
         print(f"{extended_terms}")
         print(f"{extended_data}\n")
+
+        models = find_models(terms, extended_terms, extended_data)
+        for term, content in models.items():
+            print(f"Model for {term}: Score = {content['score']}")
+
+        print("\n")
+
+        # Exclude the original terms and constant term in the equation display
+        display_equations(models, extended_terms)
