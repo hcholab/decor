@@ -18,10 +18,18 @@ We will use the following tools to setup a development environment for `Bitween`
 
 * Create a new development environment, following steps 1, 2, 3, 4, 11, 12 and 14 should be sufficient to get started.
 
+* First, checkout the `main` branch: `git@github.com:BitweenTools/bitween.git` to a directory of your choice, and clone git submodules.
+
+```bash
+git clone /url/to/bitween
+git submodule init
+git submodule update
+```
+
 * You should add the following line to your `.bashrc` or `.zshrc` file to be able to import the `bitween` package from anywhere in your system while *developing*: 
 
 ```bash
-export PYTHONPATH=${PYTHONPATH}:${HOME}/<your-project-root>/bitween/src
+export PYTHONPATH=${PYTHONPATH}:${HOME}/<your-directory>/bitween/src
 ```
 
 ## 1. Install Conda virtual environment for Python
