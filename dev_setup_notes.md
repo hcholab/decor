@@ -18,7 +18,7 @@ We will use the following tools to setup a development environment for `Bitween`
 
 * Create a new development environment, following steps 1, 2, 3, 4, 11, 12 and 14 should be sufficient to get started.
 
-* You should add the following line to your `.bashrc` or `.zshrc` file to be able to import the `bitween` package from anywhere in your system: 
+* You should add the following line to your `.bashrc` or `.zshrc` file to be able to import the `bitween` package from anywhere in your system while *developing*: 
 
 ```bash
 export PYTHONPATH=${PYTHONPATH}:${HOME}/<your-project-root>/bitween/src
@@ -55,7 +55,7 @@ conda create --name bitween python=3.11.5 -y
 To use this new environment for developing and installing software we need to 'activate' it:
 
 ```bash
-conda activatebitween 
+conda activate bitween 
 ```
 
 In most command lines, conda will add a prefix like `(bitween)` to your command-line prompt to indicate which environment you are working in. Anytime you wish to work on your package, you should activate its virtual environment. You can view the packages currently installed in a conda environment using the command `conda list`, and you can exit a conda virtual environment using `conda deactivate`.
