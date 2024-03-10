@@ -480,7 +480,7 @@ if __name__ == "__main__":  # noqa E123
     """
     from sympy import Function, symbols, sympify
     from sympy import exp, Abs, sqrt, sin, cos, tan, log, sign  # noqa F401
-    from reporter import print_methods
+    from bitween.reporter import print_methods
 
     # ------------------------------------------
 

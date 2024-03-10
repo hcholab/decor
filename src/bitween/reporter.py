@@ -13,13 +13,13 @@ from sympy import (
     sinh,
     cosh,
 )
-from synthesizer import (
+from bitween.synthesizer import (
     MILP,
     GeneratorMethod,
     generate,
 )
-from sampler import Distribution, Domain
-from verifier import latex_func, str_func
+from bitween.sampler import Distribution, Domain
+from bitween.verifier import latex_func, str_func
 
 
 def print_methods(methods: list[GeneratorMethod], *functions):  # noqa U100
