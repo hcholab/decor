@@ -1,0 +1,6 @@
+[submodule "benchmarks"]
+	path = benchmarks
+	url = git@github.com:BitweenTools/benchmarks.git
+[submodule "reports"]
+	path = reports
+	url = git@github.com:BitweenTools/reports.git
