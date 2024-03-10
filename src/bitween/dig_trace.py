@@ -1,7 +1,8 @@
 import numpy as np
+from itertools import combinations_with_replacement
 
 
-def parse_input_to_ndarrays_with_vars(input_data):
+def parse_dig_vtrace_file(input_data):
     # Splitting the input data into lines
     lines = input_data.strip().split("\n")
 
@@ -34,8 +35,39 @@ def parse_input_to_ndarrays_with_vars(input_data):
     return traces
 
 
-# Example usage
-input_data = """
+def generate_monomials(terms, degree):
+    # Generate all combinations of terms up to the given degree
+    monomials = []
+    for d in range(1, degree + 1):
+        for combo in combinations_with_replacement(terms, d):
+            monomials.append("*".join(combo))
+    return monomials
+
+
+def calculate_monomial_data(terms, monomials, data):
+    # Split each monomial and calculate its value for each row in the data
+    monomial_values = np.ones((data.shape[0], len(monomials)))
+    for i, monomial in enumerate(monomials):
+        for term in monomial.split("*"):
+            term_index = terms.index(term)
+            monomial_values[:, i] *= data[:, term_index]
+    return monomial_values
+
+
+def process_trace(terms, data, degree):
+    monomials = generate_monomials(terms, degree)
+    extended_terms = terms + monomials[len(terms) :]
+    monomial_data = calculate_monomial_data(terms, monomials, data)
+    extended_data = np.hstack((data, monomial_data))
+    # append ones column for the constant term to the extended data and a constant term to the extended terms
+    extended_terms.append("1")
+    extended_data = np.hstack((extended_data, np.ones((data.shape[0], 1))))
+    return extended_terms, extended_data
+
+
+if __name__ == "__main__":  # noqa E123
+    # Example usage
+    input_data = """
 vtrace1; I X; I Y; I x; I y; I v
 vtrace1; 298; 288; 150; 145; 258
 vtrace1; 295; 15; 189; 10; -495
@@ -61,8 +93,18 @@ vtrace2; 3; 11; 4; 4; 83
 vtrace2; 4; 10; 5; 5; 76
 vtrace2; 295; 11; 296; 11; -251
 """
-parsed_data = parse_input_to_ndarrays_with_vars(input_data)
-for trace, content in parsed_data.items():
-    print(f"{trace}")
-    print(f"{content['terms']}")
-    print(f"{content['data']}\n")
+
+    parsed_data = parse_dig_vtrace_file(input_data)
+    print(parsed_data)
+
+    for trace, content in parsed_data.items():
+        print(f"{trace}")
+        print(f"{content['terms']}")
+        print(f"{content['data']}\n")
+
+        extended_terms, extended_data = process_trace(
+            content["terms"], content["data"], 2
+        )
+
+        print(f"{extended_terms}")
+        print(f"{extended_data}\n")
