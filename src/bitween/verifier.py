@@ -24,7 +24,7 @@ from sympy import (
 )
 import numpy as np
 
-from sampler import Distribution, Domain, sample
+from bitween.sampler import Distribution, Domain, sample
 
 
 class UnSupportedFunctionSignature(Exception):

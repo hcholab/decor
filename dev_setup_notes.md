@@ -18,6 +18,12 @@ We will use the following tools to setup a development environment for `Bitween`
 
 * Create a new development environment, following steps 1, 2, 3, 4, 11, 12 and 14 should be sufficient to get started.
 
+* You should add the following line to your `.bashrc` or `.zshrc` file to be able to import the `bitween` package from anywhere in your system: 
+
+```bash
+export PYTHONPATH=${PYTHONPATH}:${HOME}/<your-project-root>/bitween/src
+```
+
 ## 1. Install Conda virtual environment for Python
 
 * Install miniconda: https://docs.conda.io/projects/miniconda/en/latest/

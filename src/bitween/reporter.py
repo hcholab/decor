@@ -1,5 +1,5 @@
 from inspect import signature
-import milp
+from bitween import milp
 from sympy import (
     Function,
     symbols,

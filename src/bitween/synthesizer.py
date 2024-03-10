@@ -6,12 +6,12 @@ import time
 
 from sympy import Expr, sympify, sqrt, Abs, Function, pi
 
-from milp import milp_synthesis
-from property import Property
-from refiner import refine
-from verifier import property_test, verify
-from terms import get_terms, get_values_terms, canonicalize
-from sampler import Distribution, Domain, sample
+from bitween.milp import milp_synthesis
+from bitween.property import Property
+from bitween.refiner import refine
+from bitween.verifier import property_test, verify
+from bitween.terms import get_terms, get_values_terms, canonicalize
+from bitween.sampler import Distribution, Domain, sample
 
 
 class GeneratorMethod(object):

@@ -39,10 +39,10 @@ from sympy import (  # noqa F401
 
 from sklearn.linear_model import Lasso, LinearRegression  # noqa F401
 
-from sampler import Domain, Distribution, sample
-from terms import canonicalize
-from utilities import pp
-from verifier import property_test, verify
+from bitween.sampler import Domain, Distribution, sample
+from bitween.terms import canonicalize
+from bitween.utilities import pp
+from bitween.verifier import property_test, verify
 
 
 def is_complex_number(num):

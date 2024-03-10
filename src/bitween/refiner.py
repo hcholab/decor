@@ -1,6 +1,6 @@
 from sympy import Function, simplify
 
-from property import Property
+from bitween.property import Property
 
 
 def make_set(x):

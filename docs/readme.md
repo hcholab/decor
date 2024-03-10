@@ -13,7 +13,7 @@ These properties are real-valued nonlinear invariants and they cannot be discove
 ## Installation
 
 ```bash
-$ pip installbitween 
+$ pip install bitween 
 ```
 
 ## Usage

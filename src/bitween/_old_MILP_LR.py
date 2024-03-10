@@ -16,10 +16,10 @@ import numpy as np
 
 from sklearn.linear_model import Lasso, LinearRegression  # noqa F401
 
-from sampler import Domain, Distribution, sample
-from terms import canonicalize, get_values_terms
-from utilities import pp
-from verifier import property_test, verify
+from bitween.sampler import Domain, Distribution, sample
+from bitween.terms import canonicalize, get_values_terms
+from bitween.utilities import pp
+from bitween.verifier import property_test, verify
 
 if __name__ == "__main__":  # noqa E123
     degree = None
