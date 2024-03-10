@@ -1,0 +1,17 @@
+# Required
+version: 2
+
+# Image to use
+build:
+  image: testing
+
+# Configuration
+python:
+  version: 3.11.5
+  install:
+    - requirements: docs/requirements.txt
+    - method: pip
+      path: .
+
+sphinx:
+  configuration: docs/conf.py
