@@ -4,7 +4,7 @@ import gurobipy as gp
 import numpy as np
 from sympy import sympify
 
-from rsr_property_generation.milp.utilities import pp
+from utilities import pp
 
 INTEGRALITY_FOCUS = 1
 # MIPFOCUS = 2
@@ -227,9 +227,9 @@ if __name__ == "__main__":  # noqa E123
     """
     import csv
     from sympy import Function, Symbol, sin
-    from rsr_property_generation.milp.terms import get_values_terms
-    from rsr_property_generation.milp.verifier import property_test, verify
-    from rsr_property_generation.milp.sampler import Distribution, Domain, sample
+    from terms import get_values_terms
+    from verifier import property_test, verify
+    from sampler import Distribution, Domain, sample
 
     domain = Domain.Real
     distribution = Distribution.Small

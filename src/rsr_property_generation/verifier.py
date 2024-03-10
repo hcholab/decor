@@ -24,7 +24,7 @@ from sympy import (
 )
 import numpy as np
 
-from rsr_property_generation.milp.sampler import Distribution, Domain, sample
+from sampler import Distribution, Domain, sample
 
 
 class UnSupportedFunctionSignature(Exception):

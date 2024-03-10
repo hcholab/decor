@@ -1,5 +1,5 @@
 from inspect import signature
-import rsr_property_generation.milp as milp
+import milp
 from sympy import (
     Function,
     symbols,
@@ -13,13 +13,13 @@ from sympy import (
     sinh,
     cosh,
 )
-from rsr_property_generation.milp.synthesizer import (
+from synthesizer import (
     MILP,
     GeneratorMethod,
     generate,
 )
-from rsr_property_generation.milp.sampler import Distribution, Domain
-from rsr_property_generation.milp.verifier import latex_func, str_func
+from sampler import Distribution, Domain
+from verifier import latex_func, str_func
 
 
 def print_methods(methods: list[GeneratorMethod], *functions):  # noqa U100

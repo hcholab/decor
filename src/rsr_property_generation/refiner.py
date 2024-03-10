@@ -1,6 +1,6 @@
 from sympy import Function, simplify
 
-from rsr_property_generation.milp.property import Property
+from property import Property
 
 
 def make_set(x):

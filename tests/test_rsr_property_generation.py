@@ -1,1 +1,0 @@
-# from rsr_property_generation import rsr_property_generation

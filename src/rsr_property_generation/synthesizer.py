@@ -6,12 +6,12 @@ import time
 
 from sympy import Expr, sympify, sqrt, Abs, Function, pi
 
-from rsr_property_generation.milp.milp import milp_synthesis
-from rsr_property_generation.milp.property import Property
-from rsr_property_generation.milp.refiner import refine
-from rsr_property_generation.milp.verifier import property_test, verify
-from rsr_property_generation.milp.terms import get_terms, get_values_terms, canonicalize
-from rsr_property_generation.milp.sampler import Distribution, Domain, sample
+from milp import milp_synthesis
+from property import Property
+from refiner import refine
+from verifier import property_test, verify
+from terms import get_terms, get_values_terms, canonicalize
+from sampler import Distribution, Domain, sample
 
 
 class GeneratorMethod(object):
@@ -480,7 +480,7 @@ if __name__ == "__main__":  # noqa E123
     """
     from sympy import Function, symbols, sympify
     from sympy import exp, Abs, sqrt, sin, cos, tan, log, sign  # noqa F401
-    from rsr_property_generation.milp.reporter import print_methods
+    from reporter import print_methods
 
     # ------------------------------------------
 
