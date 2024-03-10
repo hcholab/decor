@@ -1,8 +1,8 @@
-from rsr_property_generation.milp.reporter import print_methods
+from bitween.reporter import print_methods
 from sympy import Function, symbols
 from sympy import exp, Abs, sqrt, sin, cos, tan, log, sign  # noqa F401
-from rsr_property_generation.milp.synthesizer import MILP, generate
-from rsr_property_generation.milp.sampler import Distribution, Domain
+from bitween.synthesizer import MILP, generate
+from bitween.sampler import Distribution, Domain
 
 # ------------------------------------------
 

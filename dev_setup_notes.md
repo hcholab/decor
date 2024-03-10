@@ -1,8 +1,8 @@
-# How to setup a development environment for `RSR Property Generation`
+# How to setup a development environment for `Bitween`
 
 ## Introduction
 
-We will use the following tools to setup a development environment for `RSR Property Generation`:
+We will use the following tools to setup a development environment for `Bitween`:
 
 * https://medium.com/edge-analytics/python-best-practices-2934de825fd2
     - conda (virtual environment )
@@ -40,26 +40,26 @@ conda --version
 
 ## 3. Create a virtual environment:
 
-`conda` is a piece of software that supports the process of installing and updating software (like Python packages). It provides a virtual environment. It is easy to create a virtual environment using conda. We can create a new virtual environment called `rsr_prop_gen` using the following command: 
+`conda` is a piece of software that supports the process of installing and updating software (like Python packages). It provides a virtual environment. It is easy to create a virtual environment using conda. We can create a new virtual environment called `bitween` using the following command: 
 
 ```bash
-conda create --name rsr_prop_gen python=3.11.5 -y
+conda create --name bitween python=3.11.5 -y
 ```
 
 To use this new environment for developing and installing software we need to 'activate' it:
 
 ```bash
-conda activate rsr_prop_gen
+conda activatebitween 
 ```
 
-In most command lines, conda will add a prefix like `(rsr_prop_gen)` to your command-line prompt to indicate which environment you are working in. Anytime you wish to work on your package, you should activate its virtual environment. You can view the packages currently installed in a conda environment using the command `conda list`, and you can exit a conda virtual environment using `conda deactivate`.
+In most command lines, conda will add a prefix like `(bitween)` to your command-line prompt to indicate which environment you are working in. Anytime you wish to work on your package, you should activate its virtual environment. You can view the packages currently installed in a conda environment using the command `conda list`, and you can exit a conda virtual environment using `conda deactivate`.
 
 Here are some useful conda commands:
 
 ```bash
 conda env list
 conda deactivate
-conda remove --name rsr_prop_gen --all
+conda remove --name bitween --all
 ```
 
 ## 4. Installing toml file
@@ -105,7 +105,7 @@ poetry add --group dev pytest-cov
 ```
 
 ```bash
-pytest tests/ --cov=rsr_property_generation 
+pytest tests/ --cov=bitween 
 ```
 
 ## 9. Building documentation
@@ -128,7 +128,7 @@ open _build/index.html
 ```bash
 poetry build
 
-pip install dist/rsr_property_generation-0.1.0-py3-none-any.whl
+pip install dist/bitween-0.1.0-py3-none-any.whl
 ```
 
 ## 11. Linting -- Flake8

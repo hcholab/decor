@@ -1,7 +1,7 @@
 import random
-from rsr_property_generation import utilities as ut
-from rsr_property_generation import runLinReg as rlg
-from rsr_property_generation import functionList as fl
+import utilities as ut
+import runLinReg as rlg
+import functionList as fl
 
 if __name__ == "__main__":
     # functions = fl.functions

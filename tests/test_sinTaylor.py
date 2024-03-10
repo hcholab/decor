@@ -1,4 +1,4 @@
-from rsr_property_generation import functionList as fl
+import functionList as fl
 import math
 import random
 

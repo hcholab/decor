@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "rsr_property_generation"
+project = "bitween"
 copyright = "2023, Ferhat Erata, Timos Antonopoulos"
 author = "Ferhat Erata, Timos Antonopoulos"
 

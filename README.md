@@ -13,7 +13,7 @@ These properties are real-valued nonlinear invariants and they cannot be discove
 ## Installation
 
 ```bash
-$ pip install rsr_property_generation
+$ pip install bitween 
 ```
 
 ## Usage
@@ -26,8 +26,8 @@ Interested in contributing? Check out the contributing guidelines. Please note t
 
 ## License
 
-`rsr_property_generation` was created by Ferhat Erata, Timos Antonopoulos. It is licensed under the terms of the MIT license.
+`bitween` was created by Ferhat Erata, Timos Antonopoulos. It is licensed under the terms of the MIT license.
 
 ## Credits
 
-`rsr_property_generation` was created with [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) and the `py-pkgs-cookiecutter` [template](https://github.com/py-pkgs/py-pkgs-cookiecutter).
+`bitween` was created with [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) and the `py-pkgs-cookiecutter` [template](https://github.com/py-pkgs/py-pkgs-cookiecutter).

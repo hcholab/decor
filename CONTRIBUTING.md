@@ -40,10 +40,10 @@ If you are proposing a feature:
 
 ## Get Started!
 
-Ready to contribute? Here's how to set up `rsr_property_generation` for local development.
+Ready to contribute? Here's how to set up `bitween` for local development.
 
-1. Download a copy of `rsr_property_generation` locally.
-2. Install `rsr_property_generation` using `poetry`:
+1. Download a copy of `bitween` locally.
+2. Install `bitween` using `poetry`:
 
     ```console
     $ poetry install
@@ -69,5 +69,5 @@ Before you submit a pull request, check that it meets these guidelines:
 
 ## Code of Conduct
 
-Please note that the `rsr_property_generation` project is released with a
+Please note that the `bitween` project is released with a
 Code of Conduct. By contributing to this project you agree to abide by its terms.

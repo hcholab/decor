@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "rsr_property_generation"
+name = "bitween"
 version = "0.1.0"
 description = "Synthesizing Random Self-Reducible Properties"
 authors = ["Ferhat Erata <ferhat.erata@yale.edu>", "Timos Antonopoulos <timos.antonopoulos@yale.edu>"]

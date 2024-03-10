@@ -1,5 +1,5 @@
 import random
-from rsr_property_generation import functionList as fl
+import functionList as fl
 
 i = 100
 while i > 0:
