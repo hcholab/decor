@@ -1,4 +1,5 @@
 import warnings
+from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 import sympy as sp
@@ -70,42 +71,42 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
-# def find_models(extended_terms, extended_data):
-#     X = extended_data[:, :-1]  # Use all terms except the target variable itself
-#     models = {}
+def find_models(extended_terms, extended_data):
+    X = extended_data[:, :-1]  # Use all terms except the target variable itself
+    models = {}
 
-#     def fit_model(target_idx):
-#         y = extended_data[:, target_idx]
-#         # Exclude the target variable from the features
-#         X_train, X_test, y_train, y_test = train_test_split(
-#             np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
-#         )
+    def fit_model(target_idx):
+        y = extended_data[:, target_idx]
+        # Exclude the target variable from the features
+        X_train, X_test, y_train, y_test = train_test_split(
+            np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
+        )
 
-#         model = LinearRegression()
-#         model.fit(X_train, y_train)
+        model = LinearRegression()
+        model.fit(X_train, y_train)
 
-#         score = model.score(X_test, y_test)
+        score = model.score(X_test, y_test)
 
-#         # Insert 0 for the target variable's coefficient
-#         coefficients = np.insert(model.coef_, target_idx, 0)
-#         intercept = model.intercept_
+        # Insert 0 for the target variable's coefficient
+        coefficients = np.insert(model.coef_, target_idx, 0)
+        intercept = model.intercept_
 
-#         return extended_terms[target_idx], model, score, coefficients, intercept
+        return extended_terms[target_idx], model, score, coefficients, intercept
 
-#     # Create a model for each term in extended_terms, excluding the constant '1'
-#     results = Parallel(n_jobs=-1)(
-#         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
-#     )
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    results = Parallel(n_jobs=-1)(
+        delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
+    )
 
-#     for term, model, score, coefficients, intercept in results:
-#         models[term] = {
-#             "model": model,
-#             "score": score,
-#             "coefficients": coefficients,
-#             "intercept": intercept,
-#         }
+    for term, model, score, coefficients, intercept in results:
+        models[term] = {
+            "model": model,
+            "score": score,
+            "coefficients": coefficients,
+            "intercept": intercept,
+        }
 
-#     return models
+    return models
 
 
 def find_best_model(extended_terms, extended_data):
@@ -163,7 +164,9 @@ def find_best_model(extended_terms, extended_data):
     return models, X_test, y_test
 
 
-def display_equations(models, extended_terms, X_test, y_test, threshold=0.4):
+def display_equations(
+    models, extended_terms, X_test, y_test, threshold=0.4  # noqa F401
+):
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
             print(f"Model for {term}: Intercept = {content['intercept']}")
@@ -178,7 +181,7 @@ def display_equations(models, extended_terms, X_test, y_test, threshold=0.4):
                     coeff = round(coefficient, 2)
                     if coeff != 0:
                         rhs += coeff * sp.symbols(extended_terms[i])
-                        rhs_terms_indices[extended_terms[i]] = i
+                        rhs_terms_indices[extended_terms[i]] = (i, coeff)
 
         # Add the constant term (intercept)
         intercept = round(content["intercept"], 2)
@@ -191,15 +194,14 @@ def display_equations(models, extended_terms, X_test, y_test, threshold=0.4):
 
         # # Evaluate the equation for each row in X_test
         # rhs_values = np.zeros(y_test.shape[0])
-        # for term_name, index in rhs_terms_indices.items():
-        #     rhs_values += X_test[:, index] * content["coefficients"][index]
-        # rhs_values += intercept
+        # for i, row in enumerate(X_test):
+        #     for index, coeff in rhs_terms_indices.values():
+        #         rhs_values[i] += coeff * row[index]
+        #     rhs_values[i] += intercept
 
         # # Assuming y_test is for the current term only
-        # actual_values = y_test
-
         # # Compute Mean Squared Error as a fitness score
-        # mse = np.mean((rhs_values - actual_values) ** 2)
+        # mse = np.mean(np.abs(rhs_values - y_test))
         # print(f"Mean Squared Error for {term}: {mse}\n")
 
 
@@ -277,12 +279,14 @@ vtrace2; 295; 11; 296; 11; -251
         print(f"{extended_terms}")
         # print(f"{extended_data}\n")
 
-        models, X_test, y_test = find_best_model(extended_terms, extended_data)
+        # models, X_test, y_test = find_best_model(extended_terms, extended_data)
+        models = find_models(extended_terms, extended_data)
         for term, content in models.items():
             print(f"Model for {term}: Score = {content['score']}", end=", ")
-            print(f"Model type = {content['model_type']}, Params = {content['params']}")
+            # print(f"Model type = {content['model_type']}, Params = {content['params']}")
 
         print("\n")
 
         # Exclude the original terms and constant term in the equation display
-        display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
+        # display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
+        display_equations_1(models, extended_terms, threshold=0.4)
