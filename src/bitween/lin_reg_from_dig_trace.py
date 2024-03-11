@@ -64,7 +64,6 @@ def process_trace(terms, data, degree):
     monomials = generate_monomials(terms, degree)
     extended_terms = terms + monomials[len(terms) :]
     monomial_data = calculate_monomial_data(terms, monomials, data)
-    # extended_data = np.hstack((data, monomial_data))
     # append ones column for the constant term to the extended data and a constant term to the extended terms
     extended_terms.append("1")
     extended_data = np.hstack((monomial_data, np.ones((data.shape[0], 1))))
@@ -220,7 +219,7 @@ def display_equations_1(models, extended_terms, threshold=0.4):
 
         # Add the constant term (intercept)
         intercept = round(content["intercept"], 2)
-        if intercept:
+        if intercept > threshold:
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
@@ -235,7 +234,7 @@ def load_input_data(file_path):
 
 if __name__ == "__main__":  # noqa E123
 
-    file_path = "bresenham.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
     # print(parsed_data)
@@ -263,4 +262,4 @@ if __name__ == "__main__":  # noqa E123
 
         # Exclude the original terms and constant term in the equation display
         # display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
-        display_equations_1(models, extended_terms, threshold=0.4)
+        display_equations_1(models, extended_terms, threshold=0.49)
