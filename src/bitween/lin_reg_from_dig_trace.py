@@ -258,16 +258,20 @@ if __name__ == "__main__":  # noqa E123
         terms = content["terms"]
         data = content["data"]
 
-        str += f"\n{trace}\n"
-        str += f"{terms}\n"
-        str += f"Shape of data: {data.shape}\n"
+        str += f"\nTrace: {trace}\n"
+        str += f"Terms: {terms}\n"
+        str += f"Shape: {data.shape}\n"
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
         str += f"{extended_terms}\n"
 
+        # use cross validation to find the best model for each term
         # models = find_best_model(extended_terms, extended_data)
+        # use simple linear regression to find a model for each term
         models = find_models(extended_terms, extended_data)
+
+        # Display the models and their equations
         for term, content in models.items():
             str += f"Model for {term}: Score = {content['score']}, "
             if "model_type" in content:
@@ -277,7 +281,6 @@ if __name__ == "__main__":  # noqa E123
 
         str += "\n"
 
-        # Exclude the original terms and constant term in the equation display
         str += infer_equation(models, extended_terms)
 
     print(str)
