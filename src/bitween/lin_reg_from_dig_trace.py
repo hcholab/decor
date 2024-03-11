@@ -70,7 +70,7 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
-def find_models(extended_terms, extended_data):
+def find_models(extended_terms, extended_data, test_size=0.1):
     X = extended_data[:, :-1]  # Exclude the constant term
     models = {}
 
@@ -78,7 +78,7 @@ def find_models(extended_terms, extended_data):
         y = extended_data[:, target_idx]
         # Exclude the target variable from the features
         X_train, X_test, y_train, y_test = train_test_split(
-            np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
+            np.delete(X, target_idx, axis=1), y, test_size=test_size, random_state=42
         )
 
         model = LinearRegression()
@@ -118,17 +118,17 @@ def find_models(extended_terms, extended_data):
     return models
 
 
-def find_best_model(extended_terms, extended_data):
+def find_best_model(extended_terms, extended_data, test_size=0.2):
     X = extended_data[:, :-1]  # Use all terms except the target variable itself
     models = {}
 
     # Define the models and parameters for grid search
     model_params = {
         "Linear Regression": {"model": LinearRegression(), "params": {}},
-        # "Ridge": {
-        #     "model": Ridge(random_state=42),
-        #     "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-        # },
+        "Ridge": {
+            "model": Ridge(random_state=42),
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        },
         "Lasso": {
             "model": Lasso(random_state=42),
             "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
@@ -138,7 +138,7 @@ def find_best_model(extended_terms, extended_data):
     for i in range(len(extended_terms) - 1):
         y = extended_data[:, i]
         X_train, X_test, y_train, y_test = train_test_split(
-            np.delete(X, i, axis=1), y, test_size=0.1, random_state=42
+            np.delete(X, i, axis=1), y, test_size=test_size, random_state=42
         )
 
         best_score = -np.inf
@@ -175,10 +175,12 @@ def find_best_model(extended_terms, extended_data):
     return models
 
 
-def infer_equation(models, extended_terms, threshold=0.49, delta=0.1):
+def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
+    str = ""
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
-            print(f"Model for {term}: Intercept = {content['intercept']}")
+            # print(f"Model for {term}: Intercept = {content['intercept']}")
+            str += f"Model for {term}: Intercept = {content['intercept']}\n"
             continue
         rhs = 0
         coeff_terms = {}
@@ -196,7 +198,8 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.1):
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
-        print(f"Model for {term}: {equation}", end=", ")
+        # print(f"Model for {term}: {equation}", end=", ")
+        str += f"Model for {term}: {equation}, "
 
         X_test = content["X_test"]
         y_test = content["y_test"]
@@ -209,11 +212,15 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.1):
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        print(f"(error: {me})", end=", ")
+        # print(f"(error: {me})", end=", ")
+        str += f"(error: {me}), "
         if me < delta:
-            print("************** good fit")
+            # print(">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<")
+            str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
-            print("")
+            # print("")
+            str += "\n"
+    return str
 
 
 def load_input_data(file_path):
@@ -228,26 +235,36 @@ if __name__ == "__main__":  # noqa E123
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
 
+    str = ""
     for trace, content in parsed_data.items():
         terms = content["terms"]
         data = content["data"]
-        print(f"{trace}")
-        print(f"{terms}")
+        # print(f"{trace}")
+        str += f"\n{trace}\n"
+        # print(f"{terms}")
+        str += f"{terms}\n"
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
-        print(f"{extended_terms}")
+        # print(f"{extended_terms}")
+        str += f"{extended_terms}\n"
 
         # models = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
-            print(f"Model for {term}: Score = {content['score']}", end=", ")
+            # print(f"Model for {term}: Score = {content['score']}", end=", ")
+            str += f"Model for {term}: Score = {content['score']}, "
             if "model_type" in content:
-                print(f"{content['model_type']}({content['params']})")
+                # print(f"{content['model_type']}({content['params']})")
+                str += f"{content['model_type']}({content['params']})\n"
             else:
-                print("Linear Regression")
+                # print("Linear Regression")
+                str += "Linear Regression\n"
 
-        print("\n")
+        # print("\n")
+        str += "\n"
 
         # Exclude the original terms and constant term in the equation display
-        infer_equation(models, extended_terms, threshold=0.49, delta=0.1)
+        str += infer_equation(models, extended_terms)
+
+    print(str)
