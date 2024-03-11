@@ -214,7 +214,7 @@ def display_equations(
         # print(f"Mean Squared Error for {term}: {mse}\n")
 
 
-def infer_equation(models, extended_terms, threshold=0.4):
+def infer_equation(models, extended_terms, threshold=0.49, delta=0.1):
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
             print(f"Model for {term}: Intercept = {content['intercept']}")
@@ -248,7 +248,11 @@ def infer_equation(models, extended_terms, threshold=0.4):
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        print(f"(error: {me})")
+        print(f"(error: {me})", end=", ")
+        if me < delta:
+            print("************** good fit")
+        else:
+            print("")
 
 
 def load_input_data(file_path):
@@ -284,4 +288,4 @@ if __name__ == "__main__":  # noqa E123
 
         # Exclude the original terms and constant term in the equation display
         # display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
-        infer_equation(models, extended_terms, threshold=0.49)
+        infer_equation(models, extended_terms, threshold=0.49, delta=0.1)
