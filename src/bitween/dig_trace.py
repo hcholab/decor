@@ -1,10 +1,13 @@
 import numpy as np
-from itertools import combinations_with_replacement
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import RidgeCV, LassoCV
-from joblib import Parallel, delayed
 import sympy as sp
+from itertools import combinations_with_replacement
+from sklearn.linear_model import Ridge, Lasso, LinearRegression
+from sklearn.model_selection import GridSearchCV, train_test_split
+
+
+import warnings
+
+warnings.filterwarnings(action="ignore")
 
 
 def parse_dig_vtrace_file(input_data):
@@ -70,113 +73,95 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
-def find_models(extended_terms, extended_data):
-    X = extended_data[:, :-1]  # Use all terms except the target variable itself
-    models = {}
+# def find_models(extended_terms, extended_data):
+#     X = extended_data[:, :-1]  # Use all terms except the target variable itself
+#     models = {}
 
-    def fit_model(target_idx):
-        y = extended_data[:, target_idx]
-        # Exclude the target variable from the features
-        X_train, X_test, y_train, y_test = train_test_split(
-            np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
-        )
+#     def fit_model(target_idx):
+#         y = extended_data[:, target_idx]
+#         # Exclude the target variable from the features
+#         X_train, X_test, y_train, y_test = train_test_split(
+#             np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
+#         )
 
-        model = LinearRegression()
-        model.fit(X_train, y_train)
+#         model = LinearRegression()
+#         model.fit(X_train, y_train)
 
-        score = model.score(X_test, y_test)
+#         score = model.score(X_test, y_test)
 
-        # Insert 0 for the target variable's coefficient
-        coefficients = np.insert(model.coef_, target_idx, 0)
-        intercept = model.intercept_
+#         # Insert 0 for the target variable's coefficient
+#         coefficients = np.insert(model.coef_, target_idx, 0)
+#         intercept = model.intercept_
 
-        return extended_terms[target_idx], model, score, coefficients, intercept
+#         return extended_terms[target_idx], model, score, coefficients, intercept
 
-    # Create a model for each term in extended_terms, excluding the constant '1'
-    results = Parallel(n_jobs=-1)(
-        delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
-    )
+#     # Create a model for each term in extended_terms, excluding the constant '1'
+#     results = Parallel(n_jobs=-1)(
+#         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
+#     )
 
-    for term, model, score, coefficients, intercept in results:
-        models[term] = {
-            "model": model,
-            "score": score,
-            "coefficients": coefficients,
-            "intercept": intercept,
-        }
+#     for term, model, score, coefficients, intercept in results:
+#         models[term] = {
+#             "model": model,
+#             "score": score,
+#             "coefficients": coefficients,
+#             "intercept": intercept,
+#         }
 
-    return models
+#     return models
 
 
 def find_best_model(extended_terms, extended_data):
     X = extended_data[:, :-1]  # Use all terms except the target variable itself
     models = {}
 
-    def fit_models(target_idx):
-        y = extended_data[:, target_idx]
-        X_mod = np.delete(
-            X, target_idx, axis=1
-        )  # Exclude the target variable from the features
+    # Define the models and parameters for grid search
+    model_params = {
+        "Linear Regression": {"model": LinearRegression(), "params": {}},
+        "Ridge": {
+            "model": Ridge(random_state=42),
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        },
+        "Lasso": {
+            "model": Lasso(random_state=42),
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        },
+    }
+
+    for i in range(len(extended_terms) - 1):
+        y = extended_data[:, i]
         X_train, X_test, y_train, y_test = train_test_split(
-            X_mod, y, test_size=0.1, random_state=42
+            np.delete(X, i, axis=1), y, test_size=0.1, random_state=42
         )
 
-        # Define models with cross-validation
-        linear_model = LinearRegression()
-        ridge_model = RidgeCV(alphas=np.logspace(-6, 6, 13))
-        lasso_model = LassoCV(alphas=np.logspace(-6, 6, 13))
+        best_score = -np.inf
+        best_model = None
+        best_model_name = ""
+        best_params = {}
+        best_intercept = None
+        best_coefficients = None
 
-        # Fit models
-        linear_model.fit(X_train, y_train)
-        ridge_model.fit(X_train, y_train)
-        lasso_model.fit(X_train, y_train)
+        for model_name, mp in model_params.items():
+            clf = GridSearchCV(mp["model"], mp["params"], cv=5, scoring="r2", n_jobs=-1)
+            clf.fit(X_train, y_train)
+            if clf.best_score_ > best_score:
+                best_score = clf.best_score_
+                best_model = clf.best_estimator_
+                best_model_name = model_name
+                best_params = clf.best_params_
+                best_intercept = best_model.intercept_
+                best_coefficients = best_model.coef_
 
-        # Compare models based on test score
-        scores = {
-            "Linear": linear_model.score(X_test, y_test),
-            "Ridge": ridge_model.score(X_test, y_test),
-            "Lasso": lasso_model.score(X_test, y_test),
-        }
-
-        best_model_name = max(scores, key=scores.get)
-        best_model = {
-            "Linear": linear_model,
-            "Ridge": ridge_model,
-            "Lasso": lasso_model,
-        }[best_model_name]
-
-        coefficients = np.insert(
-            best_model.coef_, target_idx, 0
-        )  # Insert 0 for the target variable's coefficient
-        intercept = best_model.intercept_
-
-        return (
-            extended_terms[target_idx],
-            best_model,
-            scores[best_model_name],
-            coefficients,
-            intercept,
-            best_model_name,
-        )
-
-    # Fit models in parallel
-    results = Parallel(n_jobs=-1)(
-        delayed(fit_models)(i) for i in range(len(extended_terms) - 1)
-    )
-
-    for term, model, score, coefficients, intercept, model_name in results:
-        models[term] = {
-            "model": model,
-            "score": score,
-            "coefficients": coefficients,
-            "intercept": intercept,
-            "model_type": model_name,
+        models[extended_terms[i]] = {
+            "model": best_model,
+            "score": best_score,
+            "model_type": best_model_name,
+            "params": best_params,
+            "intercept": best_intercept,
+            "coefficients": best_coefficients,
         }
 
     return models
-
-
-# Rest of the code remains the same. You can use find_best_model in place of find_models.
 
 
 def display_equations(models, extended_terms, threshold=0.4):
@@ -255,7 +240,8 @@ vtrace2; 295; 11; 296; 11; -251
 
         models = find_best_model(extended_terms, extended_data)
         for term, content in models.items():
-            print(f"Model for {term}: Score = {content['score']}")
+            print(f"Model for {term}: Score = {content['score']}", end=", ")
+            print(f"Model type = {content['model_type']}, Params = {content['params']}")
 
         print("\n")
 
