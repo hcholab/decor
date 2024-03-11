@@ -184,7 +184,7 @@ def milp_synthesis(  # noqa: C901
                 expr += f"{coeff}{terms[int(v.VarName[5:])]}"
                 first_term = False
             print(
-                f"%8s | %{max_len}s = %2s"
+                f"%8s | %{max_len}s = %3s"
                 % (v.VarName, terms[int(v.VarName[5:])], pp(v.X))
                 + f" | {cost}"
             )
