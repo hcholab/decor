@@ -136,11 +136,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         "Linear Regression": {"model": LinearRegression(), "params": {}},
         "Ridge": {
             "model": Ridge(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100, 1000]},
         },
         "Lasso": {
             "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+            "params": {"alpha": [1e-4, 1e-3, 1e-2, 1e-1, 1, 10, 100]},
         },
     }
 
@@ -188,7 +188,7 @@ def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta
     str = ""
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
-            str += f"Model for {term}: Intercept = {content['intercept']}!\n"
+            # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             continue
 
         rhs = 0
@@ -196,7 +196,7 @@ def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta
 
         # check all coefficients and if it is greater than 100, then skip it
         if np.any(np.abs(content["coefficients"]) >= coeff_cutoff):
-            str += f"Model for {term}: Large Coefficient!\n"
+            # str += f"Model for {term}: Large Coefficient!\n"
             continue
 
         for i, coefficient in enumerate(content["coefficients"]):
@@ -218,6 +218,7 @@ def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta
 
         X_test = content["X_test"]
         y_test = content["y_test"]
+
         # Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
         for i, row in enumerate(X_test):
@@ -266,7 +267,6 @@ if __name__ == "__main__":  # noqa E123
         # models = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
-            # print(f"Model for {term}: Score = {content['score']}", end=", ")
             str += f"Model for {term}: Score = {content['score']}, "
             if "model_type" in content:
                 str += f"{content['model_type']}({content['params']})\n"
