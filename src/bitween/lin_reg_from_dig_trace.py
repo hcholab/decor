@@ -198,6 +198,7 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
+        equation = sp.simplify(equation)
         str += f"Model for {term}: {equation}, "
 
         X_test = content["X_test"]
@@ -228,7 +229,9 @@ def load_input_data(file_path):
 
 if __name__ == "__main__":  # noqa E123
 
-    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
 
@@ -244,8 +247,8 @@ if __name__ == "__main__":  # noqa E123
 
         str += f"{extended_terms}\n"
 
-        # models = find_best_model(extended_terms, extended_data)
-        models = find_models(extended_terms, extended_data)
+        models = find_best_model(extended_terms, extended_data)
+        # models = find_models(extended_terms, extended_data)
         for term, content in models.items():
             # print(f"Model for {term}: Score = {content['score']}", end=", ")
             str += f"Model for {term}: Score = {content['score']}, "
