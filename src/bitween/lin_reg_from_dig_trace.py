@@ -179,9 +179,9 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
     str = ""
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
-            # print(f"Model for {term}: Intercept = {content['intercept']}")
             str += f"Model for {term}: Intercept = {content['intercept']}\n"
             continue
+
         rhs = 0
         coeff_terms = {}
         for i, coefficient in enumerate(content["coefficients"]):
@@ -198,7 +198,6 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
-        # print(f"Model for {term}: {equation}", end=", ")
         str += f"Model for {term}: {equation}, "
 
         X_test = content["X_test"]
@@ -212,14 +211,12 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        # print(f"(error: {me})", end=", ")
         str += f"(error: {me}), "
         if me < delta:
-            # print(">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<")
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
-            # print("")
             str += "\n"
+
     return str
 
 
@@ -239,14 +236,12 @@ if __name__ == "__main__":  # noqa E123
     for trace, content in parsed_data.items():
         terms = content["terms"]
         data = content["data"]
-        # print(f"{trace}")
+
         str += f"\n{trace}\n"
-        # print(f"{terms}")
         str += f"{terms}\n"
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
-        # print(f"{extended_terms}")
         str += f"{extended_terms}\n"
 
         # models = find_best_model(extended_terms, extended_data)
@@ -255,13 +250,10 @@ if __name__ == "__main__":  # noqa E123
             # print(f"Model for {term}: Score = {content['score']}", end=", ")
             str += f"Model for {term}: Score = {content['score']}, "
             if "model_type" in content:
-                # print(f"{content['model_type']}({content['params']})")
                 str += f"{content['model_type']}({content['params']})\n"
             else:
-                # print("Linear Regression")
                 str += "Linear Regression\n"
 
-        # print("\n")
         str += "\n"
 
         # Exclude the original terms and constant term in the equation display
