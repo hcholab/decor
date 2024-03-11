@@ -87,7 +87,7 @@ def find_models(extended_terms, extended_data):
         score = model.score(X_test, y_test)
 
         # Insert 0 for the target variable's coefficient
-        coefficients = np.insert(model.coef_, target_idx, 0)
+        coefficients = model.coef_
         intercept = model.intercept_
 
         return (
@@ -214,18 +214,20 @@ def display_equations(
         # print(f"Mean Squared Error for {term}: {mse}\n")
 
 
-def display_equations_1(models, extended_terms, threshold=0.4):
+def infer_equation(models, extended_terms, threshold=0.4):
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
             print(f"Model for {term}: Intercept = {content['intercept']}")
             continue
         rhs = 0
+        coeff_terms = {}
         for i, coefficient in enumerate(content["coefficients"]):
             if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
                 if abs(coefficient) >= threshold:
                     coeff = round(coefficient, 2)
                     if coeff != 0:
                         rhs += coeff * sp.symbols(extended_terms[i])
+                        coeff_terms[extended_terms[i]] = coeff
 
         # Add the constant term (intercept)
         intercept = round(content["intercept"], 2)
@@ -233,7 +235,20 @@ def display_equations_1(models, extended_terms, threshold=0.4):
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
-        print(f"Model for {term}: {equation}")
+        print(f"Model for {term}: {equation}", end=", ")
+
+        X_test = content["X_test"]
+        y_test = content["y_test"]
+        # Evaluate the equation for each row in X_test
+        rhs_values = np.zeros(y_test.shape[0])
+        for i, row in enumerate(X_test):
+            for t, coeff in coeff_terms.items():
+                rhs_values[i] += coeff * row[extended_terms.index(t)]
+            if intercept > threshold:
+                rhs_values[i] += intercept
+
+        me = np.mean(np.abs(rhs_values - y_test))
+        print(f"(error: {me})")
 
 
 def load_input_data(file_path):
@@ -269,4 +284,4 @@ if __name__ == "__main__":  # noqa E123
 
         # Exclude the original terms and constant term in the equation display
         # display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
-        display_equations_1(models, extended_terms, threshold=0.49)
+        infer_equation(models, extended_terms, threshold=0.49)
