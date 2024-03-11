@@ -129,10 +129,10 @@ def find_best_model(extended_terms, extended_data):
         #     "model": Ridge(random_state=42),
         #     "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
         # },
-        # "Lasso": {
-        #     "model": Lasso(random_state=42),
-        #     "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-        # },
+        "Lasso": {
+            "model": Lasso(random_state=42),
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        },
     }
 
     for i in range(len(extended_terms) - 1):
@@ -168,50 +168,11 @@ def find_best_model(extended_terms, extended_data):
             "params": best_params,
             "intercept": best_intercept,
             "coefficients": best_coefficients,
+            "X_test": X_test,
+            "y_test": y_test,
         }
 
-    return models, X_test, y_test
-
-
-def display_equations(
-    models, extended_terms, X_test, y_test, threshold=0.4  # noqa F401
-):
-    for term, content in models.items():
-        if np.abs(content["intercept"]) >= 100:
-            print(f"Model for {term}: Intercept = {content['intercept']}")
-            continue
-
-        # Construct the rhs of the equation
-        rhs = 0
-        rhs_terms_indices = {}
-        for i, coefficient in enumerate(content["coefficients"]):
-            if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
-                if abs(coefficient) >= threshold:
-                    coeff = round(coefficient, 2)
-                    if coeff != 0:
-                        rhs += coeff * sp.symbols(extended_terms[i])
-                        rhs_terms_indices[extended_terms[i]] = (i, coeff)
-
-        # Add the constant term (intercept)
-        intercept = round(content["intercept"], 2)
-        if intercept:
-            rhs += intercept
-
-        # Display the equation
-        equation = sp.Eq(sp.symbols(term), rhs)
-        print(f"Model for {term}: {equation}")
-
-        # # Evaluate the equation for each row in X_test
-        # rhs_values = np.zeros(y_test.shape[0])
-        # for i, row in enumerate(X_test):
-        #     for index, coeff in rhs_terms_indices.values():
-        #         rhs_values[i] += coeff * row[index]
-        #     rhs_values[i] += intercept
-
-        # # Assuming y_test is for the current term only
-        # # Compute Mean Squared Error as a fitness score
-        # mse = np.mean(np.abs(rhs_values - y_test))
-        # print(f"Mean Squared Error for {term}: {mse}\n")
+    return models
 
 
 def infer_equation(models, extended_terms, threshold=0.49, delta=0.1):
@@ -277,7 +238,7 @@ if __name__ == "__main__":  # noqa E123
 
         print(f"{extended_terms}")
 
-        # models, X_test, y_test = find_best_model(extended_terms, extended_data)
+        # models = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
             print(f"Model for {term}: Score = {content['score']}")
