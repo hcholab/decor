@@ -1,13 +1,10 @@
+import warnings
 import numpy as np
+from sklearn.exceptions import ConvergenceWarning
 import sympy as sp
 from itertools import combinations_with_replacement
-from sklearn.linear_model import Ridge, Lasso, LinearRegression
+from sklearn.linear_model import Ridge, Lasso, LinearRegression  # noqa F401
 from sklearn.model_selection import GridSearchCV, train_test_split
-
-
-import warnings
-
-warnings.filterwarnings(action="ignore")
 
 
 def parse_dig_vtrace_file(input_data):
@@ -118,14 +115,14 @@ def find_best_model(extended_terms, extended_data):
     # Define the models and parameters for grid search
     model_params = {
         "Linear Regression": {"model": LinearRegression(), "params": {}},
-        "Ridge": {
-            "model": Ridge(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-        },
-        "Lasso": {
-            "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
-        },
+        # "Ridge": {
+        #     "model": Ridge(random_state=42),
+        #     "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        # },
+        # "Lasso": {
+        #     "model": Lasso(random_state=42),
+        #     "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+        # },
     }
 
     for i in range(len(extended_terms) - 1):
@@ -143,14 +140,16 @@ def find_best_model(extended_terms, extended_data):
 
         for model_name, mp in model_params.items():
             clf = GridSearchCV(mp["model"], mp["params"], cv=5, scoring="r2", n_jobs=-1)
-            clf.fit(X_train, y_train)
-            if clf.best_score_ > best_score:
-                best_score = clf.best_score_
-                best_model = clf.best_estimator_
-                best_model_name = model_name
-                best_params = clf.best_params_
-                best_intercept = best_model.intercept_
-                best_coefficients = best_model.coef_
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=ConvergenceWarning)
+                clf.fit(X_train, y_train)
+                if clf.best_score_ > best_score:
+                    best_score = clf.best_score_
+                    best_model = clf.best_estimator_
+                    best_model_name = model_name
+                    best_params = clf.best_params_
+                    best_intercept = best_model.intercept_
+                    best_coefficients = best_model.coef_
 
         models[extended_terms[i]] = {
             "model": best_model,
@@ -161,10 +160,50 @@ def find_best_model(extended_terms, extended_data):
             "coefficients": best_coefficients,
         }
 
-    return models
+    return models, X_test, y_test
 
 
-def display_equations(models, extended_terms, threshold=0.4):
+def display_equations(models, extended_terms, X_test, y_test, threshold=0.4):
+    for term, content in models.items():
+        if np.abs(content["intercept"]) >= 100:
+            print(f"Model for {term}: Intercept = {content['intercept']}")
+            continue
+
+        # Construct the rhs of the equation
+        rhs = 0
+        rhs_terms_indices = {}
+        for i, coefficient in enumerate(content["coefficients"]):
+            if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
+                if abs(coefficient) >= threshold:
+                    coeff = round(coefficient, 2)
+                    if coeff != 0:
+                        rhs += coeff * sp.symbols(extended_terms[i])
+                        rhs_terms_indices[extended_terms[i]] = i
+
+        # Add the constant term (intercept)
+        intercept = round(content["intercept"], 2)
+        if intercept:
+            rhs += intercept
+
+        # Display the equation
+        equation = sp.Eq(sp.symbols(term), rhs)
+        print(f"Model for {term}: {equation}")
+
+        # Evaluate the equation for each row in X_test
+        rhs_values = np.zeros(y_test.shape[0])
+        for term_name, index in rhs_terms_indices.items():
+            rhs_values += X_test[:, index] * content["coefficients"][index]
+        rhs_values += intercept
+
+        # Assuming y_test is for the current term only
+        actual_values = y_test
+
+        # Compute Mean Squared Error as a fitness score
+        mse = np.mean((rhs_values - actual_values) ** 2)
+        print(f"Mean Squared Error for {term}: {mse}\n")
+
+
+def display_equations_1(models, extended_terms, threshold=0.4):
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
             print(f"Model for {term}: Intercept = {content['intercept']}")
@@ -238,7 +277,7 @@ vtrace2; 295; 11; 296; 11; -251
         print(f"{extended_terms}")
         # print(f"{extended_data}\n")
 
-        models = find_best_model(extended_terms, extended_data)
+        models, X_test, y_test = find_best_model(extended_terms, extended_data)
         for term, content in models.items():
             print(f"Model for {term}: Score = {content['score']}", end=", ")
             print(f"Model type = {content['model_type']}, Params = {content['params']}")
@@ -246,4 +285,4 @@ vtrace2; 295; 11; 296; 11; -251
         print("\n")
 
         # Exclude the original terms and constant term in the equation display
-        display_equations(models, extended_terms)
+        display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
