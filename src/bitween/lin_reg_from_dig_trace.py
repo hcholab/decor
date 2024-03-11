@@ -71,7 +71,7 @@ def process_trace(terms, data, degree):
 
 
 def find_models(extended_terms, extended_data):
-    X = extended_data[:, :-1]  # Use all terms except the target variable itself
+    X = extended_data[:, :-1]  # Exclude the constant term
     models = {}
 
     def fit_model(target_idx):
@@ -90,19 +90,29 @@ def find_models(extended_terms, extended_data):
         coefficients = np.insert(model.coef_, target_idx, 0)
         intercept = model.intercept_
 
-        return extended_terms[target_idx], model, score, coefficients, intercept
+        return (
+            extended_terms[target_idx],
+            model,
+            score,
+            coefficients,
+            intercept,
+            X_test,
+            y_test,
+        )
 
     # Create a model for each term in extended_terms, excluding the constant '1'
     results = Parallel(n_jobs=-1)(
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
-    for term, model, score, coefficients, intercept in results:
+    for term, model, score, coefficients, intercept, X_test, y_test in results:
         models[term] = {
             "model": model,
             "score": score,
             "coefficients": coefficients,
             "intercept": intercept,
+            "X_test": X_test,
+            "y_test": y_test,
         }
 
     return models
@@ -237,19 +247,16 @@ if __name__ == "__main__":  # noqa E123
     file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
-    # print(parsed_data)
 
     for trace, content in parsed_data.items():
         terms = content["terms"]
         data = content["data"]
         print(f"{trace}")
         print(f"{terms}")
-        # print(f"{data}\n")
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
         print(f"{extended_terms}")
-        # print(f"{extended_data}\n")
 
         # models, X_test, y_test = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
