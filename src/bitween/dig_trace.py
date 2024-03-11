@@ -62,33 +62,39 @@ def process_trace(terms, data, degree):
     monomials = generate_monomials(terms, degree)
     extended_terms = terms + monomials[len(terms) :]
     monomial_data = calculate_monomial_data(terms, monomials, data)
-    extended_data = np.hstack((data, monomial_data))
+    # extended_data = np.hstack((data, monomial_data))
     # append ones column for the constant term to the extended data and a constant term to the extended terms
     extended_terms.append("1")
-    extended_data = np.hstack((extended_data, np.ones((data.shape[0], 1))))
+    extended_data = np.hstack((monomial_data, np.ones((data.shape[0], 1))))
     return extended_terms, extended_data
 
 
-def find_models(terms, extended_data):
-    X = extended_data[:, len(terms) : -1]  # Exclude target and constant term
+def find_models(extended_terms, extended_data):
+    X = extended_data[:, :-1]  # Use all terms except the target variable itself
     models = {}
 
     def fit_model(target_idx):
         y = extended_data[:, target_idx]
+        # Exclude the target variable from the features
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+            np.delete(X, target_idx, axis=1), y, test_size=0.1, random_state=42
         )
 
         model = LinearRegression()
         model.fit(X_train, y_train)
 
         score = model.score(X_test, y_test)
-        coefficients = model.coef_
+
+        # Insert 0 for the target variable's coefficient
+        coefficients = np.insert(model.coef_, target_idx, 0)
         intercept = model.intercept_
 
-        return terms[target_idx], model, score, coefficients, intercept
+        return extended_terms[target_idx], model, score, coefficients, intercept
 
-    results = Parallel(n_jobs=-1)(delayed(fit_model)(i) for i in range(len(terms)))
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    results = Parallel(n_jobs=-1)(
+        delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
+    )
 
     for term, model, score, coefficients, intercept in results:
         models[term] = {
@@ -101,17 +107,32 @@ def find_models(terms, extended_data):
     return models
 
 
-def display_equations(models, extended_terms):
+def display_equations(models, extended_terms, threshold=0.4):
     for term, content in models.items():
-        equation = sp.Eq(
-            sp.symbols(term),
-            sum(
-                content["coefficients"][i] * sp.symbols(extended_terms[i])
-                for i in range(len(content["coefficients"]))
-            )
-            + content["intercept"],
-        )
+        if content["intercept"] >= 100:
+            print(f"Model for {term}: Intercept = {content['intercept']}")
+            continue
+        rhs = 0
+        for i, coefficient in enumerate(content["coefficients"]):
+            if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
+                if abs(coefficient) >= threshold:
+                    coeff = round(coefficient, 2)
+                    if coeff != 0:
+                        rhs += coeff * sp.symbols(extended_terms[i])
+
+        # Add the constant term (intercept)
+        intercept = round(content["intercept"], 2)
+        if intercept:
+            rhs += intercept
+
+        equation = sp.Eq(sp.symbols(term), rhs)
         print(f"Model for {term}: {equation}")
+
+
+def load_input_data(file_path):
+    with open(file_path, "r") as file:
+        input_data = file.read()
+    return input_data
 
 
 if __name__ == "__main__":  # noqa E123
@@ -143,6 +164,8 @@ vtrace2; 4; 10; 5; 5; 76
 vtrace2; 295; 11; 296; 11; -251
 """
 
+    file_path = "bresenham.dig.dyn.traces"  # Path to your file
+    input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
     print(parsed_data)
 
@@ -158,7 +181,7 @@ vtrace2; 295; 11; 296; 11; -251
         print(f"{extended_terms}")
         print(f"{extended_data}\n")
 
-        models = find_models(terms, extended_terms, extended_data)
+        models = find_models(extended_terms, extended_data)
         for term, content in models.items():
             print(f"Model for {term}: Score = {content['score']}")
 
