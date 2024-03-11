@@ -1,10 +1,19 @@
 import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
+from sklearn.ensemble import RandomForestRegressor  # noqa F401
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.svm import SVR  # noqa F401
+from sklearn.tree import DecisionTreeRegressor  # noqa F401
 import sympy as sp
 from itertools import combinations_with_replacement
-from sklearn.linear_model import Ridge, Lasso, LinearRegression  # noqa F401
+from sklearn.linear_model import (  # noqa F401
+    ElasticNet,
+    Ridge,
+    Lasso,
+    LinearRegression,
+    SGDRegressor,
+)
 from sklearn.model_selection import GridSearchCV, train_test_split
 
 
@@ -70,7 +79,7 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
-def find_models(extended_terms, extended_data, test_size=0.1):
+def find_models(extended_terms, extended_data, test_size=0.2):
     X = extended_data[:, :-1]  # Exclude the constant term
     models = {}
 
@@ -175,15 +184,21 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
     return models
 
 
-def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
+def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta=0.2):
     str = ""
     for term, content in models.items():
         if np.abs(content["intercept"]) >= 100:
-            str += f"Model for {term}: Intercept = {content['intercept']}\n"
+            str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             continue
 
         rhs = 0
         coeff_terms = {}
+
+        # check all coefficients and if it is greater than 100, then skip it
+        if np.any(np.abs(content["coefficients"]) >= coeff_cutoff):
+            str += f"Model for {term}: Large Coefficient!\n"
+            continue
+
         for i, coefficient in enumerate(content["coefficients"]):
             if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
                 if abs(coefficient) >= threshold:
@@ -198,7 +213,7 @@ def infer_equation(models, extended_terms, threshold=0.49, delta=0.2):
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(term), rhs)
-        equation = sp.simplify(equation)
+        # equation = sp.simplify(equation)
         str += f"Model for {term}: {equation}, "
 
         X_test = content["X_test"]
@@ -229,9 +244,10 @@ def load_input_data(file_path):
 
 if __name__ == "__main__":  # noqa E123
 
-    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
-    file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
 
@@ -247,8 +263,8 @@ if __name__ == "__main__":  # noqa E123
 
         str += f"{extended_terms}\n"
 
-        models = find_best_model(extended_terms, extended_data)
-        # models = find_models(extended_terms, extended_data)
+        # models = find_best_model(extended_terms, extended_data)
+        models = find_models(extended_terms, extended_data)
         for term, content in models.items():
             # print(f"Model for {term}: Score = {content['score']}", end=", ")
             str += f"Model for {term}: Score = {content['score']}, "
