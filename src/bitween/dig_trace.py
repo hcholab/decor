@@ -282,7 +282,8 @@ vtrace2; 295; 11; 296; 11; -251
         # models, X_test, y_test = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
-            print(f"Model for {term}: Score = {content['score']}", end=", ")
+            print(f"Model for {term}: Score = {content['score']}")
+            # print(f"Model for {term}: Score = {content['score']}", end=", ")
             # print(f"Model type = {content['model_type']}, Params = {content['params']}")
 
         print("\n")
