@@ -189,18 +189,18 @@ def display_equations(models, extended_terms, X_test, y_test, threshold=0.4):
         equation = sp.Eq(sp.symbols(term), rhs)
         print(f"Model for {term}: {equation}")
 
-        # Evaluate the equation for each row in X_test
-        rhs_values = np.zeros(y_test.shape[0])
-        for term_name, index in rhs_terms_indices.items():
-            rhs_values += X_test[:, index] * content["coefficients"][index]
-        rhs_values += intercept
+        # # Evaluate the equation for each row in X_test
+        # rhs_values = np.zeros(y_test.shape[0])
+        # for term_name, index in rhs_terms_indices.items():
+        #     rhs_values += X_test[:, index] * content["coefficients"][index]
+        # rhs_values += intercept
 
-        # Assuming y_test is for the current term only
-        actual_values = y_test
+        # # Assuming y_test is for the current term only
+        # actual_values = y_test
 
-        # Compute Mean Squared Error as a fitness score
-        mse = np.mean((rhs_values - actual_values) ** 2)
-        print(f"Mean Squared Error for {term}: {mse}\n")
+        # # Compute Mean Squared Error as a fitness score
+        # mse = np.mean((rhs_values - actual_values) ** 2)
+        # print(f"Mean Squared Error for {term}: {mse}\n")
 
 
 def display_equations_1(models, extended_terms, threshold=0.4):
