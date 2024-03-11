@@ -109,7 +109,7 @@ def find_models(extended_terms, extended_data):
 
 def display_equations(models, extended_terms, threshold=0.4):
     for term, content in models.items():
-        if content["intercept"] >= 100:
+        if np.abs(content["intercept"]) >= 100:
             print(f"Model for {term}: Intercept = {content['intercept']}")
             continue
         rhs = 0
@@ -167,19 +167,19 @@ vtrace2; 295; 11; 296; 11; -251
     file_path = "bresenham.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
-    print(parsed_data)
+    # print(parsed_data)
 
     for trace, content in parsed_data.items():
         terms = content["terms"]
         data = content["data"]
         print(f"{trace}")
         print(f"{terms}")
-        print(f"{data}\n")
+        # print(f"{data}\n")
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
         print(f"{extended_terms}")
-        print(f"{extended_data}\n")
+        # print(f"{extended_data}\n")
 
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
