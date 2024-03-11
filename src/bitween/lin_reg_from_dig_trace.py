@@ -241,12 +241,13 @@ if __name__ == "__main__":  # noqa E123
         # models = find_best_model(extended_terms, extended_data)
         models = find_models(extended_terms, extended_data)
         for term, content in models.items():
-            print(f"Model for {term}: Score = {content['score']}")
-            # print(f"Model for {term}: Score = {content['score']}", end=", ")
-            # print(f"Model type = {content['model_type']}, Params = {content['params']}")
+            print(f"Model for {term}: Score = {content['score']}", end=", ")
+            if "model_type" in content:
+                print(f"{content['model_type']}({content['params']})")
+            else:
+                print("Linear Regression")
 
         print("\n")
 
         # Exclude the original terms and constant term in the equation display
-        # display_equations(models, extended_terms, X_test, y_test, threshold=0.4)
         infer_equation(models, extended_terms, threshold=0.49, delta=0.1)
