@@ -198,8 +198,8 @@ def infer_equation(
     objective_threshold=1e-12,
 ):
     lin_str = ""
-    for pivot, content in models.items():
-        if np.abs(content["intercept"]) >= 100:
+    for pivot, model in models.items():
+        if np.abs(model["intercept"]) >= 100:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             continue
 
@@ -208,12 +208,12 @@ def infer_equation(
         selected_terms = [pivot]  # Include LHS term
 
         # check all coefficients and if it is greater than 100, then skip it
-        if np.any(np.abs(content["coefficients"]) >= coeff_cutoff):
+        if np.any(np.abs(model["coefficients"]) >= coeff_cutoff):
             # str += f"Model for {term}: Large Coefficient!\n"
             continue
 
-        for i, coefficient in enumerate(content["coefficients"]):
-            if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
+        for i, coefficient in enumerate(model["coefficients"]):
+            if i != len(model["coefficients"]) - 1:  # Skip the constant term for now
                 if abs(coefficient) >= threshold:
                     coeff = round(coefficient, 2)
                     if coeff != 0:
@@ -223,7 +223,7 @@ def infer_equation(
                         selected_terms.append(extended_terms[i])
 
         # Add the constant term (intercept)
-        intercept = round(content["intercept"], 2)
+        intercept = round(model["intercept"], 2)
         if intercept > threshold:
             rhs += intercept
 
@@ -231,8 +231,8 @@ def infer_equation(
         # equation = sp.simplify(equation)
         lin_str += f"Model for {pivot}: {equation}, "
 
-        X_test = content["X_test"]
-        y_test = content["y_test"]
+        X_test = model["X_test"]
+        y_test = model["y_test"]
 
         # Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
