@@ -528,7 +528,7 @@ if __name__ == "__main__":  # noqa E123
     ]
 
     # ------------------------------------------
-    exit()
+    # exit()
     x, x0, c = symbols("x x0 c", real=True)
     f = Function("f")
 
