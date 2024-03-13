@@ -266,9 +266,10 @@ if __name__ == "__main__":  # noqa E123
 
         str += f"{extended_terms}\n"
 
-        # use cross validation to find the best model for each term
+        # (Option 1) use cross validation to find the best model for each term
         # models = find_best_model(extended_terms, extended_data)
-        # use simple linear regression to find a model for each term
+
+        # (Option 2) use simple linear regression to find a model for each term
         models = find_models(extended_terms, extended_data)
 
         # Display the models and their equations
