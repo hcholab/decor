@@ -1,10 +1,7 @@
 import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor  # noqa F401
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.svm import SVR  # noqa F401
-from sklearn.tree import DecisionTreeRegressor  # noqa F401
 import sympy as sp
 from itertools import combinations_with_replacement
 from sklearn.linear_model import (  # noqa F401
@@ -15,6 +12,9 @@ from sklearn.linear_model import (  # noqa F401
     SGDRegressor,
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
+
+from bitween.milp import OPTIMAL, milp_synthesis
+from bitween.terms import canonicalize
 
 
 def parse_dig_vtrace_file(input_data):
@@ -184,40 +184,51 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
     return models
 
 
-def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta=0.2):
+def infer_equation(
+    models,
+    extended_terms,
+    extended_data,
+    threshold=0.3,
+    coeff_cutoff=50,
+    delta=0.2,
+    objective_threshold=1e-12,
+):
     str = ""
-    for term, content in models.items():
-        if np.abs(content["intercept"]) >= 100:
+    for pivot, model in models.items():
+        if np.abs(model["intercept"]) >= 100:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             continue
 
         rhs = 0
         coeff_terms = {}
+        selected_terms = [pivot]  # Include LHS term
 
         # check all coefficients and if it is greater than 100, then skip it
-        if np.any(np.abs(content["coefficients"]) >= coeff_cutoff):
+        if np.any(np.abs(model["coefficients"]) >= coeff_cutoff):
             # str += f"Model for {term}: Large Coefficient!\n"
             continue
 
-        for i, coefficient in enumerate(content["coefficients"]):
-            if i != len(content["coefficients"]) - 1:  # Skip the constant term for now
+        for i, coefficient in enumerate(model["coefficients"]):
+            if i != len(model["coefficients"]) - 1:  # Skip the constant term for now
                 if abs(coefficient) >= threshold:
                     coeff = round(coefficient, 2)
                     if coeff != 0:
                         rhs += coeff * sp.symbols(extended_terms[i])
                         coeff_terms[extended_terms[i]] = coeff
+                        # Include term in selected list
+                        selected_terms.append(extended_terms[i])
 
         # Add the constant term (intercept)
-        intercept = round(content["intercept"], 2)
+        intercept = round(model["intercept"], 2)
         if intercept > threshold:
             rhs += intercept
 
-        equation = sp.Eq(sp.symbols(term), rhs)
+        equation = sp.Eq(sp.symbols(pivot), rhs)
         # equation = sp.simplify(equation)
-        str += f"Model for {term}: {equation}, "
+        str += f"Model for {pivot}: {equation}, "
 
-        X_test = content["X_test"]
-        y_test = content["y_test"]
+        X_test = model["X_test"]
+        y_test = model["y_test"]
 
         # Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
@@ -234,6 +245,32 @@ def infer_equation(models, extended_terms, threshold=0.4, coeff_cutoff=50, delta
         else:
             str += "\n"
 
+        # Selecting respective columns from data
+        selected_indices = [
+            extended_terms.index(term)
+            for term in selected_terms
+            if term in extended_terms
+        ]
+        selected_data = extended_data[:, selected_indices]
+        # Append a column of ones to selected_data
+        selected_terms.append("1")
+        # Append a column of ones to selected_data
+        ones_column = np.ones((selected_data.shape[0], 1))
+        selected_data = np.hstack((selected_data, ones_column))
+
+        print(selected_terms)
+        print(selected_data)
+
+        status, expr, obj, _ = milp_synthesis(
+            selected_data, selected_terms, pivot, bound=15
+        )
+        if status == OPTIMAL:
+            # check if the objective is small enough
+            if abs(obj) < objective_threshold:
+                expr = canonicalize(expr)
+                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
+                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
+
     return str
 
 
@@ -245,11 +282,11 @@ def load_input_data(file_path):
 
 if __name__ == "__main__":  # noqa E123
 
-    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"  # Path to your file
-    file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
 
@@ -282,6 +319,6 @@ if __name__ == "__main__":  # noqa E123
 
         str += "\n"
 
-        str += infer_equation(models, extended_terms)
+        str += infer_equation(models, extended_terms, extended_data)
 
     print(str)
