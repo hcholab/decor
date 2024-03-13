@@ -1,10 +1,7 @@
 import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor  # noqa F401
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.svm import SVR  # noqa F401
-from sklearn.tree import DecisionTreeRegressor  # noqa F401
 import sympy as sp
 from itertools import combinations_with_replacement
 from sklearn.linear_model import (  # noqa F401
@@ -15,9 +12,8 @@ from sklearn.linear_model import (  # noqa F401
     SGDRegressor,
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
-from bitween.milp import milp_synthesis
-from gurobipy import GRB
 
+from bitween.milp import OPTIMAL, milp_synthesis
 from bitween.terms import canonicalize
 
 
@@ -197,7 +193,7 @@ def infer_equation(
     delta=0.2,
     objective_threshold=1e-12,
 ):
-    lin_str = ""
+    str = ""
     for pivot, model in models.items():
         if np.abs(model["intercept"]) >= 100:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
@@ -229,7 +225,7 @@ def infer_equation(
 
         equation = sp.Eq(sp.symbols(pivot), rhs)
         # equation = sp.simplify(equation)
-        lin_str += f"Model for {pivot}: {equation}, "
+        str += f"Model for {pivot}: {equation}, "
 
         X_test = model["X_test"]
         y_test = model["y_test"]
@@ -243,11 +239,11 @@ def infer_equation(
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        lin_str += f"(error: {me}), "
+        str += f"(error: {me}), "
         if me < delta:
-            lin_str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
+            str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
-            lin_str += "\n"
+            str += "\n"
 
         # Selecting respective columns from data
         selected_indices = [
@@ -268,14 +264,14 @@ def infer_equation(
         status, expr, obj, _ = milp_synthesis(
             selected_data, selected_terms, pivot, bound=15
         )
-        if status == GRB.OPTIMAL:
+        if status == OPTIMAL:
             # check if the objective is small enough
             if abs(obj) < objective_threshold:
                 expr = canonicalize(expr)
-                lin_str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
-                lin_str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
+                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
+                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
 
-    return lin_str
+    return str
 
 
 def load_input_data(file_path):
@@ -286,10 +282,11 @@ def load_input_data(file_path):
 
 if __name__ == "__main__":  # noqa E123
 
-    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
-    file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
     # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"  # Path to your file
+    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"  # Path to your file
     input_data = load_input_data(file_path)
     parsed_data = parse_dig_vtrace_file(input_data)
 
@@ -298,15 +295,21 @@ if __name__ == "__main__":  # noqa E123
         terms = content["terms"]
         data = content["data"]
 
-        str += f"\n{trace}\n"
-        str += f"{terms}\n"
+        str += f"\nTrace: {trace}\n"
+        str += f"Terms: {terms}\n"
+        str += f"Shape: {data.shape}\n"
 
         extended_terms, extended_data = process_trace(terms, data, 2)
 
         str += f"{extended_terms}\n"
 
+        # (Option 1) use cross validation to find the best model for each term
         # models = find_best_model(extended_terms, extended_data)
+
+        # (Option 2) use simple linear regression to find a model for each term
         models = find_models(extended_terms, extended_data)
+
+        # Display the models and their equations
         for term, content in models.items():
             str += f"Model for {term}: Score = {content['score']}, "
             if "model_type" in content:
@@ -316,7 +319,6 @@ if __name__ == "__main__":  # noqa E123
 
         str += "\n"
 
-        # Exclude the original terms and constant term in the equation display
         str += infer_equation(models, extended_terms, extended_data)
 
     print(str)
