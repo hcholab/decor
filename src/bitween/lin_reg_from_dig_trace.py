@@ -13,9 +13,6 @@ from sklearn.linear_model import (  # noqa F401
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
 
-from bitween.milp import OPTIMAL, milp_synthesis
-from bitween.terms import canonicalize
-
 
 def parse_dig_vtrace_file(input_data):
     # Splitting the input data into lines
@@ -187,11 +184,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
 def infer_equation(
     models,
     extended_terms,
-    extended_data,
+    extended_data,  # noqa F401
     threshold=0.3,
     coeff_cutoff=50,
     delta=0.2,
-    objective_threshold=1e-12,
+    # objective_threshold=1e-12,
 ):
     str = ""
     for pivot, model in models.items():
@@ -244,32 +241,6 @@ def infer_equation(
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
-
-        # Selecting respective columns from data
-        selected_indices = [
-            extended_terms.index(term)
-            for term in selected_terms
-            if term in extended_terms
-        ]
-        selected_data = extended_data[:, selected_indices]
-        # Append a column of ones to selected_data
-        selected_terms.append("1")
-        # Append a column of ones to selected_data
-        ones_column = np.ones((selected_data.shape[0], 1))
-        selected_data = np.hstack((selected_data, ones_column))
-
-        print(selected_terms)
-        print(selected_data)
-
-        status, expr, obj, _ = milp_synthesis(
-            selected_data, selected_terms, pivot, bound=15
-        )
-        if status == OPTIMAL:
-            # check if the objective is small enough
-            if abs(obj) < objective_threshold:
-                expr = canonicalize(expr)
-                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
-                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
 
     return str
 
