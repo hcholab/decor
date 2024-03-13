@@ -47,6 +47,9 @@ or
 Setup poetry on MacOS: 
     * Poetry: `brew install poetry`
 
+Setup poetry on Linux:
+    * Poetry: https://python-poetry.org/docs/#installing-with-the-official-installer
+
 ```bash
 poetry --version
 conda --version
