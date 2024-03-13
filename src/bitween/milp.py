@@ -14,6 +14,8 @@ NUMERIC_FOCUS = 3
 ERROR_BOUND = 0.1  # 0.05
 ROUND = None
 
+OPTIMAL = GRB.OPTIMAL
+
 
 def milp_synthesis(  # noqa: C901
     data: np.ndarray,
