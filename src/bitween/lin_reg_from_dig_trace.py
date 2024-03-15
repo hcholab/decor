@@ -185,14 +185,15 @@ def infer_equation(
     models,
     extended_terms,
     extended_data,  # noqa F401
-    threshold=0.3,
+    coeff_threshold=0.3,
     coeff_cutoff=50,
+    intercept_cutoff=100,
     delta=0.2,
     # objective_threshold=1e-12,
 ):
     str = ""
     for pivot, model in models.items():
-        if np.abs(model["intercept"]) >= 100:
+        if np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             continue
 
@@ -207,7 +208,7 @@ def infer_equation(
 
         for i, coefficient in enumerate(model["coefficients"]):
             if i != len(model["coefficients"]) - 1:  # Skip the constant term for now
-                if abs(coefficient) >= threshold:
+                if abs(coefficient) >= coeff_threshold:
                     coeff = round(coefficient, 2)
                     if coeff != 0:
                         rhs += coeff * sp.symbols(extended_terms[i])
@@ -217,7 +218,7 @@ def infer_equation(
 
         # Add the constant term (intercept)
         intercept = round(model["intercept"], 2)
-        if intercept > threshold:
+        if intercept > coeff_threshold:
             rhs += intercept
 
         equation = sp.Eq(sp.symbols(pivot), rhs)
@@ -232,7 +233,7 @@ def infer_equation(
         for i, row in enumerate(X_test):
             for t, coeff in coeff_terms.items():
                 rhs_values[i] += coeff * row[extended_terms.index(t)]
-            if intercept > threshold:
+            if intercept > coeff_threshold:
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
