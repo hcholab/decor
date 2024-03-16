@@ -1,0 +1,4 @@
+LOGGER_LEVEL = 3
+
+DEGREE = 2
+MILP = False
