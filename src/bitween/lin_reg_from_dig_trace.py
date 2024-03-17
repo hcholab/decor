@@ -169,9 +169,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         best_params = {}
         best_intercept = None
         best_coefficients = None
-
+        cv = settings.CROSS_VALIDATION
         for model_name, mp in model_params.items():
-            clf = GridSearchCV(mp["model"], mp["params"], cv=5, scoring="r2", n_jobs=-1)
+            clf = GridSearchCV(
+                mp["model"], mp["params"], cv=cv, scoring="r2", n_jobs=-1
+            )
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
                 clf.fit(X_train, y_train)
@@ -190,8 +192,10 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "params": best_params,
             "intercept": best_intercept,
             "coefficients": best_coefficients,
-            "X_test": X_test,
-            "y_test": y_test,
+            # "X_test": X_test,
+            # "y_test": y_test,
+            "X_test": X,
+            "y_test": y,
         }
 
     return models
@@ -274,8 +278,8 @@ def infer_equations(
 
 if __name__ == "__main__":  # noqa E123
 
-    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
+    file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
@@ -298,11 +302,12 @@ if __name__ == "__main__":  # noqa E123
 
             str += f"{extended_terms}\n"
 
-            # (Option 1) use cross validation to find the best model for each term
-            # models = find_best_model(extended_terms, extended_data)
-
-            # (Option 2) use simple linear regression to find a model for each term
-            models = find_models(extended_terms, extended_data)
+            if settings.MULTIPLE_REGRESSION:
+                # (Option 1) use cross validation to find the best model for each term
+                models = find_best_model(extended_terms, extended_data)
+            else:
+                # (Option 2) use simple linear regression to find a model for each term
+                models = find_models(extended_terms, extended_data)
 
             # Display the models and their equations
             for term, content in models.items():
