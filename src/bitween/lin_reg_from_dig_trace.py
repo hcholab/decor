@@ -1,9 +1,10 @@
+import collections
+import itertools
 import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
-import sympy as sp
-from itertools import combinations_with_replacement
+import sympy
 from sklearn.linear_model import (  # noqa F401
     ElasticNet,
     Ridge,
@@ -12,6 +13,19 @@ from sklearn.linear_model import (  # noqa F401
     SGDRegressor,
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
+
+from bitween import settings, miscs
+from bitween.miscs import Symbolic
+
+sympy.init_printing(use_unicode=False, wrap_line=False)
+
+log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+
+
+def load_input_data(file_path):
+    with open(file_path, "r") as file:
+        input_data = file.read()
+    return input_data
 
 
 def parse_dig_vtrace_file(input_data):
@@ -51,7 +65,7 @@ def generate_monomials(terms, degree):
     # Generate all combinations of terms up to the given degree
     monomials = []
     for d in range(1, degree + 1):
-        for combo in combinations_with_replacement(terms, d):
+        for combo in itertools.combinations_with_replacement(terms, d):
             monomials.append("*".join(combo))
     return monomials
 
@@ -102,8 +116,10 @@ def find_models(extended_terms, extended_data, test_size=0.2):
             score,
             coefficients,
             intercept,
-            X_test,
-            y_test,
+            # X_test,
+            # y_test,
+            X,  # Include the entire X for evaluating the equation
+            y,  # Include the entire y for evaluating the equation
         )
 
     # Create a model for each term in extended_terms, excluding the constant '1'
@@ -133,11 +149,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         "Linear Regression": {"model": LinearRegression(), "params": {}},
         "Ridge": {
             "model": Ridge(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100, 1000]},
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 100, 1000]},
         },
         "Lasso": {
             "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-4, 1e-3, 1e-2, 1e-1, 1, 10, 100]},
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
         },
     }
 
@@ -181,7 +197,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
     return models
 
 
-def infer_equation(
+def infer_equations(
     models,
     extended_terms,
     extended_data,  # noqa F401
@@ -189,41 +205,41 @@ def infer_equation(
     coeff_cutoff=50,
     intercept_cutoff=100,
     delta=0.2,
-    # objective_threshold=1e-12,
 ):
-    str = ""
-    for pivot, model in models.items():
+    def infer_equation(pivot, model):
+        str = ""
+
         if np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
-            continue
+            return None
 
-        rhs = 0
+        rhs = sympy.Rational(0)
         coeff_terms = {}
         selected_terms = [pivot]  # Include LHS term
+        terms = [item for item in extended_terms if item != pivot]
 
         # check all coefficients and if it is greater than 100, then skip it
         if np.any(np.abs(model["coefficients"]) >= coeff_cutoff):
             # str += f"Model for {term}: Large Coefficient!\n"
-            continue
+            return None
 
         for i, coefficient in enumerate(model["coefficients"]):
-            if i != len(model["coefficients"]) - 1:  # Skip the constant term for now
-                if abs(coefficient) >= coeff_threshold:
-                    coeff = round(coefficient, 2)
-                    if coeff != 0:
-                        rhs += coeff * sp.symbols(extended_terms[i])
-                        coeff_terms[extended_terms[i]] = coeff
-                        # Include term in selected list
-                        selected_terms.append(extended_terms[i])
+            if abs(coefficient) >= coeff_threshold:
+                coeff = round(coefficient, 2)
+                if coeff != 0:
+                    rhs += sympy.Rational(coeff) * sympy.symbols(terms[i])
+                    coeff_terms[terms[i]] = coeff
+                    # Include term in selected list
+                    selected_terms.append(terms[i])
 
         # Add the constant term (intercept)
-        intercept = round(model["intercept"], 2)
+        intercept = model["intercept"]
         if intercept > coeff_threshold:
-            rhs += intercept
+            rhs += sympy.Rational(intercept).limit_denominator(10**12)
 
-        equation = sp.Eq(sp.symbols(pivot), rhs)
+        equation = sympy.symbols(pivot) - rhs
         # equation = sp.simplify(equation)
-        str += f"Model for {pivot}: {equation}, "
+        str += f"Model for {pivot}: {equation.evalf()}, "
 
         X_test = model["X_test"]
         y_test = model["y_test"]
@@ -237,60 +253,85 @@ def infer_equation(
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str += f"(error: {me}), "
+        str += f"(error: {round(me, 2)}), "
         if me < delta:
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
 
-    return str
+        return str, equation, me
 
+    results = []
+    for pivot, model in models.items():
+        result = infer_equation(pivot, model)
+        if result is not None:
+            results.append(result)
 
-def load_input_data(file_path):
-    with open(file_path, "r") as file:
-        input_data = file.read()
-    return input_data
+    return results
 
 
 if __name__ == "__main__":  # noqa E123
 
-    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"  # Path to your file
-    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"  # Path to your file
-    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"  # Path to your file
-    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"  # Path to your file
-    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"  # Path to your file
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
     input_data = load_input_data(file_path)
-    parsed_data = parse_dig_vtrace_file(input_data)
+    trace_data = parse_dig_vtrace_file(input_data)
 
     str = ""
-    for trace, content in parsed_data.items():
-        terms = content["terms"]
-        data = content["data"]
+    results = collections.defaultdict(list)
+    for loc, data in trace_data.items():
+        terms = data["terms"]
+        data = data["data"]
 
-        str += f"\nTrace: {trace}\n"
+        str += f"\nLocation: {loc}\n"
         str += f"Terms: {terms}\n"
         str += f"Shape: {data.shape}\n"
 
-        extended_terms, extended_data = process_trace(terms, data, 2)
+        for degree in range(1, settings.DEGREE + 1):
+            str += f"\nDegree: {degree}\n"
+            extended_terms, extended_data = process_trace(terms, data, degree)
 
-        str += f"{extended_terms}\n"
+            str += f"{extended_terms}\n"
 
-        # (Option 1) use cross validation to find the best model for each term
-        # models = find_best_model(extended_terms, extended_data)
+            # (Option 1) use cross validation to find the best model for each term
+            # models = find_best_model(extended_terms, extended_data)
 
-        # (Option 2) use simple linear regression to find a model for each term
-        models = find_models(extended_terms, extended_data)
+            # (Option 2) use simple linear regression to find a model for each term
+            models = find_models(extended_terms, extended_data)
 
-        # Display the models and their equations
-        for term, content in models.items():
-            str += f"Model for {term}: Score = {content['score']}, "
-            if "model_type" in content:
-                str += f"{content['model_type']}({content['params']})\n"
-            else:
-                str += "Linear Regression\n"
+            # Display the models and their equations
+            for term, content in models.items():
+                str += f"Model for {term}: Score = {content['score']}, "
+                if "model_type" in content:
+                    str += f"{content['model_type']}({content['params']})\n"
+                else:
+                    str += "Linear Regression\n"
 
-        str += "\n"
+            str += "\n"
 
-        str += infer_equation(models, extended_terms, extended_data)
+            result = infer_equations(models, extended_terms, extended_data)
+            results[loc].extend(result)
+            for r in result:
+                str += r[0]
 
     print(str)
+
+    print("\nInferred Equalities:")
+    for loc, result in results.items():
+        print(f"\nTrace: {loc}")
+
+        good_fit = set()
+        for r in result:
+            if r[2] < 0.2:
+                print(f"{r[1]} (error: {round(r[2], 3)})")
+                good_fit.add(sympy.simplify(r[1]))
+
+        print("\nReduced Equalities:")
+        # print(Symbolic.reduce_eqts(good_fit))
+        equations = Symbolic.refine(good_fit)
+        for eq in equations:
+            print(f"{eq} = 0")
+        print()
