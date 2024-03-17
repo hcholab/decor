@@ -212,6 +212,27 @@ def infer_equations(
     delta=settings.DELTA,
     objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
+
+    def milp_synthesis_wrapper(pivot, selected_terms, selected_data):
+        str = ""
+        status, expr, obj, _ = milp_synthesis(
+            selected_data,
+            selected_terms,
+            pivot,
+            bound=settings.MILP_BOUND,
+            timeout=settings.MILP_TIME_LIMIT,
+        )
+        if status == OPTIMAL:
+            if abs(obj) < objective_threshold:  # check if the objective is small enough
+                equation = expr
+                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
+                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
+                me = obj
+                return str, equation, me
+        else:
+            str += f"MILP for {pivot}: No solution found\n"
+            return str, None, None
+
     def infer_equation(pivot, model):
         str = ""
 
@@ -246,7 +267,7 @@ def infer_equations(
 
         equation = sympy.symbols(pivot) - rhs
         # equation = sp.simplify(equation)
-        str += f"Model for {pivot}: {equation.evalf()}, "
+        str += f"Model for {pivot}: {equation.evalf()} = 0, "
 
         X_test = model["X_test"]
         y_test = model["y_test"]
@@ -267,7 +288,7 @@ def infer_equations(
             str += "\n"
 
         if settings.MILP is not True:
-            return str, equation, me
+            return str, equation, me, None, None
 
         # NOTE: MILP Synthesis based on the regression model
         # Selecting respective columns from data
@@ -279,34 +300,39 @@ def infer_equations(
         print(selected_terms)
         print(selected_data)
 
-        status, expr, obj, _ = milp_synthesis(
-            selected_data, selected_terms, pivot, bound=settings.MILP_BOUND
-        )
-        if status == OPTIMAL:
-            # check if the objective is small enough
-            if abs(obj) < objective_threshold:
-                equation = expr
-                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
-                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
-                me = obj
-
-        return str, equation, me
+        return (str, equation, me, selected_terms, selected_data)
 
     results = []
+    milp_input = []
     for pivot, model in models.items():
         result = infer_equation(pivot, model)
         if result is not None:
-            results.append(result)
+            results.append(result[0:3])
+            milp_input.append((pivot, result[3], result[4]))
 
-    return results
+    if settings.MILP is not True:
+        return results
+
+    # NOTE: Parallel MILP Synthesis based on the regression model
+    if settings.PARALLEL_MILP:
+        results.extend(
+            Parallel(n_jobs=-1)(
+                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
+            )
+        )
+    else:
+        for mi in milp_input:
+            results.append(milp_synthesis_wrapper(*mi))
+    # remove None values
+    return [r for r in results if r is not None and r[2] is not None]
 
 
 if __name__ == "__main__":  # noqa E123
 
-    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
+    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
-    file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
@@ -357,12 +383,11 @@ if __name__ == "__main__":  # noqa E123
 
         good_fit = set()
         for r in result:
-            if r[2] < 0.2:
-                print(f"{r[1]} (error: {round(r[2], 3)})")
+            if r[2] < settings.DELTA:
+                print(f"{r[1]} = 0 (error: {round(r[2], 3)})")
                 good_fit.add(sympy.simplify(r[1]))
 
         print("\nReduced Equalities:")
-        # print(Symbolic.reduce_eqts(good_fit))
         equations = Symbolic.refine(good_fit)
         for eq in equations:
             print(f"{eq} = 0")
