@@ -170,9 +170,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         best_params = {}
         best_intercept = None
         best_coefficients = None
-
+        cv = settings.CROSS_VALIDATION
         for model_name, mp in model_params.items():
-            clf = GridSearchCV(mp["model"], mp["params"], cv=5, scoring="r2", n_jobs=-1)
+            clf = GridSearchCV(
+                mp["model"], mp["params"], cv=cv, scoring="r2", n_jobs=-1
+            )
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
                 clf.fit(X_train, y_train)
@@ -191,8 +193,10 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "params": best_params,
             "intercept": best_intercept,
             "coefficients": best_coefficients,
-            "X_test": X_test,
-            "y_test": y_test,
+            # "X_test": X_test,
+            # "y_test": y_test,
+            "X_test": X,  # NOTE: Include the entire X for evaluating the equation
+            "y_test": y,  # NOTE: Include the entire y for evaluating the equation
         }
 
     return models
@@ -202,22 +206,24 @@ def infer_equations(
     models,
     extended_terms,
     extended_data,  # noqa F401
-    coeff_threshold=0.3,
-    coeff_cutoff=50,
-    intercept_cutoff=100,
-    delta=0.2,
-    objective_threshold=1e-12,
+    coeff_threshold=settings.COEFF_THRESHOLD,
+    coeff_cutoff=settings.COEFF_CUTOFF,
+    intercept_cutoff=settings.INTERCEPT_CUTOFF,
+    delta=settings.DELTA,
+    objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
     def infer_equation(pivot, model):
         str = ""
 
+        # NOTE: preparing an equation from the regression model
         if np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             return None
 
-        rhs = 0
+        rhs = sympy.Rational(0)
         coeff_terms = {}
         selected_terms = [pivot]  # Include LHS term
+        terms = [item for item in extended_terms if item != pivot]
 
         # check all coefficients and if it is greater than 100, then skip it
         if np.any(np.abs(model["coefficients"]) >= coeff_cutoff):
@@ -225,28 +231,27 @@ def infer_equations(
             return None
 
         for i, coefficient in enumerate(model["coefficients"]):
-            if i != len(model["coefficients"]) - 1:  # Skip the constant term for now
-                if abs(coefficient) >= coeff_threshold:
-                    coeff = round(coefficient, 2)
-                    if coeff != 0:
-                        rhs += coeff * sympy.symbols(extended_terms[i])
-                        coeff_terms[extended_terms[i]] = coeff
-                        # Include term in selected list
-                        selected_terms.append(extended_terms[i])
+            if abs(coefficient) >= coeff_threshold:
+                coeff = round(coefficient, 2)
+                if coeff != 0:
+                    rhs += sympy.Rational(coeff) * sympy.symbols(terms[i])
+                    coeff_terms[terms[i]] = coeff
+                    # Include term in selected list
+                    selected_terms.append(terms[i])
 
         # Add the constant term (intercept)
         intercept = round(model["intercept"], 2)
         if intercept > coeff_threshold:
-            rhs += intercept
+            rhs += sympy.Rational(intercept)
 
         equation = sympy.symbols(pivot) - rhs
         # equation = sp.simplify(equation)
-        str += f"Model for {pivot}: {equation}, "
+        str += f"Model for {pivot}: {equation.evalf()}, "
 
         X_test = model["X_test"]
         y_test = model["y_test"]
 
-        # Evaluate the equation for each row in X_test
+        # NOTE: Property Test: Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
         for i, row in enumerate(X_test):
             for t, coeff in coeff_terms.items():
@@ -264,29 +269,24 @@ def infer_equations(
         if settings.MILP is not True:
             return str, equation, me
 
+        # NOTE: MILP Synthesis based on the regression model
         # Selecting respective columns from data
-        selected_indices = [
-            extended_terms.index(term)
-            for term in selected_terms
-            if term in extended_terms
-        ]
+        selected_indices = [extended_terms.index(term) for term in selected_terms]
         selected_data = extended_data[:, selected_indices]
-        # Append a column of ones to selected_data
-        selected_terms.append("1")
-        # Append a column of ones to selected_data
-        ones_column = np.ones((selected_data.shape[0], 1))
-        selected_data = np.hstack((selected_data, ones_column))
 
+        print(f"Model for {pivot}: {equation.evalf()}")
+        print(equation.evalf())
         print(selected_terms)
         print(selected_data)
 
-        status, equation, obj, _ = milp_synthesis(
-            selected_data, selected_terms, pivot, bound=15
+        status, expr, obj, _ = milp_synthesis(
+            selected_data, selected_terms, pivot, bound=settings.MILP_BOUND
         )
         if status == OPTIMAL:
             # check if the objective is small enough
             if abs(obj) < objective_threshold:
-                str += f"MILP for {pivot}: {equation} = 0 (obj: {obj})"
+                equation = expr
+                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
                 str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
                 me = obj
 
@@ -305,8 +305,8 @@ if __name__ == "__main__":  # noqa E123
 
     # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
-    file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
+    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
+    file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
     # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
@@ -327,11 +327,12 @@ if __name__ == "__main__":  # noqa E123
 
             str += f"{extended_terms}\n"
 
-            # (Option 1) use cross validation to find the best model for each term
-            # models = find_best_model(extended_terms, extended_data)
-
-            # (Option 2) use simple linear regression to find a model for each term
-            models = find_models(extended_terms, extended_data)
+            if settings.MULTIPLE_REGRESSION:
+                # (Option 1) use cross validation to find the best model for each term
+                models = find_best_model(extended_terms, extended_data)
+            else:
+                # (Option 2) use simple linear regression to find a model for each term
+                models = find_models(extended_terms, extended_data)
 
             # Display the models and their equations
             for term, content in models.items():
