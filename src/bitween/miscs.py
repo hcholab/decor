@@ -145,6 +145,83 @@ class Symbolic:
         log.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
         return ps_ if len(ps_) < len(ps) else ps
 
+    @staticmethod
+    def elim_denom(p: sympy.Expr | sympy.Rel) -> sympy.Expr | sympy.Rel:
+        """
+        Eliminate (Integer) denominators in expression operands.
+        Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
+
+        >>> x,y,z = sympy.symbols('x y z')
+
+        >>> Symbolic.elim_denom(sympy.Rational(3, 4)*x**2 + sympy.Rational(7, 5)*y**3)
+        15*x**2 + 28*y**3
+
+        >>> Symbolic.elim_denom(x + y)
+        x + y
+
+        >>> Symbolic.elim_denom(-sympy.Rational(3,2)*x**2 - sympy.Rational(1,24)*z**2)
+        -36*x**2 - z**2
+
+        >>> Symbolic.elim_denom(15*x**2 - 12*z**2)
+        15*x**2 - 12*z**2
+
+        """
+        denoms = [sympy.fraction(a)[1] for a in p.args]
+        if all(denom == 1 for denom in denoms):  # no denominator like 1/2
+            return p
+        return p * sympy.lcm(denoms)
+
+    @classmethod
+    def get_coefs(cls, p: sympy.Expr | sympy.Rel) -> list[sympy.core.numbers.Integer]:
+        """
+        Return coefficients of an expression
+
+        >>> x,y,z = sympy.symbols('x y z')
+        >>> Symbolic.get_coefs(3*x+5*x*y**2)
+        [3, 5]
+        """
+
+        p = p.lhs if p.is_Equality else p
+        return list(p.as_coefficients_dict().values())
+
+    @classmethod
+    def remove_ugly(
+        cls, ps: list[sympy.Expr | sympy.Rel]
+    ) -> list[sympy.Expr | sympy.Rel]:
+
+        @functools.cache
+        def is_nice_coef(c: int | float) -> bool:
+            return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
+
+        @functools.cache
+        def is_nice_eqt(eqt: sympy.Expr | sympy.Rel) -> bool:
+            return len(eqt.args) <= settings.UGLY_FACTOR and all(
+                is_nice_coef(c) for c in cls.get_coefs(eqt)
+            )
+
+        ps_ = []
+        for p in ps:
+            if is_nice_eqt(p):
+                ps_.append(p)
+            else:
+                log.debug(f"ignoring large coefs {str(p)[:50]} ..")
+
+        return ps_
+
+    @classmethod
+    def refine(cls, eqts: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
+
+        if not eqts:
+            return eqts
+
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
+        eqts = cls.reduce_eqts(eqts)
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
+
+        return eqts
+
 
 if __name__ == "__main__":
     import doctest
