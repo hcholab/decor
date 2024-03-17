@@ -201,14 +201,16 @@ def infer_equations(
     models,
     extended_terms,
     extended_data,  # noqa F401
-    coeff_threshold=0.3,
-    coeff_cutoff=50,
-    intercept_cutoff=100,
-    delta=0.2,
+    coeff_threshold=settings.COEFF_THRESHOLD,
+    coeff_cutoff=settings.COEFF_CUTOFF,
+    intercept_cutoff=settings.INTERCEPT_CUTOFF,
+    delta=settings.DELTA,
+    # objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
     def infer_equation(pivot, model):
         str = ""
 
+        # NOTE: preparing an equation from the regression model
         if np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
             return None
@@ -233,9 +235,9 @@ def infer_equations(
                     selected_terms.append(terms[i])
 
         # Add the constant term (intercept)
-        intercept = model["intercept"]
+        intercept = round(model["intercept"], 2)
         if intercept > coeff_threshold:
-            rhs += sympy.Rational(intercept).limit_denominator(10**12)
+            rhs += sympy.Rational(intercept)
 
         equation = sympy.symbols(pivot) - rhs
         # equation = sp.simplify(equation)
@@ -244,7 +246,7 @@ def infer_equations(
         X_test = model["X_test"]
         y_test = model["y_test"]
 
-        # Evaluate the equation for each row in X_test
+        # NOTE: Property Test: Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
         for i, row in enumerate(X_test):
             for t, coeff in coeff_terms.items():
