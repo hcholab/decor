@@ -329,11 +329,7 @@ def infer_equations(
 
 if __name__ == "__main__":  # noqa E123
 
-    file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
+    file_path = settings.FILE_PATH
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
