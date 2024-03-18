@@ -36,3 +36,5 @@ UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coeffi
 
 # NOTE: Z3
 SOLVER_TIMEOUT = 10  # in seconds
+SLOW_SIMPLIFY = True  # if True, then we use the slow simplify method
+CONSISTENCY_CHECK = False  # if True, then we use the consistency check method

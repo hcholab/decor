@@ -418,17 +418,19 @@ if __name__ == "__main__":  # noqa E123
         for eq in equations:
             print(f"{eq} = 0")
 
-        print("\nChecking Consistency of Equations:")
+        if settings.SLOW_SIMPLIFY:
+            equations = Z3._simplify_slow(equations, [], loc)
+            for r in equations:
+                print(r)
 
-        try:
-            print(f"1. Solve algebraically: {sympy.solve(equations)}")
-        except NotImplementedError:
-            print("1. Solve algebraically: Could not solve")
+        if settings.CONSISTENCY_CHECK:
+            print("\nChecking Consistency of Equations:")
 
-        print(f"2. Check satisfiability: {Z3.check_sat(equations)}\n")
+            try:
+                print(f"1. Solve algebraically: {sympy.solve(equations)}")
+            except NotImplementedError:
+                print("1. Solve algebraically: Could not solve")
 
-        print("Z3-based Simplification:")
-        results = Z3._simplify_slow(equations, [], loc)
-        for r in results:
-            print(r)
-        print()
+            print("2. Check satisfiability: ", end="")
+            sat, r = Z3.check_sat(equations)
+            print(f"{sat}, {r}")
