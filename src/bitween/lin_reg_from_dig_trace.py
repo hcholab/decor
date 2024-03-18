@@ -302,7 +302,7 @@ def infer_equations(
         selected_indices = [extended_terms.index(term) for term in selected_terms]
         selected_data = extended_data[:, selected_indices]
 
-        print(f"Model for {pivot}: {equation.evalf()}")
+        print(f"\nModel for {pivot}: {equation.evalf()}")
         print(equation.evalf())
         print(selected_terms)
         # print(selected_data)
