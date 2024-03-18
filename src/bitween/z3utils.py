@@ -7,7 +7,10 @@ import operator
 import functools
 import z3
 import sympy
+from time import time
+
 from bitween import settings, miscs
+from bitween.miscs import Symbolic
 
 log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
@@ -424,6 +427,43 @@ class Z3:
         else:
             return z3.unknown, None
 
+    @classmethod
+    def _get_expr(cls: Type[Z3], p: Any) -> z3.ExprRef:
+        assert isinstance(p, sympy.Expr), p
+        return cls.parse(str(p)) == 0
+
+    @classmethod
+    def _simplify_slow(cls, ps: list[sympy.Expr], others: list[sympy.Expr], msg):
+        """
+        Simplify given properties ps using properties in both ps and others
+        e.g., remove g if  ps_exclude_g & others => g
+        Note: this task is slow
+        """
+
+        if len(ps) < 2:
+            return ps
+
+        st = time()
+        conj = [cls._get_expr(p) for p in others] if others else []
+        ps_exprs = [cls._get_expr(p) for p in ps]
+
+        def _imply(js, i):
+            iexpr = ps_exprs[i]
+
+            # assert iexpr.decl().kind() != z3.Z3_OP_EQ, iexpr
+            jexprs = [ps_exprs[j] for j in js]
+            ret = Z3._imply(conj + jexprs, iexpr, is_conj=True)
+            # print('{} => {} ret{}'.format(jexprs, iexpr, ret))
+            return ret
+
+        results = Symbolic.simplify_idxs(list(range(len(ps))), _imply)
+        results = [ps[i] for i in results]
+        Symbolic.show_removed(
+            f"_simplify_slow {msg}", len(ps), len(results), time() - st
+        )
+
+        return results
+
 
 if __name__ == "__main__":
 
@@ -433,6 +473,11 @@ if __name__ == "__main__":
     x, y, a, b, q, r = sympy.symbols("x y a, b, q, r")
     exprs = [a * y - b, q * y + r - x, -a * r + a * x - b * q]
 
-    z3_exprs = [Z3.parse(str(e)) == 0 for e in exprs]
     for e in exprs:
         print(f"{e} -> {Z3.parse(str(e)) == 0}")
+
+    results = Z3._simplify_slow(exprs, [], "test")
+    for r in results:
+        print(r)
+
+    print()
