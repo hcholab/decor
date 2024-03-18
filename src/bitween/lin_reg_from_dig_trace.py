@@ -305,7 +305,7 @@ def infer_equations(
         print(f"Model for {pivot}: {equation.evalf()}")
         print(equation.evalf())
         print(selected_terms)
-        print(selected_data)
+        # print(selected_data)
 
         return (str, equation, me, selected_terms, selected_data)
 
