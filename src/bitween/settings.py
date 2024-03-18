@@ -1,6 +1,6 @@
 # FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-# FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
-FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
+FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
+# FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
 

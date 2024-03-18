@@ -111,6 +111,8 @@ def find_model(pivot, terms, data, test_size=0.2):
     return pivot, {
         "model": model,
         "score": score,
+        "model_type": "Linear",
+        "params": "",  # NOTE: No parameters for simple linear regression
         "coefficients": coefficients,
         "intercept": intercept,
         # "X_test": X_test,
@@ -161,6 +163,8 @@ def find_models(extended_terms, extended_data, test_size=0.2):
         models[term] = {
             "model": model,
             "score": score,
+            "model_type": "Linear",
+            "params": "",  # NOTE: No parameters for simple linear regression
             "coefficients": coefficients,
             "intercept": intercept,
             "X_test": X_test,
@@ -176,7 +180,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
 
     # Define the models and parameters for grid search
     model_params = {
-        "Linear Regression": {"model": LinearRegression(), "params": {}},
+        "Linear": {"model": LinearRegression(), "params": {}},
         "Ridge": {
             "model": Ridge(random_state=42),
             "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 100, 1000]},
@@ -353,7 +357,7 @@ def infer_equations(
     for pivot, model in models.items():
         result = infer_equation(pivot, model, extended_terms, extended_data, "initial")
         if result is not None:
-            results.append(result[0:3])
+            results.append((result[0:3], f"{model['model_type']}({model['params']})"))
             term = result[3]
             data = result[4]
             milp_input.append((pivot, term, data))
@@ -366,23 +370,31 @@ def infer_equations(
                 pivot_, model_ = find_model(pivot, term, data)
                 result = infer_equation(pivot_, model_, term, data, "refined")
                 if result is not None:
-                    results.append(result[0:3])
+                    results.append(
+                        (
+                            result[0:3],
+                            f"{model_['model_type']}({model_['params']})+Refinement",
+                        )
+                    )
 
     if settings.MILP is not True:
         return results
 
     # NOTE: Parallel MILP Synthesis based on the regression model
+    solver = settings.MILP_SOLVER.lower()
     if settings.PARALLEL_MILP:
-        results.extend(
-            Parallel(n_jobs=-1)(
-                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
-            )
+        milp_results = Parallel(n_jobs=-1)(
+            delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
         )
+        for r in milp_results:
+            results.append((r, f"Milp({solver})"))
+
     else:
-        for mi in milp_input:
-            results.append(milp_synthesis_wrapper(*mi))
+        milp_results = [milp_synthesis_wrapper(*mi) for mi in milp_input]
+        for r in milp_results:
+            results.append((r, f"Milp({solver})"))
     # remove None values
-    return [r for r in results if r is not None and r[2] is not None]
+    return [r for r in results if r[0] is not None and r[0][2] is not None]
 
 
 if __name__ == "__main__":  # noqa E123
@@ -417,17 +429,14 @@ if __name__ == "__main__":  # noqa E123
             # Display the models and their equations
             for term, content in models.items():
                 str += f"Model for {term}: Score = {content['score']}, "
-                if "model_type" in content:
-                    str += f"{content['model_type']}({content['params']})\n"
-                else:
-                    str += "Linear Regression\n"
+                str += f"{content['model_type']}({content['params']})\n"
 
             str += "\n"
 
             result = infer_equations(models, extended_terms, extended_data)
             results[loc].extend(result)
             for r in result:
-                str += r[0]
+                str += r[0][0]
 
     print(str)
 
@@ -436,10 +445,11 @@ if __name__ == "__main__":  # noqa E123
         print(f"\nTrace: {loc}")
 
         good_fit = set()
-        for r in result:
-            if r[2] < settings.DELTA:
-                print(f"{r[1]} = 0 (error: {round(r[2], 3)})")
-                good_fit.add(sympy.simplify(r[1]))
+        max_len = max([len(model) for (_, _, _), model in result])
+        for (_, eq, error), model in result:
+            if error < settings.DELTA:
+                print(f"{model:<{max_len}}: {eq} = 0 (error: {round(error, 3)})")
+                good_fit.add(sympy.simplify(eq))
 
         print("\nReduced Equalities:")
         equations = Symbolic.refine(good_fit)
