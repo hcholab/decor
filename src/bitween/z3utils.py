@@ -6,6 +6,7 @@ import ast
 import operator
 import functools
 import z3
+import sympy
 from bitween import settings, miscs
 
 log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -300,7 +301,12 @@ class Z3:
             return op(left, right)
 
         elif isinstance(node, ast.Name):
-            return z3.Int(str(node.id))
+            if settings.TYPE == "INT":
+                return z3.Int(str(node.id))
+            elif settings.TYPE == "REAL":
+                return z3.Real(str(node.id))
+            else:
+                raise NotImplementedError(settings.TYPE)
         elif isinstance(node, ast.Num):
             return z3.IntVal(str(node.n))
         elif isinstance(node, ast.Add):
@@ -388,3 +394,45 @@ class Z3:
                 return vs
         else:
             return str(m) if as_str else m
+
+    @classmethod
+    def check_sat(cls: Type[Z3], exprs: list[sympy.Expr]) -> bool:
+        assert exprs, "exprs is empty"
+
+        # Create a Solver instance
+        solver = z3.Solver()
+        solver.set(unsat_core=True)
+        solver.set(timeout=settings.SOLVER_TIMEOUT * 1000)
+
+        counter = 0
+        equations = {}
+        for e in exprs:
+            key = f"eqt_{counter}"
+            equations[key] = e
+            z3_expr = cls.parse(str(e))
+            solver.assert_and_track(z3_expr == 0, key)
+            counter += 1
+
+        result = solver.check()
+        if result == z3.unsat:
+            unsat_equations = []
+            for core in solver.unsat_core():
+                unsat_equations.append(equations[str(core)])
+            return z3.unsat, unsat_equations
+        elif result == z3.sat:
+            return z3.sat, solver.model()
+        else:
+            return z3.unknown, None
+
+
+if __name__ == "__main__":
+
+    x, y, z = sympy.symbols("x y z")
+    print(Z3.check_sat([x * x - 4, x - 3, y - 2, z - 3]))
+
+    x, y, a, b, q, r = sympy.symbols("x y a, b, q, r")
+    exprs = [a * y - b, q * y + r - x, -a * r + a * x - b * q]
+
+    z3_exprs = [Z3.parse(str(e)) == 0 for e in exprs]
+    for e in exprs:
+        print(f"{e} -> {Z3.parse(str(e)) == 0}")

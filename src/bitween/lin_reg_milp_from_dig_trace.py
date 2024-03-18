@@ -17,6 +17,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from bitween.milp import OPTIMAL, milp_synthesis
 from bitween import settings, miscs
 from bitween.miscs import Symbolic
+from bitween.z3utils import Z3
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
@@ -418,10 +419,11 @@ if __name__ == "__main__":  # noqa E123
             print(f"{eq} = 0")
 
         print("\nChecking Consistency of Equations:")
-        # catch NotImplementedError: could not solve
+
         try:
             print(f"1. Solve algebraically: {sympy.solve(equations)}")
         except NotImplementedError:
             print("1. Solve algebraically: Could not solve")
-        # print(f"2. Check satisfiability: {Symbolic.check_sat(equations)}\n")
+
+        print(f"2. Check satisfiability: {Z3.check_sat(equations)}\n")
         print()

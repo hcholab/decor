@@ -7,8 +7,7 @@ import functools
 import sympy
 import itertools
 import logging
-import z3
-from typing import Iterable
+from typing import Callable, Iterable
 
 from bitween import settings
 
@@ -111,6 +110,37 @@ class Symbolic:
         combs = itertools.combinations_with_replacement(symbols_, deg)
         terms = [sympy.prod(c) for c in combs]
         return terms
+
+    @staticmethod
+    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float) -> None:
+        assert orig_siz >= new_siz, (orig_siz, new_siz)
+        n_removed = orig_siz - new_siz
+        log.debug(
+            f"{s}: removed {n_removed} invs "
+            f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
+        )
+
+    @staticmethod
+    def simplify_idxs(
+        ordered_idxs: list[int], imply_f: Callable[[set[int], int], bool]
+    ) -> list[int]:
+        """
+        attempt to remove i in idxs if imply_f returns true
+        Note: the order of idxs determine what to get checked (and removed)
+        """
+        assert isinstance(ordered_idxs, list), ordered_idxs
+        assert ordered_idxs == list(range(len(ordered_idxs))), ordered_idxs
+
+        results = set(ordered_idxs)
+
+        for i in reversed(ordered_idxs):
+            if i not in results:
+                continue
+            others = results - {i}
+            if others and imply_f(others, i):
+                results = others
+
+        return sorted(results)
 
     @classmethod
     def reduce_eqts(cls, ps: list[sympy.Expr]) -> list[sympy.Expr]:
@@ -227,126 +257,8 @@ class Symbolic:
 
         return eqts
 
-    @staticmethod
-    def pow_to_mul(expr):
-        """
-        Convert integer powers in an expression to Muls, like a**2 => a*a.
-        """
-        pows = list(expr.atoms(sympy.Pow))
-        if any(not e.is_Integer for b, e in (i.as_base_exp() for i in pows)):
-            raise ValueError("A power contains a non-integer exponent")
-        repl = zip(
-            pows,
-            (
-                sympy.Mul(*[b] * e, evaluate=False)
-                for b, e in (i.as_base_exp() for i in pows)
-            ),
-        )
-        return expr.subs(repl)
-
-    def change_types(expr: sympy.Expr) -> sympy.Expr:
-        """
-        Change the type of the expression to the given type based on the settings
-        """
-
-        functions = {
-            str(f.func): sympy.Function(str(f.func)) for f in expr.atoms(sympy.Function)
-        }
-
-        if settings.TYPE == "INT":
-            variables = {
-                str(var): sympy.Symbol(str(var), integer=True)
-                for var in expr.free_symbols
-            }
-        else:
-            variables = {
-                str(var): sympy.Symbol(str(var), real=True) for var in expr.free_symbols
-            }
-
-        expr = eval(
-            f"simplify({expr})",
-            functions | variables,
-            {
-                "simplify": sympy.simplify,
-                "sqrt": sympy.sqrt,
-                "Abs": sympy.Abs,
-                "sin": sympy.sin,
-                "cos": sympy.cos,
-                "tan": sympy.tan,
-                "tanh": sympy.tanh,
-                "sinh": sympy.sinh,
-                "cosh": sympy.cosh,
-                "exp": sympy.exp,
-                "log": sympy.log,
-                "sign": sympy.sign,
-                "pi": sympy.pi,
-            },
-        )
-
-        return expr
-
-    # using z3 to solve the eqts, and check if it is sat
-    @classmethod
-    def check_sat(cls, eqts: list[sympy.Expr | sympy.Rel]) -> bool:
-        """
-        Check if the given eqts is satisfiable
-        """
-
-        if not eqts:
-            return True
-
-        # Create a Solver instance
-        solver = z3.Solver()
-        solver.set(unsat_core=True)
-
-        definitions = ""
-        equations = {}
-        table = {}
-
-        vars = cls.get_vars(eqts)
-        type_mapping = int if settings.TYPE == "INT" else float
-        for var in vars:
-            table[str(var)] = type_mapping
-
-        for sy in table:
-            ty = "Int" if table[sy] == int else "Real"
-            definitions += f"(declare-const {sy} {ty})\n"
-
-        counter = 0
-        for eqt in eqts:
-            if not eqt.is_Equality and not eqt.is_Relational:
-                s = sympy.Eq(cls.change_types(eqt), 0)
-                s = cls.pow_to_mul(s)
-                key = f"eqt_{counter}"
-                equations[key] = eqt
-                expression = sympy.printing.smtlib.smtlib_code(
-                    s,
-                    symbol_table=table,
-                    log_warn=print,
-                )
-                assertion = z3.parse_smt2_string(expression)
-                solver.assert_and_track(assertion[0], key)
-                counter += 1
-
-        solver.set(timeout=settings.SOLVER_TIMEOUT * 1000)
-
-        result = solver.check()
-        if result == z3.unsat:
-            unsat_equations = []
-            for core in solver.unsat_core():
-                print(f"{equations[str(core)]} = 0")
-                unsat_equations.append(equations[str(core)])
-            return z3.unsat, unsat_equations
-        elif result == z3.sat:
-            return z3.sat, solver.model()
-        else:
-            return z3.unknown, None
-
 
 if __name__ == "__main__":
-
-    x, y, z = sympy.symbols("x y z")
-    print(Symbolic.check_sat([x * x - 4, x - 3, y - 2, z - 3]))
 
     import doctest
 
