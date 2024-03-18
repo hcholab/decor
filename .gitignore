@@ -151,3 +151,5 @@ dmypy.json
 *-inc.pdf
 
 __docs
+tests/test.py
+src/bitween/lin_reg_intercept_from_dig_trace.py
