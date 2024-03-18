@@ -426,4 +426,9 @@ if __name__ == "__main__":  # noqa E123
             print("1. Solve algebraically: Could not solve")
 
         print(f"2. Check satisfiability: {Z3.check_sat(equations)}\n")
+
+        print("Z3-based Simplification:")
+        results = Z3._simplify_slow(equations, [], loc)
+        for r in results:
+            print(r)
         print()
