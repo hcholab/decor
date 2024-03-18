@@ -385,6 +385,10 @@ if __name__ == "__main__":  # noqa E123
 
         print("\nReduced Equalities:")
         equations = Symbolic.refine(good_fit)
+
         for eq in equations:
             print(f"{eq} = 0")
-        print()
+
+        print("\nChecking Consistency of Equations:")
+        print(f"1. Solve algebraically: {sympy.solve(equations)}")
+        print(f"2. Check satisfiability: {Symbolic.check_sat(equations)}\n")
