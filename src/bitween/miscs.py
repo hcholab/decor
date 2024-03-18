@@ -140,6 +140,10 @@ class Symbolic:
         if len(ps) <= 1:
             return ps
 
+        # NOTE: break complex terms here such as x*y is a term, not a product, make x and y as terms
+        for i, p in enumerate(ps):
+            ps[i] = sympy.sympify(str(p))
+
         ps_ = sympy.groebner(ps, *cls.get_vars(ps))
         ps_ = [x for x in ps_]
         log.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
