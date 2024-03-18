@@ -341,6 +341,9 @@ def infer_equations(
             data = result[4]
             milp_input.append((pivot, term, data))
 
+            error = result[2]
+            if error < delta:
+                continue
             # NOTE: start Regression Refinement
             if settings.REGRESSION_REFINEMENT and len(term) > 1:
                 pivot_, model_ = find_model(pivot, term, data)
@@ -429,8 +432,8 @@ if __name__ == "__main__":  # noqa E123
 
         if settings.SLOW_SIMPLIFY:
             equations = Z3._simplify_slow(equations, [], loc)
-            for r in equations:
-                print(r)
+            for eq in equations:
+                print(f"{eq} = 0")
 
         if settings.CONSISTENCY_CHECK:
             print("\nChecking Consistency of Equations:")
