@@ -14,8 +14,8 @@ from sklearn.linear_model import (  # noqa F401
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
 
-from bitween.milp import OPTIMAL, milp_synthesis
 from bitween import settings, miscs
+from bitween import milp, milp_pulp
 from bitween.miscs import Symbolic
 from bitween.z3utils import Z3
 
@@ -244,14 +244,31 @@ def infer_equations(
 
     def milp_synthesis_wrapper(pivot, selected_terms, selected_data):
         str = ""
-        status, expr, obj, _ = milp_synthesis(
-            selected_data,
-            selected_terms,
-            pivot,
-            bound=settings.MILP_BOUND,
-            timeout=settings.MILP_TIME_LIMIT,
-        )
-        if status == OPTIMAL:
+        optimal = None
+        if settings.MILP_SOLVER == "GUROBI":
+            optimal = milp.OPTIMAL
+            status, expr, obj, _ = milp.milp_synthesis(
+                selected_data,
+                selected_terms,
+                pivot,
+                bound=settings.MILP_BOUND,
+                timeout=settings.MILP_TIME_LIMIT,
+            )
+        else:
+            if settings.MILP_SOLVER != "PULP":
+                log.warning(
+                    f"Invalid MILP solver: {settings.MILP_SOLVER}, using PULP instead"
+                )
+            optimal = milp_pulp.OPTIMAL
+            status, expr, obj, _ = milp_pulp.milp_synthesis(
+                selected_data,
+                selected_terms,
+                pivot,
+                bound=settings.MILP_BOUND,
+                timeout=settings.MILP_TIME_LIMIT,
+            )
+
+        if status == optimal:
             if abs(obj) < objective_threshold:  # check if the objective is small enough
                 equation = expr
                 str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
