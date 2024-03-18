@@ -91,6 +91,34 @@ def process_trace(terms, data, degree):
     return extended_terms, extended_data
 
 
+def find_model(pivot, terms, data, test_size=0.2):
+    X = data
+    y = data[:, terms.index(pivot)]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        np.delete(data, terms.index(pivot), axis=1),
+        y,
+        test_size=test_size,
+        random_state=42,
+    )
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    score = model.score(X_test, y_test)
+    coefficients = model.coef_
+    intercept = model.intercept_
+    return pivot, {
+        "model": model,
+        "score": score,
+        "coefficients": coefficients,
+        "intercept": intercept,
+        # "X_test": X_test,
+        # "y_test": y_test,
+        "X_test": X,  # Include the entire X for evaluating the equation
+        "y_test": y,  # Include the entire y for evaluating the equation
+    }
+
+
 def find_models(extended_terms, extended_data, test_size=0.2):
     X = extended_data[:, :-1]  # Exclude the constant term
     models = {}
@@ -205,7 +233,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
 def infer_equations(
     models,
     extended_terms,
-    extended_data,  # noqa F401
+    extended_data,
     coeff_threshold=settings.COEFF_THRESHOLD,
     coeff_cutoff=settings.COEFF_CUTOFF,
     intercept_cutoff=settings.INTERCEPT_CUTOFF,
@@ -233,7 +261,7 @@ def infer_equations(
             str += f"MILP for {pivot}: No solution found\n"
             return str, None, None
 
-    def infer_equation(pivot, model):
+    def infer_equation(pivot, model, extended_terms, extended_data, note):
         str = ""
 
         # NOTE: preparing an equation from the regression model
@@ -281,13 +309,13 @@ def infer_equations(
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str += f"(error: {round(me, 2)}), "
+        str += f"(error: {round(me, 2)}), ({note}), "
         if me < delta:
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
 
-        if settings.MILP is not True:
+        if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
             return str, equation, me, None, None
 
         # NOTE: MILP Synthesis based on the regression model
@@ -305,7 +333,7 @@ def infer_equations(
     results = []
     milp_input = []
     for pivot, model in models.items():
-        result = infer_equation(pivot, model)
+        result = infer_equation(pivot, model, extended_terms, extended_data, "initial")
         if result is not None:
             results.append(result[0:3])
             milp_input.append((pivot, result[3], result[4]))
@@ -390,5 +418,10 @@ if __name__ == "__main__":  # noqa E123
             print(f"{eq} = 0")
 
         print("\nChecking Consistency of Equations:")
-        print(f"1. Solve algebraically: {sympy.solve(equations)}")
-        print(f"2. Check satisfiability: {Symbolic.check_sat(equations)}\n")
+        # catch NotImplementedError: could not solve
+        try:
+            print(f"1. Solve algebraically: {sympy.solve(equations)}")
+        except NotImplementedError:
+            print("1. Solve algebraically: Could not solve")
+        # print(f"2. Check satisfiability: {Symbolic.check_sat(equations)}\n")
+        print()
