@@ -337,7 +337,16 @@ def infer_equations(
         result = infer_equation(pivot, model, extended_terms, extended_data, "initial")
         if result is not None:
             results.append(result[0:3])
-            milp_input.append((pivot, result[3], result[4]))
+            term = result[3]
+            data = result[4]
+            milp_input.append((pivot, term, data))
+
+            # NOTE: start Regression Refinement
+            if settings.REGRESSION_REFINEMENT and len(term) > 1:
+                pivot_, model_ = find_model(pivot, term, data)
+                result = infer_equation(pivot_, model_, term, data, "refined")
+                if result is not None:
+                    results.append(result[0:3])
 
     if settings.MILP is not True:
         return results
