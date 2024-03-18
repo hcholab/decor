@@ -1,6 +1,6 @@
 # FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
-# FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
+# FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
+FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
 
@@ -17,10 +17,10 @@ MULTIPLE_REGRESSION = False  # if True, then we use the multiple regression meth
 CROSS_VALIDATION = 5
 
 # NOTE: Regression Refinement Method
-REGRESSION_REFINEMENT = False  # if True, then use the regression refinement algorithm
+REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
 
 # NOTE: MILP Method parameters
-MILP = False  # if True, then we use the MILP solver after the regression-based methods
+MILP = True  # if True, then we use the MILP solver after the regression-based methods
 OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 12
 MILP_TIME_LIMIT = 3  # in seconds
