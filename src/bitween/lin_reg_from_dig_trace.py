@@ -16,6 +16,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 
 from bitween import settings, miscs
 from bitween.miscs import Symbolic
+from bitween.z3utils import Z3
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
@@ -88,6 +89,34 @@ def process_trace(terms, data, degree):
     extended_terms.append("1")
     extended_data = np.hstack((monomial_data, np.ones((data.shape[0], 1))))
     return extended_terms, extended_data
+
+
+def find_model(pivot, terms, data, test_size=0.2):
+    X = data
+    y = data[:, terms.index(pivot)]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        np.delete(data, terms.index(pivot), axis=1),
+        y,
+        test_size=test_size,
+        random_state=42,
+    )
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    score = model.score(X_test, y_test)
+    coefficients = model.coef_
+    intercept = model.intercept_
+    return pivot, {
+        "model": model,
+        "score": score,
+        "coefficients": coefficients,
+        "intercept": intercept,
+        # "X_test": X_test,
+        # "y_test": y_test,
+        "X_test": X,  # Include the entire X for evaluating the equation
+        "y_test": y,  # Include the entire y for evaluating the equation
+    }
 
 
 def find_models(extended_terms, extended_data, test_size=0.2):
@@ -194,8 +223,8 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "coefficients": best_coefficients,
             # "X_test": X_test,
             # "y_test": y_test,
-            "X_test": X,
-            "y_test": y,
+            "X_test": X,  # NOTE: Include the entire X for evaluating the equation
+            "y_test": y,  # NOTE: Include the entire y for evaluating the equation
         }
 
     return models
@@ -204,14 +233,14 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
 def infer_equations(
     models,
     extended_terms,
-    extended_data,  # noqa F401
+    extended_data,
     coeff_threshold=settings.COEFF_THRESHOLD,
     coeff_cutoff=settings.COEFF_CUTOFF,
     intercept_cutoff=settings.INTERCEPT_CUTOFF,
     delta=settings.DELTA,
-    # objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
-    def infer_equation(pivot, model):
+
+    def infer_equation(pivot, model, extended_terms, extended_data, note):
         str = ""
 
         # NOTE: preparing an equation from the regression model
@@ -245,7 +274,7 @@ def infer_equations(
 
         equation = sympy.symbols(pivot) - rhs
         # equation = sp.simplify(equation)
-        str += f"Model for {pivot}: {equation.evalf()}, "
+        str += f"Model for {pivot}: {equation.evalf()} = 0, "
 
         X_test = model["X_test"]
         y_test = model["y_test"]
@@ -259,30 +288,49 @@ def infer_equations(
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str += f"(error: {round(me, 2)}), "
+        str += f"(error: {round(me, 2)}), ({note}), "
         if me < delta:
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
 
-        return str, equation, me
+        if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
+            return str, equation, me, None, None
+
+        # NOTE: MILP Synthesis based on the regression model
+        # Selecting respective columns from data
+        selected_indices = [extended_terms.index(term) for term in selected_terms]
+        selected_data = extended_data[:, selected_indices]
+
+        print(f"Model for {pivot}: {equation.evalf()}")
+        print(equation.evalf())
+        print(selected_terms)
+        print(selected_data)
+
+        return (str, equation, me, selected_terms, selected_data)
 
     results = []
     for pivot, model in models.items():
-        result = infer_equation(pivot, model)
+        result = infer_equation(pivot, model, extended_terms, extended_data, "initial")
         if result is not None:
-            results.append(result)
+            results.append(result[0:3])
+            term = result[3]
+            data = result[4]
 
-    return results
+            # NOTE: start Regression Refinement
+            if settings.REGRESSION_REFINEMENT and len(term) > 1:
+                pivot_, model_ = find_model(pivot, term, data)
+                result = infer_equation(pivot_, model_, term, data, "refined")
+                if result is not None:
+                    results.append(result[0:3])
+
+    if settings.MILP is not True:
+        return results
 
 
 if __name__ == "__main__":  # noqa E123
 
-    # file_path = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-    file_path = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
-    # file_path = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
+    file_path = settings.FILE_PATH
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
@@ -332,13 +380,29 @@ if __name__ == "__main__":  # noqa E123
 
         good_fit = set()
         for r in result:
-            if r[2] < 0.2:
-                print(f"{r[1]} (error: {round(r[2], 3)})")
+            if r[2] < settings.DELTA:
+                print(f"{r[1]} = 0 (error: {round(r[2], 3)})")
                 good_fit.add(sympy.simplify(r[1]))
 
         print("\nReduced Equalities:")
-        # print(Symbolic.reduce_eqts(good_fit))
         equations = Symbolic.refine(good_fit)
+
         for eq in equations:
             print(f"{eq} = 0")
-        print()
+
+        if settings.SLOW_SIMPLIFY:
+            equations = Z3._simplify_slow(equations, [], loc)
+            for r in equations:
+                print(r)
+
+        if settings.CONSISTENCY_CHECK:
+            print("\nChecking Consistency of Equations:")
+
+            try:
+                print(f"1. Solve algebraically: {sympy.solve(equations)}")
+            except NotImplementedError:
+                print("1. Solve algebraically: Could not solve")
+
+            print("2. Check satisfiability: ", end="")
+            sat, r = Z3.check_sat(equations)
+            print(f"{sat}, {r}")

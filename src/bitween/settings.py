@@ -20,7 +20,7 @@ CROSS_VALIDATION = 5
 REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
 
 # NOTE: MILP Method parameters
-MILP = True  # if True, then we use the MILP solver after the regression-based methods
+MILP = False  # if True, then we use the MILP solver after the regression-based methods
 OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 12
 MILP_TIME_LIMIT = 3  # in seconds
