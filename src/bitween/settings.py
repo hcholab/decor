@@ -23,7 +23,7 @@ REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algo
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
 MILP_SOLVER = "PULP"  # PULP or GUROBI
 OBJECTIVE_THRESHOLD = 1e-9
-MILP_BOUND = 12
+MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
 
