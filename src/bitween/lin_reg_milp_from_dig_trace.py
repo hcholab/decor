@@ -287,8 +287,8 @@ def infer_equations(
         str = ""
 
         # NOTE: preparing an equation from the regression model
-        if np.abs(model["intercept"]) >= intercept_cutoff:
-            # str += f"Model for {term}: Intercept = {content['intercept']}!\n"
+        if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
+            # str += f"Model for {pivot}: Intercept = {model['intercept']}!\n"
             return None
 
         rhs = sympy.Rational(0)
@@ -297,8 +297,10 @@ def infer_equations(
         terms = [item for item in extended_terms if item != pivot]
 
         # check all coefficients and if it is greater than 100, then skip it
-        if np.any(np.abs(model["coefficients"]) >= coeff_cutoff):
-            # str += f"Model for {term}: Large Coefficient!\n"
+        if settings.USE_CUTOFF and np.any(
+            np.abs(model["coefficients"]) >= coeff_cutoff
+        ):
+            # str += f"Model for {pivot}: Large Coefficient!\n"
             return None
 
         for i, coefficient in enumerate(model["coefficients"]):
@@ -376,6 +378,14 @@ def infer_equations(
                             f"{model_['model_type']}({model_['params']})+Refine",
                         )
                     )
+
+        if settings.MILP and settings.FULL_MILP:
+            # remove the last element from the extended terms and data
+            terms = extended_terms.copy()
+            terms.pop()
+            data = np.delete(extended_data, -1, axis=1)
+            result = milp_synthesis_wrapper(pivot, terms, data)
+            results.append((result, f"Milp({settings.MILP_SOLVER.lower()})+Full"))
 
     if settings.MILP is not True:
         return results

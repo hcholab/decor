@@ -4,6 +4,10 @@ FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
 
+# FILE_PATH = "benchmarks/bitween/dig/poly3.dig.dyn.traces.csv"
+FILE_PATH = "benchmarks/bitween/dig/poly4.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/poly5.dig.dyn.traces.csv"
+
 LOGGER_LEVEL = 3
 
 DEGREE = 2
@@ -26,9 +30,11 @@ OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
+FULL_MILP = True  # if True, then use MILP from all data points for each pivot
 
 # NOTE: Equation inference parameters for Regression-based Methods
 COEFF_THRESHOLD = 0.1  # remove coefficients that are smaller than this value
+USE_CUTOFF = True  # if True, then we use the cutoffs
 COEFF_CUTOFF = 30  # remove equalities that are larger than this value
 INTERCEPT_CUTOFF = 50  # remove equalities that are larger than this value
 
