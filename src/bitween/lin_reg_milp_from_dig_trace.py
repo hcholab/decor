@@ -1,4 +1,5 @@
 import collections
+from dataclasses import dataclass
 import itertools
 import warnings
 from joblib import Parallel, delayed  # noqa F401
@@ -24,13 +25,23 @@ sympy.init_printing(use_unicode=False, wrap_line=False)
 log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
+@dataclass(frozen=True)
+class Equation:
+    expr: sympy.Expr
+    error: float
+    pivot: str
+    sample_size: int
+    model_desc: str
+    note: str
+
+
 def load_input_data(file_path):
     with open(file_path, "r") as file:
         input_data = file.read()
     return input_data
 
 
-def parse_dig_vtrace_file(input_data):
+def parse_dig_vtrace_file(input_data) -> dict:
     # Splitting the input data into lines
     lines = input_data.strip().split("\n")
 
@@ -59,6 +70,7 @@ def parse_dig_vtrace_file(input_data):
     # Convert data lists to numpy arrays
     for trace in traces:
         traces[trace]["data"] = np.array(traces[trace]["data"])
+        # traces[trace]["data"].setflags(write=False)
 
     return traces
 
@@ -235,7 +247,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
     return models
 
 
-def infer_equations(
+def infer_equations(  # noqa F811
     models,
     extended_terms,
     extended_data,
@@ -246,7 +258,7 @@ def infer_equations(
     objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
 
-    def milp_synthesis_wrapper(pivot, selected_terms, selected_data):
+    def milp_synthesis_wrapper(pivot, selected_terms, selected_data, model_desc):
         str = ""
         optimal = None
         if settings.MILP_SOLVER == "GUROBI":
@@ -278,18 +290,30 @@ def infer_equations(
                 str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
                 str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
                 me = obj
-                return str, equation, me
+                return (
+                    Equation(equation, me, pivot, sample_size, model_desc, str),
+                    None,
+                    None,
+                )
+            else:
+                str += f"MILP for {pivot}: Objective too large: {obj}\n"
+                return (
+                    Equation(None, None, pivot, sample_size, model_desc, str),
+                    None,
+                    None,
+                )
         else:
             str += f"MILP for {pivot}: No solution found\n"
-            return str, None, None
+            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
 
-    def infer_equation(pivot, model, extended_terms, extended_data, note):
+    def infer_equation(pivot, model, extended_terms, extended_data, model_desc):
         str = ""
+        sample_size = extended_data.shape[0]
 
         # NOTE: preparing an equation from the regression model
         if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {pivot}: Intercept = {model['intercept']}!\n"
-            return None
+            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
 
         rhs = sympy.Rational(0)
         coeff_terms = {}
@@ -301,7 +325,7 @@ def infer_equations(
             np.abs(model["coefficients"]) >= coeff_cutoff
         ):
             # str += f"Model for {pivot}: Large Coefficient!\n"
-            return None
+            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
 
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
@@ -333,14 +357,18 @@ def infer_equations(
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str += f"(error: {round(me, 2)}), ({note}), "
+        str += f"(error: {round(me, 2)}), ({model_desc}), "
         if me < delta:
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
 
         if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
-            return str, equation, me, None, None
+            return (
+                Equation(equation, me, pivot, sample_size, model_desc, str),
+                None,
+                None,
+            )
 
         # NOTE: MILP Synthesis based on the regression model
         # Selecting respective columns from data
@@ -352,57 +380,74 @@ def infer_equations(
         print(selected_terms)
         # print(selected_data)
 
-        return (str, equation, me, selected_terms, selected_data)
+        return (
+            Equation(equation, me, pivot, sample_size, model_desc, str),
+            selected_terms,
+            selected_data,
+        )
 
     results = []
     milp_input = []
     for pivot, model in models.items():
-        result = infer_equation(pivot, model, extended_terms, extended_data, "initial")
-        if result is not None:
-            results.append((result[0:3], f"{model['model_type']}({model['params']})"))
-            term = result[3]
-            data = result[4]
+        model_desc = f"{model['model_type']}({model['params']})"
+        equation, term, data = infer_equation(
+            pivot, model, extended_terms, extended_data, model_desc
+        )
+        if equation.expr is not None:
+            results.append(equation)
             milp_input.append((pivot, term, data))
-
-            error = result[2]
-            if error < delta:
+            if equation.error < delta:
                 continue
+
             # NOTE: start Regression Refinement
             if settings.REGRESSION_REFINEMENT and len(term) > 1:
                 pivot_, model_ = find_model(pivot, term, data)
-                result = infer_equation(pivot_, model_, term, data, "refined")
-                if result is not None:
-                    results.append(
-                        (
-                            result[0:3],
-                            f"{model_['model_type']}({model_['params']})+Refine",
-                        )
-                    )
+                model_desc = f"{model_['model_type']}({model_['params']})+Refine"
+                equation, _, _ = infer_equation(pivot_, model_, term, data, model_desc)
+                if equation.expr is not None:
+                    results.append(equation)
 
-        if settings.MILP and settings.FULL_MILP:
+        if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
             # remove the last element from the extended terms and data
             terms = extended_terms.copy()
             terms.pop()
             data = np.delete(extended_data, -1, axis=1)
-            result = milp_synthesis_wrapper(pivot, terms, data)
-            results.append((result, f"Milp({settings.MILP_SOLVER.lower()})+Full"))
+            model_desc = f"{model['model_type']}({model['params']})+Full"
+            equation, _, _ = milp_synthesis_wrapper(pivot, terms, data, model_desc)
+            results.append(equation)
 
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
         # NOTE: Parallel MILP Synthesis based on the regression model
         solver = settings.MILP_SOLVER.lower()
         if settings.PARALLEL_MILP:
+            model_desc = f"Milp({solver})"
             milp_results = Parallel(n_jobs=-1)(
-                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
+                delayed(milp_synthesis_wrapper)(*mi, model_desc) for mi in milp_input
             )
-            results.extend([(r, f"Milp({solver})") for r in milp_results])
+            for equation, _, _ in milp_results:
+                results.append(equation)
 
         else:
-            milp_results = [milp_synthesis_wrapper(*mi) for mi in milp_input]
-            results.extend([(r, f"Milp({solver})") for r in milp_results])
+            model_desc = f"Milp({solver})"
+            milp_results = [
+                milp_synthesis_wrapper(*mi, model_desc) for mi in milp_input
+            ]
+            for equation, _, _ in milp_results:
+                results.append(equation)
+
+    # NOTE: Linear Equation Solver based on the regression model
+    if settings.USE_LINSOLVE:
+        # NOTE: Linear Solver
+        lin_solve_results = Parallel(n_jobs=-1)(
+            delayed(Symbolic.linear_solve)(*mi) for mi in milp_input
+        )
+        for expr, sample_size in lin_solve_results:
+            equation = Equation(expr, 0, pivot, sample_size, "LinSolve", "")
+            results.append(equation)
 
     # remove None values
-    return [r for r in results if r[0] is not None and r[0][2] is not None]
+    return [r for r in results if r is not None and r.error is not None]
 
 
 if __name__ == "__main__":  # noqa E123
@@ -444,7 +489,7 @@ if __name__ == "__main__":  # noqa E123
             result = infer_equations(models, extended_terms, extended_data)
             results[loc].extend(result)
             for r in result:
-                _str += r[0][0]
+                _str += r.note
 
     print(_str)
 
@@ -454,33 +499,37 @@ if __name__ == "__main__":  # noqa E123
         print(f"\nTrace: {loc}")
         p_width = 73
         good_fit = set()
-        max_m = 15
-        max_e = 30
-        max_error = 5
-        for (_, eq, error), model in result:
-            if error < settings.DELTA:
-                eql_s = str(eq.evalf())
-                max_m = max(max_m, len(model) + 1)
+        max_p = 4  # pivot
+        max_m = 15  # model
+        max_e = 30  # equation
+        max_error = 3  # error
+        max_s = 2  # sample size
+        for eq in result:
+            if eq.error < settings.DELTA:
+                eql_s = str(eq.expr.evalf())
+                max_m = max(max_m, len(eq.model_desc) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
-                max_error = max(max_error, len(str(round(error, 3))))
+                max_error = max(max_error, len(str(round(eq.error, 3))))
+                max_p = max(max_p, len(eq.pivot))
+                max_s = max(max_s, len(str(eq.sample_size)))
                 if len(eql_s) > p_width:
                     max_e = p_width
-        ruler = "-" * (max_m + max_e + max_error + 7)
+        ruler = "-" * (max_p + max_m + max_e + max_error + max_s + 13)
         # print the header
         print(ruler)
         print(
-            f"{'Source':<{max_m}}| {'Invariant/Property':<{max_e}} | {'Error':<{max_error}} |"
+            f"{'Source':<{max_m}}| {'Term':<{max_p}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':<{max_s}} |"
         )
         print(ruler)
-        for (_, eq, error), model in result:
-            if error < settings.DELTA:
-                s_eq = str(eq.evalf()) + " = 0"
+        for eq in result:
+            if eq.error < settings.DELTA:
+                s_eq = str(eq.expr.evalf()) + " = 0"
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(
-                    f"{model:<{max_m}}| {s_eq:<{max_e}} | {round(error, 3):<{max_error}} |"
+                    f"{eq.model_desc:<{max_m}}| {eq.pivot:<{max_p}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:<{max_s}} |"
                 )
-                good_fit.add(sympy.simplify(eq))
+                good_fit.add(eq.expr)
         print(ruler)
 
         print("\nReduced Equalities:")
