@@ -183,11 +183,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         "Linear": {"model": LinearRegression(), "params": {}},
         "Ridge": {
             "model": Ridge(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 100, 1000]},
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 100, 1000]},
         },
         "Lasso": {
             "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 1, 10, 100]},
+            "params": {"alpha": [1e-3, 1e-2, 1e-1, 10, 100]},
         },
     }
 
@@ -274,7 +274,7 @@ def infer_equations(
 
         if status == optimal:
             if abs(obj) < objective_threshold:  # check if the objective is small enough
-                equation = expr
+                equation = sympy.sympify(expr)
                 str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
                 str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
                 me = obj
@@ -387,22 +387,20 @@ def infer_equations(
             result = milp_synthesis_wrapper(pivot, terms, data)
             results.append((result, f"Milp({settings.MILP_SOLVER.lower()})+Full"))
 
-    if settings.MILP is not True:
-        return results
+    # NOTE: MILP Synthesis based on the regression model
+    if settings.MILP:
+        # NOTE: Parallel MILP Synthesis based on the regression model
+        solver = settings.MILP_SOLVER.lower()
+        if settings.PARALLEL_MILP:
+            milp_results = Parallel(n_jobs=-1)(
+                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
+            )
+            results.extend([(r, f"Milp({solver})") for r in milp_results])
 
-    # NOTE: Parallel MILP Synthesis based on the regression model
-    solver = settings.MILP_SOLVER.lower()
-    if settings.PARALLEL_MILP:
-        milp_results = Parallel(n_jobs=-1)(
-            delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
-        )
-        for r in milp_results:
-            results.append((r, f"Milp({solver})"))
+        else:
+            milp_results = [milp_synthesis_wrapper(*mi) for mi in milp_input]
+            results.extend([(r, f"Milp({solver})") for r in milp_results])
 
-    else:
-        milp_results = [milp_synthesis_wrapper(*mi) for mi in milp_input]
-        for r in milp_results:
-            results.append((r, f"Milp({solver})"))
     # remove None values
     return [r for r in results if r[0] is not None and r[0][2] is not None]
 
@@ -461,10 +459,11 @@ if __name__ == "__main__":  # noqa E123
         max_error = 5
         for (_, eq, error), model in result:
             if error < settings.DELTA:
+                eql_s = str(eq.evalf())
                 max_m = max(max_m, len(model) + 1)
-                max_e = max(max_e, len(str(eq)) + 4)
+                max_e = max(max_e, len(eql_s) + 4)
                 max_error = max(max_error, len(str(round(error, 3))))
-                if len(str(eq)) > p_width:
+                if len(eql_s) > p_width:
                     max_e = p_width
         ruler = "-" * (max_m + max_e + max_error + 7)
         # print the header
@@ -475,7 +474,7 @@ if __name__ == "__main__":  # noqa E123
         print(ruler)
         for (_, eq, error), model in result:
             if error < settings.DELTA:
-                s_eq = str(eq) + " = 0"
+                s_eq = str(eq.evalf()) + " = 0"
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(

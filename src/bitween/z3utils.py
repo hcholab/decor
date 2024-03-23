@@ -441,6 +441,7 @@ class Z3:
         """
 
         if len(ps) < 2:
+            log.debug(f"no need to simplify {msg} {len(ps)}")
             return ps
 
         st = time()
