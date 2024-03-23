@@ -22,6 +22,12 @@ CROSS_VALIDATION = 5
 # NOTE: Regression Refinement Method
 REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
 
+# NOTE: Equation inference parameters for Regression-based Methods
+COEFF_THRESHOLD = 0.1  # remove coefficients that are smaller than this value
+USE_CUTOFF = True  # if True, then we use the cutoffs
+COEFF_CUTOFF = 30  # remove equalities that are larger than this value
+INTERCEPT_CUTOFF = 50  # remove equalities that are larger than this value
+
 # NOTE: MILP Method parameters
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
 MILP_SOLVER = "GUROBI"  # PULP or GUROBI
