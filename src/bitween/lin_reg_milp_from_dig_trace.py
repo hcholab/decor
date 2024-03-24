@@ -120,6 +120,8 @@ def find_model(pivot, terms, data, test_size=0.2):
     score = model.score(X_test, y_test)
     coefficients = model.coef_
     intercept = model.intercept_
+    sample_size = X_train.shape[0]
+
     return pivot, {
         "model": model,
         "score": score,
@@ -127,6 +129,7 @@ def find_model(pivot, terms, data, test_size=0.2):
         "params": "",  # NOTE: No parameters for simple linear regression
         "coefficients": coefficients,
         "intercept": intercept,
+        "sample_size": sample_size,
         # "X_test": X_test,
         # "y_test": y_test,
         "X_test": X,  # Include the entire X for evaluating the equation
@@ -171,6 +174,7 @@ def find_models(extended_terms, extended_data, test_size=0.2):
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
+    sample_size = int(extended_data.shape[0] * (1 - test_size))
     for term, model, score, coefficients, intercept, X_test, y_test in results:
         models[term] = {
             "model": model,
@@ -179,6 +183,7 @@ def find_models(extended_terms, extended_data, test_size=0.2):
             "params": "",  # NOTE: No parameters for simple linear regression
             "coefficients": coefficients,
             "intercept": intercept,
+            "sample_size": sample_size,
             "X_test": X_test,
             "y_test": y_test,
         }
@@ -187,7 +192,7 @@ def find_models(extended_terms, extended_data, test_size=0.2):
 
 
 def find_best_model(extended_terms, extended_data, test_size=0.2):
-    X = extended_data[:, :-1]  # Use all terms except the target variable itself
+    X_ = extended_data[:, :-1]  # Use all terms except the target variable itself
     models = {}
 
     # Define the models and parameters for grid search
@@ -203,6 +208,28 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         },
     }
 
+    sample_size = extended_data.shape[0]
+
+    if settings.REGRESSION_USE_SAMPLE_RATE and settings.REGRESSION_SAMPLE_RATE > 1:
+        # select a random subset of the extended_data based on the number of terms * sample rate
+        sample_size = int(len(extended_terms) * settings.REGRESSION_SAMPLE_RATE)
+        threshold = settings.REGRESSION_SAMPLE_THRESHOLD
+        if sample_size < threshold:
+            if extended_data.shape[0] > threshold:
+                sample_size = threshold
+            else:  # use all data
+                sample_size = extended_data.shape[0]
+
+        if sample_size < extended_data.shape[0]:
+            sample_indices = np.random.choice(
+                extended_data.shape[0], sample_size, replace=False
+            )
+            extended_data = extended_data[sample_indices]
+        else:
+            sample_size = extended_data.shape[0]
+
+    # TODO: Parallelize the following loop
+    X = extended_data[:, :-1]  # Exclude the constant term
     for i in range(len(extended_terms) - 1):
         y = extended_data[:, i]
         X_train, X_test, y_train, y_test = train_test_split(
@@ -238,10 +265,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "params": best_params,
             "intercept": best_intercept,
             "coefficients": best_coefficients,
+            "sample_size": sample_size,
             # "X_test": X_test,
             # "y_test": y_test,
-            "X_test": X,  # NOTE: Include the entire X for evaluating the equation
-            "y_test": y,  # NOTE: Include the entire y for evaluating the equation
+            "X_test": X_,  # NOTE: Include the entire X for evaluating the eq.
+            "y_test": X_[:, i],  # NOTE: Include the entire y for evaluating the eq.
         }
 
     return models
@@ -261,6 +289,25 @@ def infer_equations(  # noqa F811
     def milp_synthesis_wrapper(pivot, selected_terms, selected_data, model_desc):
         str = ""
         optimal = None
+
+        sample_size = selected_data.shape[0]
+        if settings.MILP_USE_SAMPLE_RATE and settings.MILP_SAMPLE_RATE > 1:
+            sample_size = int(len(selected_terms) * settings.MILP_SAMPLE_RATE)
+            threshold = settings.MILP_SAMPLE_THRESHOLD
+            if sample_size < threshold:
+                if selected_data.shape[0] > threshold:
+                    sample_size = threshold
+                else:  # use all data
+                    sample_size = selected_data.shape[0]
+
+            if sample_size < selected_data.shape[0]:
+                sample_indices = np.random.choice(
+                    selected_data.shape[0], sample_size, replace=False
+                )
+                selected_data = selected_data[sample_indices]
+            else:
+                sample_size = selected_data.shape[0]
+
         if settings.MILP_SOLVER == "GUROBI":
             optimal = milp.OPTIMAL
             status, expr, obj, _ = milp.milp_synthesis(
@@ -308,7 +355,7 @@ def infer_equations(  # noqa F811
 
     def infer_equation(pivot, model, extended_terms, extended_data, model_desc):
         str = ""
-        sample_size = extended_data.shape[0]
+        sample_size = model["sample_size"]
 
         # NOTE: preparing an equation from the regression model
         if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
@@ -342,7 +389,7 @@ def infer_equations(  # noqa F811
             rhs += sympy.Rational(intercept)
 
         equation = sympy.symbols(pivot) - rhs
-        # equation = sp.simplify(equation)
+        # equation = sympy.simplify(equation)
         str += f"Model for {pivot}: {equation.evalf()} = 0, "
 
         X_test = model["X_test"]
@@ -450,8 +497,7 @@ def infer_equations(  # noqa F811
     return [r for r in results if r is not None and r.error is not None]
 
 
-if __name__ == "__main__":  # noqa E123
-
+def main():
     file_path = settings.FILE_PATH
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
@@ -469,6 +515,7 @@ if __name__ == "__main__":  # noqa E123
         for degree in range(1, settings.DEGREE + 1):
             _str += f"\nDegree: {degree}\n"
             extended_terms, extended_data = process_trace(terms, data, degree)
+            trace_data[loc]["extended_terms"] = extended_terms
 
             _str += f"{extended_terms}\n"
 
@@ -496,7 +543,9 @@ if __name__ == "__main__":  # noqa E123
     # NOTE: Reporting--Display the inferred equalities
     print("\nInferred Equalities:")
     for loc, result in results.items():
-        print(f"\nTrace: {loc}")
+        print(
+            f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
+        )
         p_width = 73
         good_fit = set()
         max_p = 4  # pivot
@@ -554,3 +603,7 @@ if __name__ == "__main__":  # noqa E123
             print("2. Check satisfiability: ", end="")
             sat, r = Z3.check_sat(equations)
             print(f"{sat}, {r}")
+
+
+if __name__ == "__main__":  # noqa E123
+    main()

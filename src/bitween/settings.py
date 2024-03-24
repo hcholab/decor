@@ -1,11 +1,38 @@
 from enum import Enum
 
 # FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces"
-FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
+# FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces"
 # FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces"
+# FILE_PATH = "benchmarks/bitween/dig/egcd2.dig.dyn.traces"
+# FILE_PATH = "benchmarks/bitween/dig/egcd3.dig.dyn.traces.csv"
+FILE_PATH = "benchmarks/bitween/dig/fermat1.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/fermat2.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/freire1_int.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/freire1_int.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/freire1.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/freire2.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/geo1.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/geo2.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/geo3.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/geo4.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/hard.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/knuth.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/lcm1.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/lcm2.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/mannadiv.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/prod4b4.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/prodbin.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps1.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps2.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps3.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps4.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps5.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/ps6.dig.dyn.traces.csv"
+# FILE_PATH = "benchmarks/bitween/dig/sqrt.dig.dyn.traces.csv"
 
+# FILE_PATH = "benchmarks/bitween/dig/poly3.dig.dyn.traces1.csv"
 # FILE_PATH = "benchmarks/bitween/dig/poly3.dig.dyn.traces.csv"
 # FILE_PATH = "benchmarks/bitween/dig/poly4.dig.dyn.traces.csv"
 # FILE_PATH = "benchmarks/bitween/dig/poly5.dig.dyn.traces.csv"
@@ -18,7 +45,7 @@ DELTA = 0.2  # Property Test threshold
 TYPE = "INT"  # INT or REAL
 
 # NOTE: Multiple Regression Method
-MULTIPLE_REGRESSION = True  # if True, then we use the multiple regression methods
+MULTIPLE_REGRESSION = False  # if True, then we use the multiple regression methods
 CROSS_VALIDATION = 2
 
 # NOTE: Regression Refinement Method
@@ -71,5 +98,10 @@ UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coeffi
 
 # NOTE: Z3
 SOLVER_TIMEOUT = 10  # in seconds
-SLOW_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
+SLOW_SIMPLIFY = False  # simplify results, e.g., removing weaker invariants
 CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
+
+if __name__ == "__main__":
+    from bitween.lin_reg_milp_from_dig_trace import main
+
+    main()
