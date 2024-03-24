@@ -35,6 +35,18 @@ class Equation:
     note: str
 
 
+@dataclass(frozen=True)
+class Model:
+    model: object
+    score: float
+    model_type: str
+    params: dict
+    coefficients: np.ndarray
+    intercept: float
+    X_test: np.ndarray
+    y_test: np.ndarray
+
+
 def load_input_data(file_path):
     with open(file_path, "r") as file:
         input_data = file.read()

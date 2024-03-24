@@ -102,6 +102,6 @@ SLOW_SIMPLIFY = False  # simplify results, e.g., removing weaker invariants
 CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 
 if __name__ == "__main__":
-    from bitween.lin_reg_milp_from_dig_trace import main
+    from bitween.main import main
 
     main()
