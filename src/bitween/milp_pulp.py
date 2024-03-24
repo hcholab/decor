@@ -74,7 +74,7 @@ def milp_synthesis(
     # Objective function
     m += lpSum(error_vars)
 
-    m.writeLP("synthesis_pulp.lp")
+    # m.writeLP("synthesis_pulp.lp")
 
     # Solve the problem
     m.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=timeout))

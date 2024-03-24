@@ -125,7 +125,7 @@ def milp_synthesis(  # noqa: C901
 
     m.setObjective(gp.quicksum(abs_vars_name.values()), GRB.MINIMIZE)
 
-    m.write("synthesis.lp")
+    # m.write("synthesis.lp")
 
     try:
         print("------------------------------------------")

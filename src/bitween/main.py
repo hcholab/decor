@@ -286,7 +286,14 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
-    return {term: content for term, content in results}
+    # return {term: content for term, content in results}
+    models = {}
+    for term, content in results:
+        if content["model"] is None:
+            log.debug(f"Model for {term}: No model found")
+            continue
+        models[term] = content
+    return models
 
 
 def infer_equations(  # noqa F811
@@ -468,15 +475,6 @@ def infer_equations(  # noqa F811
                 if equation.expr is not None:
                     results.append(equation)
 
-        if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
-            # remove the last element from the extended terms and data
-            terms = extended_terms.copy()
-            terms.pop()
-            data = np.delete(extended_data, -1, axis=1)
-            model_desc = f"{model['model_type']}({model['params']})+Full"
-            equation, _, _ = milp_synthesis_wrapper(pivot, terms, data, model_desc)
-            results.append(equation)
-
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
         # NOTE: Parallel MILP Synthesis based on the regression model
@@ -506,6 +504,27 @@ def infer_equations(  # noqa F811
         for expr, sample_size in lin_solve_results:
             equation = Equation(expr, 0, pivot, sample_size, "LinSolve", "")
             results.append(equation)
+
+    # NOTE: EAGER MILP over Full Model that includes all terms
+    if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
+        if (
+            settings.FULL_MILP == settings.FullMILP.AUTO
+            and extended_data.shape[0] < settings.FULL_MILP_THRESHOLD
+        ) or settings.FULL_MILP == settings.FullMILP.ALWAYS:
+            model_desc = f"Milp({solver})+Full"
+
+            milp_input = []
+            for pivot in extended_terms[:-1]:
+                terms = extended_terms.copy()
+                terms.pop()
+                data = np.delete(extended_data, -1, axis=1)
+                milp_input.append((pivot, terms, data, model_desc))
+
+            milp_results = Parallel(n_jobs=-1)(
+                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
+            )
+            for equation, _, _ in milp_results:
+                results.append(equation)
 
     # remove None values
     return [r for r in results if r is not None and r.error is not None]
