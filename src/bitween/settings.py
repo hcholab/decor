@@ -80,7 +80,8 @@ class FullMILP(Enum):
     AUTO = 2
 
 
-FULL_MILP = FullMILP.NEVER
+FULL_MILP = FullMILP.AUTO
+FULL_MILP_THRESHOLD = 15  # if the number of data points is less than this value, then we use MILP from all data points for each pivot
 
 # NOTE: MILP Sample Size Limit
 MILP_SAMPLE_RATE = 1.5
