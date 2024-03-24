@@ -193,7 +193,6 @@ def find_models(extended_terms, extended_data, test_size=0.2):
 
 def find_best_model(extended_terms, extended_data, test_size=0.2):
     X_ = extended_data[:, :-1]  # Use all terms except the target variable itself
-    models = {}
 
     # Define the models and parameters for grid search
     model_params = {
@@ -228,9 +227,9 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         else:
             sample_size = extended_data.shape[0]
 
-    # TODO: Parallelize the following loop
     X = extended_data[:, :-1]  # Exclude the constant term
-    for i in range(len(extended_terms) - 1):
+
+    def fit_model(i):
         y = extended_data[:, i]
         X_train, X_test, y_train, y_test = train_test_split(
             np.delete(X, i, axis=1), y, test_size=test_size, random_state=42
@@ -249,6 +248,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             )
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
+                warnings.simplefilter("ignore")
                 clf.fit(X_train, y_train)
                 if clf.best_score_ > best_score:
                     best_score = clf.best_score_
@@ -258,7 +258,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
                     best_intercept = best_model.intercept_
                     best_coefficients = best_model.coef_
 
-        models[extended_terms[i]] = {
+        return extended_terms[i], {
             "model": best_model,
             "score": best_score,
             "model_type": best_model_name,
@@ -266,13 +266,15 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "intercept": best_intercept,
             "coefficients": best_coefficients,
             "sample_size": sample_size,
-            # "X_test": X_test,
-            # "y_test": y_test,
             "X_test": X_,  # NOTE: Include the entire X for evaluating the eq.
             "y_test": X_[:, i],  # NOTE: Include the entire y for evaluating the eq.
         }
 
-    return models
+    results = Parallel(n_jobs=-1)(
+        delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
+    )
+
+    return {term: content for term, content in results}
 
 
 def infer_equations(  # noqa F811

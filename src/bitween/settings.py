@@ -45,8 +45,8 @@ DELTA = 0.2  # Property Test threshold
 TYPE = "INT"  # INT or REAL
 
 # NOTE: Multiple Regression Method
-MULTIPLE_REGRESSION = False  # if True, then we use the multiple regression methods
-CROSS_VALIDATION = 2
+MULTIPLE_REGRESSION = True  # if True, then we use the multiple regression methods
+CROSS_VALIDATION = 3
 
 # NOTE: Regression Refinement Method
 REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
