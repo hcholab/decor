@@ -215,7 +215,7 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         },
         "Lasso": {
             "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 10, 100]},
+            "params": {"alpha": [1e-4, 1e-3, 1e-2, 1e-1, 100, 1000]},
         },
     }
 
@@ -456,6 +456,7 @@ def infer_equations(  # noqa F811
 
     results = []
     milp_input = []
+    term_frequencies = collections.Counter()
     for pivot, model in models.items():
         model_desc = f"{model['model_type']}({model['params']})"
         equation, term, data = infer_equation(
@@ -474,6 +475,32 @@ def infer_equations(  # noqa F811
                 equation, _, _ = infer_equation(pivot_, model_, term, data, model_desc)
                 if equation.expr is not None:
                     results.append(equation)
+
+    # collect term frequencies from inferred equations (results)
+    for equation in results:
+        if not equation.model_desc.startswith("Milp"):
+            term_frequencies.update([str(s) for s in equation.expr.free_symbols])
+    print(f"Term Frequencies: {term_frequencies}")
+
+    # NOTE: Run a milp over the most frequent terms, pivot all terms
+    if settings.MILP_FREQ_REFINE and len(term_frequencies) > 5:
+        terms = []  # there is no "1" in term_frequencies
+        # keep the relative order of the terms
+        for term in extended_terms:
+            if term in term_frequencies:
+                terms.append(term)
+        selected_indices = [extended_terms.index(term) for term in terms]
+        selected_data = extended_data[:, selected_indices]
+        model_desc = f"Milp({settings.MILP_SOLVER.lower()})+Freqs"
+        inputs = []
+        for pivot in terms:
+            inputs.append((pivot, terms, selected_data, model_desc))
+
+        milp_results = Parallel(n_jobs=-1)(
+            delayed(milp_synthesis_wrapper)(*mi) for mi in inputs
+        )
+        for equation, _, _ in milp_results:
+            results.append(equation)
 
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
@@ -494,16 +521,6 @@ def infer_equations(  # noqa F811
             ]
             for equation, _, _ in milp_results:
                 results.append(equation)
-
-    # NOTE: Linear Equation Solver based on the regression model
-    if settings.USE_LINSOLVE:
-        # NOTE: Linear Solver
-        lin_solve_results = Parallel(n_jobs=-1)(
-            delayed(Symbolic.linear_solve)(*mi) for mi in milp_input
-        )
-        for expr, sample_size in lin_solve_results:
-            equation = Equation(expr, 0, pivot, sample_size, "LinSolve", "")
-            results.append(equation)
 
     # NOTE: EAGER MILP over Full Model that includes all terms
     if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
@@ -527,7 +544,9 @@ def infer_equations(  # noqa F811
                 results.append(equation)
 
     # remove None values
-    return [r for r in results if r is not None and r.error is not None]
+    return [
+        r for r in results if r is not None and r.error is not None
+    ], term_frequencies
 
 
 def main():
@@ -550,7 +569,7 @@ def main():
             extended_terms, extended_data = process_trace(terms, data, degree)
             trace_data[loc]["extended_terms"] = extended_terms
 
-            _str += f"{extended_terms}\n"
+            _str += f"{extended_terms}; size: {len(extended_terms)}\n"
 
             if settings.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
@@ -566,7 +585,8 @@ def main():
 
             _str += "\n"
 
-            result = infer_equations(models, extended_terms, extended_data)
+            result, term_freq = infer_equations(models, extended_terms, extended_data)
+            _str += f"Term Frequencies: {term_freq}; Size: {len(term_freq)}\n"
             results[loc].extend(result)
             for r in result:
                 _str += r.note
