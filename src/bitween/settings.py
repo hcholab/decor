@@ -65,7 +65,7 @@ INTERCEPT_CUTOFF = 50  # remove equalities that are larger than this value
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
 MILP_SOLVER = "GUROBI"  # PULP or GUROBI
 OBJECTIVE_THRESHOLD = 1e-9
-MILP_BOUND = 30
+MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
 
