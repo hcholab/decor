@@ -34,6 +34,7 @@ class Equation:
     pivot: str
     sample_size: int
     model_desc: str
+    dimension: int
     note: str
 
 
@@ -313,6 +314,7 @@ def infer_equations(  # noqa F811
         str_ = ""
         optimal = None
 
+        dims = len(selected_terms)
         sample_size = selected_data.shape[0]
         if settings.MILP_USE_SAMPLE_RATE and settings.MILP_SAMPLE_RATE > 1:
             sample_size = int(len(selected_terms) * settings.MILP_SAMPLE_RATE)
@@ -369,21 +371,21 @@ def infer_equations(  # noqa F811
 
                 me = obj
                 return (
-                    Equation(equation, me, pivot, sample_size, model_desc, str_),
+                    Equation(equation, me, pivot, sample_size, model_desc, dims, str_),
                     None,
                     None,
                 )
             else:
                 str_ += f"MILP for {pivot}: Objective too large: {obj}\n"
                 return (
-                    Equation(None, None, pivot, sample_size, model_desc, str_),
+                    Equation(None, None, pivot, sample_size, model_desc, dims, str_),
                     None,
                     None,
                 )
         else:
             str_ += f"MILP for {pivot}: No solution found\n"
             return (
-                Equation(None, None, pivot, sample_size, model_desc, str_),
+                Equation(None, None, pivot, sample_size, model_desc, dims, str_),
                 None,
                 None,
             )
@@ -391,12 +393,13 @@ def infer_equations(  # noqa F811
     def infer_equation(pivot, model, extended_terms, extended_data, model_desc):
         str_ = ""
         sample_size = model["sample_size"]
+        dims = len(extended_terms)
 
         # NOTE: preparing an equation from the regression model
         if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {pivot}: Intercept = {model['intercept']}!\n"
             return (
-                Equation(None, None, pivot, sample_size, model_desc, str_),
+                Equation(None, None, pivot, sample_size, model_desc, dims, str_),
                 None,
                 None,
             )
@@ -412,7 +415,7 @@ def infer_equations(  # noqa F811
         ):
             # str += f"Model for {pivot}: Large Coefficient!\n"
             return (
-                Equation(None, None, pivot, sample_size, model_desc, str_),
+                Equation(None, None, pivot, sample_size, model_desc, dims, str_),
                 None,
                 None,
             )
@@ -462,7 +465,7 @@ def infer_equations(  # noqa F811
 
         if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
             return (
-                Equation(equation, me, pivot, sample_size, model_desc, str_),
+                Equation(equation, me, pivot, sample_size, model_desc, dims, str_),
                 None,
                 None,
             )
@@ -478,7 +481,7 @@ def infer_equations(  # noqa F811
         # print(selected_data)
 
         return (
-            Equation(equation, me, pivot, sample_size, model_desc, str_),
+            Equation(equation, me, pivot, sample_size, model_desc, dims, str_),
             selected_terms,
             selected_data,
         )
@@ -585,9 +588,10 @@ def infer_equations(  # noqa F811
         lin_solve_results = Parallel(n_jobs=-1)(
             delayed(Symbolic.linear_solve)(*mi) for mi in milp_input
         )
+        dims = len(extended_terms)
         for expr, sample_size in lin_solve_results:
             if expr is not None and expr != 0:
-                equation = Equation(expr, 0, pivot, sample_size, "LinSolve", "")
+                equation = Equation(expr, 0, pivot, sample_size, "LinSolve", dims, "")
             results.append(equation)
 
     # remove None values
@@ -653,6 +657,8 @@ def main():
         max_e = 30  # equation
         max_error = 3  # error
         max_s = 2  # sample size
+        init_d = str(len(trace_data[loc]["extended_terms"]))  # initial dimension
+        max_d = len(init_d)  # dimension
         for eq in result:
             if eq.error < settings.DELTA:
                 eql_s = str(eq.expr.evalf())
@@ -661,13 +667,14 @@ def main():
                 max_error = max(max_error, len(str(round(eq.error, 3))))
                 max_p = max(max_p, len(eq.pivot))
                 max_s = max(max_s, len(str(eq.sample_size)))
+                max_d = max(max_d, len(str(eq.dimension)))
                 if len(eql_s) > p_width:
                     max_e = p_width
-        ruler = "-" * (max_p + max_m + max_e + max_error + max_s + 13)
+        ruler = "-" * (max_p + max_m + max_d + max_e + max_error + max_s + 16)
         # print the header
         print(ruler)
         print(
-            f"{'Source':<{max_m}}| {'Term':<{max_p}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':<{max_s}} |"
+            f"{'Source':<{max_m}}| {'Term':<{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':<{max_s}} |"
         )
         print(ruler)
         for eq in result:
@@ -676,7 +683,7 @@ def main():
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(
-                    f"{eq.model_desc:<{max_m}}| {eq.pivot:<{max_p}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:<{max_s}} |"
+                    f"{eq.model_desc:<{max_m}}| {eq.pivot:<{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:<{max_s}} |"
                 )
                 good_fit.add(eq.expr)
         print(ruler)
