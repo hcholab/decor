@@ -81,9 +81,9 @@ def milp_synthesis(  # noqa: C901
         # create an expression for the sum of the datapoint times the decision variable.
         m.addConstr(gp.quicksum(vals) == 0, name=f"eq_{i}")
 
-    # m.setObjective(gp.quicksum(abs_vars_name.values()), GRB.MINIMIZE)
+    # m.setObjective(gp.quicksum(m.getVars()), GRB.MINIMIZE)
 
-    m.write("synthesis.lp")
+    # m.write("synthesis.lp")
 
     try:
         print("------------------------------------------")
