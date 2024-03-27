@@ -221,8 +221,7 @@ class Symbolic:
         # sage:var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
-        # sage:sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: - \
-            1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
+        # sage:sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
         # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 

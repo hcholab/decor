@@ -39,7 +39,7 @@ FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces.csv"  # NOTE: NO NE
 LOGGER_LEVEL = 3
 
 DEGREE = 2
-DELTA = 0.2  # Property Test threshold
+DELTA = 0.001  # Property Test threshold
 
 TYPE = "INT"  # INT or REAL
 
@@ -68,6 +68,7 @@ OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
+MILP_OUTPUT = False  # if True, then we show the MILP warnings
 
 
 # NOTE: Eager MILP
@@ -101,7 +102,7 @@ UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coeffi
 
 # NOTE: Z3
 SOLVER_TIMEOUT = 10  # in seconds
-SLOW_SIMPLIFY = False  # simplify results, e.g., removing weaker invariants
+SLOW_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 
 if __name__ == "__main__":

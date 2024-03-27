@@ -57,196 +57,216 @@ def milp_synthesis(  # noqa: C901
     term_coefs: the coefficients of each term
     term_costs: the cost of each term
     """
-    print("------------------------------------------")
-    m = gp.Model("synthesis of random self-reducible properties")
-    m.setParam("TimeLimit", timeout)
-    m.setParam("IntegralityFocus", INTEGRALITY_FOCUS)
-    # m.setParam("MIPFocus", MIPFOCUS)
-    # m.setParam("OptimalityTol", OPTIMALITY_TOL)
-    m.setParam("NumericFocus", NUMERIC_FOCUS)
+    global str_
+    str_ = ""
 
-    # find the min and max values of the data, and find the matrix range, which is max/min
-    # min_coef = np.min(data)
-    # if min_coef == 0:
-    #     min_coef = 1
-    # max_coef = np.max(data)
-    # matrix_range = max_coef / min_coef
-    # # assign scale half of the matrix range until it is less than 10e9
-    # if abs(matrix_range) > 10e9:
-    #     log.warn(
-    #         f"Matrix range is too large(max: {max_coef}; min: {min_coef}), scaling the data for pivot: {pivot}"
-    #     )
-    #     exponent = math.pow(10, int("{:.1e}".format(matrix_range).split("e")[1]))
-    #     while abs(exponent) > 10e9:
-    #         exponent = exponent / 10**4
-    #     scale = 1 / matrix_range
+    def p(s):
+        global str_
+        str_ += s + "\n"
 
-    # For each term, create an integer decision variable and
-    for i in range(len(terms)):
-        m.addVar(vtype=GRB.INTEGER, name=f"term_{i}", lb=-bound, ub=bound)
+    p("------------------------------------------")
+    p(f"Pivot: {pivot} | Blocked: {blocked}")
+
+    with gp.Env(empty=True) as env:
+        if not settings.MILP_OUTPUT:
+            env.setParam("OutputFlag", 0)
+        env.start()
+        m = gp.Model(f"{pivot}: {terms}", env=env)
+        m.setParam("TimeLimit", timeout)
+        m.setParam("IntegralityFocus", INTEGRALITY_FOCUS)
+        # m.setParam("MIPFocus", MIPFOCUS)
+        # m.setParam("OptimalityTol", OPTIMALITY_TOL)
+        m.setParam("NumericFocus", NUMERIC_FOCUS)
+
+        # find the min and max values of the data, and find the matrix range, which is max/min
+        # min_coef = np.min(data)
+        # if min_coef == 0:
+        #     min_coef = 1
+        # max_coef = np.max(data)
+        # matrix_range = max_coef / min_coef
+        # # assign scale half of the matrix range until it is less than 10e9
+        # if abs(matrix_range) > 10e9:
+        #     log.warn(
+        #         f"Matrix range is too large(max: {max_coef}; min: {min_coef}), scaling the data for pivot: {pivot}"
+        #     )
+        #     exponent = math.pow(10, int("{:.1e}".format(matrix_range).split("e")[1]))
+        #     while abs(exponent) > 10e9:
+        #         exponent = exponent / 10**4
+        #     scale = 1 / matrix_range
+
+        # For each term, create an integer decision variable and
+        for i in range(len(terms)):
+            m.addVar(vtype=GRB.INTEGER, name=f"term_{i}", lb=-bound, ub=bound)
+            m.update()
+            if terms[i] == pivot:  # e.g. "f(x+y)"
+                var = m.getVarByName(f"term_{i}")
+                m.addConstr(var == 1, name=f"term_{i}_ub")
+                # m.getVarByName(f"term_{i}").setAttr("BranchPriority", 1000)
+            if blocked is not None and terms[i] == blocked:  # e.g. "f(x-y)*f(x+y)"
+                var = m.getVarByName(f"term_{i}")
+                m.addConstr(var == 0, name=f"term_{i}_ub")
+
+        # NOTE: add the last constant as a term
+        m.addVar(vtype=GRB.INTEGER, name=f"term_{len(terms)}", lb=-bound, ub=bound)
         m.update()
-        if terms[i] == pivot:  # e.g. "f(x+y)"
-            var = m.getVarByName(f"term_{i}")
-            m.addConstr(var == 1, name=f"term_{i}_ub")
-            # m.getVarByName(f"term_{i}").setAttr("BranchPriority", 1000)
-        if blocked is not None and terms[i] == blocked:  # e.g. "f(x-y)*f(x+y)"
-            var = m.getVarByName(f"term_{i}")
-            m.addConstr(var == 0, name=f"term_{i}_ub")
 
-    # NOTE: add the last constant as a term
-    m.addVar(vtype=GRB.INTEGER, name=f"term_{len(terms)}", lb=-bound, ub=bound)
-    m.update()
+        # m.addConstr(gp.quicksum(m.getVars()) >= -20, name="sum_terms")
+        # m.addConstr(gp.quicksum(m.getVars()) <= -15, name="sum_terms")
 
-    # m.addConstr(gp.quicksum(m.getVars()) >= -20, name="sum_terms")
-    # m.addConstr(gp.quicksum(m.getVars()) <= -15, name="sum_terms")
+        abs_vars_name = {}
+        abs_vars_expr = {}
+        for i in range(len(data)):
+            # create a continous error variable.
+            var_error = m.addVar(
+                vtype=GRB.CONTINUOUS, name=f"error_{i}", lb=-ERROR_BOUND, ub=ERROR_BOUND
+            )
+            abs_vars_name[f"error_{i}"] = var_error
+            vals = []
+            for j in range(len(data[i])):
+                # TODO: round the value of X[i][j] to ? decimal places
+                if ROUND is None:
+                    vals.append(data[i][j] * scale * m.getVarByName(f"term_{j}"))
+                else:
+                    vals.append(
+                        round(data[i][j], ROUND) * scale * m.getVarByName(f"term_{j}")
+                    )
 
-    abs_vars_name = {}
-    abs_vars_expr = {}
-    for i in range(len(data)):
-        # create a continous error variable.
-        var_error = m.addVar(
-            vtype=GRB.CONTINUOUS, name=f"error_{i}", lb=-ERROR_BOUND, ub=ERROR_BOUND
-        )
-        abs_vars_name[f"error_{i}"] = var_error
-        vals = []
-        for j in range(len(data[i])):
-            # TODO: round the value of X[i][j] to ? decimal places
-            if ROUND is None:
-                vals.append(data[i][j] * scale * m.getVarByName(f"term_{j}"))
-            else:
-                vals.append(
-                    round(data[i][j], ROUND) * scale * m.getVarByName(f"term_{j}")
+            # add the last constant as a term
+            vals.append(m.getVarByName(f"term_{len(terms)}"))
+
+            # create an expression for the sum of the datapoint times the decision variable.
+            sum_terms = gp.quicksum(vals)
+            abs_vars_expr[f"error_{i}"] = sum_terms
+            try:
+                if len(sr_vals) > 0:
+                    m.addConstr(
+                        sr_vals[i] == sum_terms + var_error, name=f"error_{i}_ub"
+                    )
+                else:
+                    m.addConstr(sum_terms == var_error, name=f"error_{i}_ub")
+            except gp.GurobiError as e:
+                p("------------------------------------------")
+                p("Error code " + str(e.errno) + ": " + str(e))
+                return GRB.ERROR_NUMERIC, None, None, None
+
+            # m.addConstr(sum_terms <= ERROR_BOUND, name=f"error_{i}_ub")
+            # m.addConstr(sum_terms >= -ERROR_BOUND, name=f"error_{i}_lb")
+
+        # convexify the absolute value function in the objective function
+        # NOTE: set objective function
+        for name in abs_vars_name.keys():
+            var = abs_vars_name[name]
+            expr = abs_vars_expr[name]
+            # m.addConstr(expr <= var, name=f"sum_{name}_ub")
+            # m.addConstr(-expr <= var, name=f"sum_{name}_lb")
+
+        # m.addConstr(gp.quicksum(abs_vars_name.values()) <= 1e4, name="obj_ub")
+
+        m.setObjective(gp.quicksum(abs_vars_name.values()), GRB.MINIMIZE)
+
+        # m.write("synthesis.lp")
+
+        try:
+            m.optimize()
+
+        except gp.GurobiError as e:
+            p("------------------------------------------")
+            p("Error code " + str(e.errno) + ": " + str(e))
+            exit()
+
+        if m.Status == GRB.OPTIMAL:
+            p("------------------------------------------")
+            p("Optimal objective: %g" % m.ObjVal)
+        elif m.Status == GRB.INF_OR_UNBD:
+            p("------------------------------------------")
+            p("Model is infeasible or unbounded")
+            p("------------------------------------------")
+            p(f"scale: {scale:e}")
+            p("------------------------------------------")
+            return m.Status, None, None, None, None
+        elif m.Status == GRB.INFEASIBLE:
+            p("------------------------------------------")
+            p("Model is infeasible")
+            p("------------------------------------------")
+            p(f"scale: {scale:e}")
+            p("------------------------------------------")
+            return m.Status, None, None, None, None
+        elif m.Status == GRB.UNBOUNDED:
+            p("------------------------------------------")
+            p("Model is unbounded")
+            return m.Status, None, None, None, None
+        else:
+            p("------------------------------------------")
+            p("Optimization ended with status %d" % m.Status)
+            return m.Status, None, None, None, None
+
+        expr = ""
+        first_term = True
+        terms.append("1")  # NOTE: add the last constant as a term
+
+        term_costs = {}
+        term_coefs: dict[str, float] = {}
+        for v in m.getVars():
+            # if v.X != 0:
+            #     p('%s %g' % (v.VarName, v.X))
+            if v.VarName.startswith("term_"):  # NOTE
+                # find the length of the longest term interm_names
+                max_len = max([len(x) for x in terms])
+                cost = ""
+                if v.X != 0:
+                    coeff = ""
+                    if v.X > 0 and not first_term:
+                        coeff = " + "
+                    if v.X > 0 and first_term:
+                        coeff = ""
+                    if v.X < 0:
+                        coeff = " - "
+                    if v.X != 1 and v.X != -1:
+                        coeff += f"{pp(abs(v.X))}*"
+                    term = terms[int(v.VarName[5:])]
+                    term_ = f"{coeff}{terms[int(v.VarName[5:])]}"
+                    cost = sympify(term_).count_ops()
+                    term_costs[term] = cost
+                    term_coefs[term] = v.X
+                    cost = f"cost: {cost}"
+                    expr += f"{coeff}{terms[int(v.VarName[5:])]}"
+                    first_term = False
+                p(
+                    f"%8s | %{max_len}s = %3s"
+                    % (v.VarName, terms[int(v.VarName[5:])], pp(v.X))
+                    + f" | {cost}"
                 )
 
-        # add the last constant as a term
-        vals.append(m.getVarByName(f"term_{len(terms)}"))
+        # for v in m.getVars():
+        #     if v.VarName.startswith("error_"):  # NOTE
+        #         p('%s %g' % (v.VarName, v.X))
 
-        # create an expression for the sum of the datapoint times the decision variable.
-        sum_terms = gp.quicksum(vals)
-        abs_vars_expr[f"error_{i}"] = sum_terms
-        try:
-            if len(sr_vals) > 0:
-                m.addConstr(sr_vals[i] == sum_terms + var_error, name=f"error_{i}_ub")
-            else:
-                m.addConstr(sum_terms == var_error, name=f"error_{i}_ub")
-        except gp.GurobiError as e:
-            print("Error code " + str(e.errno) + ": " + str(e))
-            return GRB.ERROR_NUMERIC, None, None, None
-
-        # m.addConstr(sum_terms <= ERROR_BOUND, name=f"error_{i}_ub")
-        # m.addConstr(sum_terms >= -ERROR_BOUND, name=f"error_{i}_lb")
-
-    # convexify the absolute value function in the objective function
-    # NOTE: set objective function
-    for name in abs_vars_name.keys():
-        var = abs_vars_name[name]
-        expr = abs_vars_expr[name]
-        # m.addConstr(expr <= var, name=f"sum_{name}_ub")
-        # m.addConstr(-expr <= var, name=f"sum_{name}_lb")
-
-    # m.addConstr(gp.quicksum(abs_vars_name.values()) <= 1e4, name="obj_ub")
-
-    m.setObjective(gp.quicksum(abs_vars_name.values()), GRB.MINIMIZE)
-
-    # m.write("synthesis.lp")
-
-    try:
-        print("------------------------------------------")
-        m.optimize()
-    except gp.GurobiError as e:
-        print("Error code " + str(e.errno) + ": " + str(e))
-        exit()
-
-    print("------------------------------------------")
-    if m.Status == GRB.OPTIMAL:
-        print("Optimal objective: %g" % m.ObjVal)
-    elif m.Status == GRB.INF_OR_UNBD:
-        print("Model is infeasible or unbounded")
-        print("------------------------------------------")
-        print(f"scale: {scale:e}")
-        print("------------------------------------------")
-        return m.Status, None, None, None, None
-    elif m.Status == GRB.INFEASIBLE:
-        print("Model is infeasible")
-        print("------------------------------------------")
-        print(f"scale: {scale:e}")
-        print("------------------------------------------")
-        return m.Status, None, None, None, None
-    elif m.Status == GRB.UNBOUNDED:
-        print("Model is unbounded")
-        return m.Status, None, None, None, None
-    else:
-        print("Optimization ended with status %d" % m.Status)
-        return m.Status, None, None, None, None
-
-    expr = ""
-    first_term = True
-    terms.append("1")  # NOTE: add the last constant as a term
-
-    term_costs = {}
-    term_coefs: dict[str, float] = {}
-    for v in m.getVars():
-        # if v.X != 0:
-        #     print('%s %g' % (v.VarName, v.X))
-        if v.VarName.startswith("term_"):  # NOTE
-            # find the length of the longest term interm_names
-            max_len = max([len(x) for x in terms])
-            cost = ""
-            if v.X != 0:
-                coeff = ""
-                if v.X > 0 and not first_term:
-                    coeff = " + "
-                if v.X > 0 and first_term:
-                    coeff = ""
-                if v.X < 0:
-                    coeff = " - "
-                if v.X != 1 and v.X != -1:
-                    coeff += f"{pp(abs(v.X))}*"
-                term = terms[int(v.VarName[5:])]
-                term_ = f"{coeff}{terms[int(v.VarName[5:])]}"
-                cost = sympify(term_).count_ops()
-                term_costs[term] = cost
-                term_coefs[term] = v.X
-                cost = f"cost: {cost}"
-                expr += f"{coeff}{terms[int(v.VarName[5:])]}"
-                first_term = False
-            print(
-                f"%8s | %{max_len}s = %3s"
-                % (v.VarName, terms[int(v.VarName[5:])], pp(v.X))
-                + f" | {cost}"
+        expr = expr.strip()
+        p("------------------------------------------")
+        p(f"Time: {round(m.runTime, 2)}s")
+        p("Optimal objective: %g" % m.ObjVal)
+        m.printStats()
+        m.printQuality()
+        if sr_func is not None:
+            p(
+                f"milp property: {sr_func} = {expr} ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
             )
+        else:
+            p(
+                f"milp property: {expr} = 0 ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
+            )
+        p("------------------------------------------")
+        p(f"scale: {scale:e}")
 
-    # for v in m.getVars():
-    #     if v.VarName.startswith("error_"):  # NOTE
-    #         print('%s %g' % (v.VarName, v.X))
+        print(str_)
 
-    expr = expr.strip()
-    print("------------------------------------------")
-    print(f"Time: {round(m.runTime, 2)}s")
-    print("Optimal objective: %g" % m.ObjVal)
-    print("------------------------------------------", end=" ")
-    m.printStats()
-    print("------------------------------------------", end=" ")
-    m.printQuality()
-    print("------------------------------------------")
-    if sr_func is not None:
-        print(
-            f"milp property: {sr_func} = {expr} ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
+        return (
+            m.Status,
+            expr,
+            m.ObjVal,
+            term_coefs,
+            sorted(term_costs.keys(), key=lambda x: term_costs[x]),
         )
-    else:
-        print(
-            f"milp property: {expr} = 0 ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
-        )
-    print("------------------------------------------")
-    print(f"scale: {scale:e}")
-
-    return (
-        m.Status,
-        expr,
-        m.ObjVal,
-        term_coefs,
-        sorted(term_costs.keys(), key=lambda x: term_costs[x]),
-    )
 
 
 if __name__ == "__main__":  # noqa E123
