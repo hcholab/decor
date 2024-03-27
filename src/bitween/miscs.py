@@ -120,6 +120,132 @@ class Symbolic:
             f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
         )
 
+    @classmethod
+    def linear_solve(cls, pivot, terms, data):
+
+        sample_size = data.shape[0]
+        if settings.MILP_USE_SAMPLE_RATE and settings.MILP_SAMPLE_RATE > 1:
+            sample_size = int(len(terms) * settings.MILP_SAMPLE_RATE)
+            threshold = 20
+            if sample_size < threshold:
+                if data.shape[0] > threshold:
+                    sample_size = threshold
+                else:  # use all data
+                    sample_size = data.shape[0]
+
+            if sample_size < data.shape[0]:
+                sample_indices = np.random.choice(
+                    data.shape[0], sample_size, replace=False
+                )
+                data = data[sample_indices]
+            else:
+                sample_size = data.shape[0]
+
+        data = data.astype(int)
+
+        # Create a row of zeros with the same length as the other rows in arr
+        new_row = np.zeros(data.shape[1])
+        new_row[terms.index(pivot)] = 1  # Set the pivot to 1
+        new_row[-1] = 1  # Set the last element to -1
+        data = np.vstack([data, new_row])
+
+        matrix = sympy.Matrix(data)
+
+        # turn terms into sympy symbols
+        vars = [sympy.Symbol(term) for term in terms]
+
+        log.debug(f"solving {len(terms)} terms using {data.shape[0]} eqts for {pivot}")
+
+        sol = sympy.linsolve(matrix, vars)
+
+        # print(sol)
+
+        if sol == sympy.EmptySet:
+            return None, sample_size
+
+        vals = list(list(sol)[0])
+
+        if all(v == 0 for v in vals):
+            return None, sample_size
+
+        # eqts_ = cls.instantiate_template(terms, vars, vals)
+        expr = 0
+        for i, v in enumerate(vals):
+            if isinstance(v, sympy.Number):
+                expr += sympy.Rational(v) * sympy.sympify(terms[i])
+            elif isinstance(v, sympy.Symbol):
+                expr += sympy.sympify(terms[i])
+
+        # return [sympy.Eq(eqt, 0) for eqt in eqts_]
+        return expr, sample_size
+
+    @classmethod
+    def solve_eqts(
+        cls,
+        eqts: list[sympy.Expr | sympy.Rel],
+        terms: list[Any],
+        uks: list[sympy.Symbol],
+    ) -> list[sympy.Eq]:
+
+        assert eqts, eqts
+        assert terms, terms
+        assert uks, uks
+        assert len(terms) == len(uks), (terms, uks)
+        # assert len(eqts) >= len(uks), (len(eqts), len(uks))
+
+        log.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
+        sol = sympy.linsolve(eqts, uks)
+        # print(eqts)
+        # print(uks)
+        # print(sol)
+        vals = list(list(sol)[0])
+
+        if all(v == 0 for v in vals):
+            return []
+
+        eqts_ = cls.instantiate_template(terms, uks, vals)
+        log.debug(f"got {len(eqts_)} eqts after instantiating")
+        eqts_ = cls.refine(eqts_)
+        log.debug(f"got {len(eqts_)} eqts after refinement")
+        # return [sympy.Eq(eqt, 0) for eqt in eqts_]
+        return eqts_
+
+    @classmethod
+    def instantiate_template(cls, terms: list, uks: list, vs: list) -> list:
+        """
+        Instantiate a template with solved coefficient values
+
+        # sage:var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
+        (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
+
+        # sage:sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: - \
+            1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
+        # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
+
+        # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
+        []
+        """
+        assert terms, terms
+        assert uks, uks
+        assert len(terms) == len(uks) == len(vs), (terms, uks, vs)
+
+        cs = [(t, u, v) for t, u, v in zip(terms, uks, vs) if v != 0]
+        terms_, uks_, vs_ = zip(*cs)
+
+        eqt = sum(t * v for t, v in zip(terms_, vs_))
+
+        uk_vs = cls.get_vars(vs_)
+
+        if not uk_vs:
+            return eqt
+
+        sols = [
+            eqt.xreplace({uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)})
+            for i, uk in enumerate(uk_vs)
+        ]
+        return sols
+
     @staticmethod
     def simplify_idxs(
         ordered_idxs: list[int], imply_f: Callable[[set[int], int], bool]
