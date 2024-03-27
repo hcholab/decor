@@ -24,6 +24,8 @@ sympy.init_printing(use_unicode=False, wrap_line=False)
 
 log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
+TABLE_WIDTH = 75
+
 
 @dataclass(frozen=True)
 class Equation:
@@ -308,7 +310,7 @@ def infer_equations(  # noqa F811
 ):
 
     def milp_synthesis_wrapper(pivot, selected_terms, selected_data, model_desc):
-        str = ""
+        str_ = ""
         optimal = None
 
         sample_size = selected_data.shape[0]
@@ -355,33 +357,49 @@ def infer_equations(  # noqa F811
         if status == optimal:
             if abs(obj) < objective_threshold:  # check if the objective is small enough
                 equation = sympy.sympify(expr)
-                str += f"MILP for {pivot}: {expr} = 0 (obj: {obj})"
-                str += ">>>>>>>>>>>>>> MILP <<<<<<<<<<<<<<<<\n"
+
+                s_eq = str(equation.evalf())
+                if len(s_eq) > TABLE_WIDTH:
+                    s_eq = s_eq[:TABLE_WIDTH] + " ..."
+                    s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+4}} "
+                else:
+                    s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+8}} "
+
+                str_ += s_eq + f"  (obj: {obj:.3e}): ({model_desc}) ****\n"
+
                 me = obj
                 return (
-                    Equation(equation, me, pivot, sample_size, model_desc, str),
+                    Equation(equation, me, pivot, sample_size, model_desc, str_),
                     None,
                     None,
                 )
             else:
-                str += f"MILP for {pivot}: Objective too large: {obj}\n"
+                str_ += f"MILP for {pivot}: Objective too large: {obj}\n"
                 return (
-                    Equation(None, None, pivot, sample_size, model_desc, str),
+                    Equation(None, None, pivot, sample_size, model_desc, str_),
                     None,
                     None,
                 )
         else:
-            str += f"MILP for {pivot}: No solution found\n"
-            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
+            str_ += f"MILP for {pivot}: No solution found\n"
+            return (
+                Equation(None, None, pivot, sample_size, model_desc, str_),
+                None,
+                None,
+            )
 
     def infer_equation(pivot, model, extended_terms, extended_data, model_desc):
-        str = ""
+        str_ = ""
         sample_size = model["sample_size"]
 
         # NOTE: preparing an equation from the regression model
         if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {pivot}: Intercept = {model['intercept']}!\n"
-            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
+            return (
+                Equation(None, None, pivot, sample_size, model_desc, str_),
+                None,
+                None,
+            )
 
         rhs = sympy.Rational(0)
         coeff_terms = {}
@@ -393,7 +411,11 @@ def infer_equations(  # noqa F811
             np.abs(model["coefficients"]) >= coeff_cutoff
         ):
             # str += f"Model for {pivot}: Large Coefficient!\n"
-            return Equation(None, None, pivot, sample_size, model_desc, str), None, None
+            return (
+                Equation(None, None, pivot, sample_size, model_desc, str_),
+                None,
+                None,
+            )
 
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
@@ -411,7 +433,14 @@ def infer_equations(  # noqa F811
 
         equation = sympy.symbols(pivot) - rhs
         # equation = sympy.simplify(equation)
-        str += f"Model for {pivot}: {equation.evalf()} = 0, "
+        s_eq = str(equation.evalf())
+        if len(s_eq) > TABLE_WIDTH:
+            s_eq = s_eq[:TABLE_WIDTH] + " ..."
+            s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+4}} "
+        else:
+            s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+8}} "
+
+        str_ += s_eq
 
         X_test = model["X_test"]
         y_test = model["y_test"]
@@ -425,15 +454,15 @@ def infer_equations(  # noqa F811
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str += f"(error: {round(me, 2)}), ({model_desc}), "
+        str_ += f"(error: {round(me, 2):.3e}): ({model_desc}), "
         if me < delta:
-            str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
+            str_ += "*****\n"
         else:
-            str += "\n"
+            str_ += "\n"
 
         if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
             return (
-                Equation(equation, me, pivot, sample_size, model_desc, str),
+                Equation(equation, me, pivot, sample_size, model_desc, str_),
                 None,
                 None,
             )
@@ -449,7 +478,7 @@ def infer_equations(  # noqa F811
         # print(selected_data)
 
         return (
-            Equation(equation, me, pivot, sample_size, model_desc, str),
+            Equation(equation, me, pivot, sample_size, model_desc, str_),
             selected_terms,
             selected_data,
         )
@@ -482,26 +511,6 @@ def infer_equations(  # noqa F811
             term_frequencies.update([str(s) for s in equation.expr.free_symbols])
     print(f"Term Frequencies: {term_frequencies}")
 
-    # NOTE: Run a milp over the most frequent terms, pivot all terms
-    if settings.MILP_FREQ_REFINE and len(term_frequencies) > 5:
-        terms = []  # there is no "1" in term_frequencies
-        # keep the relative order of the terms
-        for term in extended_terms:
-            if term in term_frequencies:
-                terms.append(term)
-        selected_indices = [extended_terms.index(term) for term in terms]
-        selected_data = extended_data[:, selected_indices]
-        model_desc = f"Milp({settings.MILP_SOLVER.lower()})+Freqs"
-        inputs = []
-        for pivot in terms:
-            inputs.append((pivot, terms, selected_data, model_desc))
-
-        milp_results = Parallel(n_jobs=-1)(
-            delayed(milp_synthesis_wrapper)(*mi) for mi in inputs
-        )
-        for equation, _, _ in milp_results:
-            results.append(equation)
-
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
         # NOTE: Parallel MILP Synthesis based on the regression model
@@ -521,6 +530,26 @@ def infer_equations(  # noqa F811
             ]
             for equation, _, _ in milp_results:
                 results.append(equation)
+
+    # NOTE: Run a milp over the most frequent terms, pivot all terms
+    if settings.MILP and settings.MILP_FREQ_REFINE and len(term_frequencies) > 5:
+        terms = []  # there is no "1" in term_frequencies
+        # keep the relative order of the terms
+        for term in extended_terms:
+            if term in term_frequencies:
+                terms.append(term)
+        selected_indices = [extended_terms.index(term) for term in terms]
+        selected_data = extended_data[:, selected_indices]
+        model_desc = f"Milp({settings.MILP_SOLVER.lower()})+Freqs"
+        inputs = []
+        for pivot in terms:
+            inputs.append((pivot, terms, selected_data, model_desc))
+
+        milp_results = Parallel(n_jobs=-1)(
+            delayed(milp_synthesis_wrapper)(*mi) for mi in inputs
+        )
+        for equation, _, _ in milp_results:
+            results.append(equation)
 
     # NOTE: EAGER MILP over Full Model that includes all terms
     if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
