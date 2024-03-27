@@ -572,6 +572,24 @@ def infer_equations(  # noqa F811
             for equation, _, _ in milp_results:
                 results.append(equation)
 
+    # NOTE: Linear Equation Solver based on the regression model
+    if settings.USE_LINSOLVE:
+        # NOTE: Linear Solver
+
+        milp_input = []
+        for pivot in extended_terms[:-1]:
+            terms = extended_terms.copy()
+            data = extended_data.copy()
+            milp_input.append((pivot, terms, data))
+
+        lin_solve_results = Parallel(n_jobs=-1)(
+            delayed(Symbolic.linear_solve)(*mi) for mi in milp_input
+        )
+        for expr, sample_size in lin_solve_results:
+            if expr is not None and expr != 0:
+                equation = Equation(expr, 0, pivot, sample_size, "LinSolve", "")
+            results.append(equation)
+
     # remove None values
     return [
         r for r in results if r is not None and r.error is not None
