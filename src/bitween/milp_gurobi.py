@@ -1,3 +1,4 @@
+# import math
 from gurobipy import GRB
 import gurobipy as gp
 
@@ -5,6 +6,10 @@ import numpy as np
 from sympy import sympify
 
 from bitween.utilities import pp
+from bitween import settings, miscs
+
+
+log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
 INTEGRALITY_FOCUS = 1
 # MIPFOCUS = 2
@@ -49,6 +54,8 @@ def milp_synthesis(  # noqa: C901
     status: the status of the optimization (e.g. GRB.OPTIMAL)
     expr: the synthesized property
     obj_val: the objective value
+    term_coefs: the coefficients of each term
+    term_costs: the cost of each term
     """
     print("------------------------------------------")
     m = gp.Model("synthesis of random self-reducible properties")
@@ -57,6 +64,22 @@ def milp_synthesis(  # noqa: C901
     # m.setParam("MIPFocus", MIPFOCUS)
     # m.setParam("OptimalityTol", OPTIMALITY_TOL)
     m.setParam("NumericFocus", NUMERIC_FOCUS)
+
+    # find the min and max values of the data, and find the matrix range, which is max/min
+    # min_coef = np.min(data)
+    # if min_coef == 0:
+    #     min_coef = 1
+    # max_coef = np.max(data)
+    # matrix_range = max_coef / min_coef
+    # # assign scale half of the matrix range until it is less than 10e9
+    # if abs(matrix_range) > 10e9:
+    #     log.warn(
+    #         f"Matrix range is too large(max: {max_coef}; min: {min_coef}), scaling the data for pivot: {pivot}"
+    #     )
+    #     exponent = math.pow(10, int("{:.1e}".format(matrix_range).split("e")[1]))
+    #     while abs(exponent) > 10e9:
+    #         exponent = exponent / 10**4
+    #     scale = 1 / matrix_range
 
     # For each term, create an integer decision variable and
     for i in range(len(terms)):
@@ -142,25 +165,26 @@ def milp_synthesis(  # noqa: C901
         print("------------------------------------------")
         print(f"scale: {scale:e}")
         print("------------------------------------------")
-        return m.Status, None, None, None
+        return m.Status, None, None, None, None
     elif m.Status == GRB.INFEASIBLE:
         print("Model is infeasible")
         print("------------------------------------------")
         print(f"scale: {scale:e}")
         print("------------------------------------------")
-        return m.Status, None, None, None
+        return m.Status, None, None, None, None
     elif m.Status == GRB.UNBOUNDED:
         print("Model is unbounded")
-        return m.Status, None, None, None
+        return m.Status, None, None, None, None
     else:
         print("Optimization ended with status %d" % m.Status)
-        return m.Status, None, None, None
+        return m.Status, None, None, None, None
 
     expr = ""
     first_term = True
     terms.append("1")  # NOTE: add the last constant as a term
 
     term_costs = {}
+    term_coefs: dict[str, float] = {}
     for v in m.getVars():
         # if v.X != 0:
         #     print('%s %g' % (v.VarName, v.X))
@@ -182,6 +206,7 @@ def milp_synthesis(  # noqa: C901
                 term_ = f"{coeff}{terms[int(v.VarName[5:])]}"
                 cost = sympify(term_).count_ops()
                 term_costs[term] = cost
+                term_coefs[term] = v.X
                 cost = f"cost: {cost}"
                 expr += f"{coeff}{terms[int(v.VarName[5:])]}"
                 first_term = False
@@ -219,6 +244,7 @@ def milp_synthesis(  # noqa: C901
         m.Status,
         expr,
         m.ObjVal,
+        term_coefs,
         sorted(term_costs.keys(), key=lambda x: term_costs[x]),
     )
 
@@ -303,7 +329,7 @@ if __name__ == "__main__":  # noqa E123
     # Load the CSV file into a numpy array
     data = np.genfromtxt("data.csv", delimiter=",")
 
-    status, expr, obj, terms = milp_synthesis(data, terms, pivot, blocked, bound)
+    status, expr, obj, _, terms = milp_synthesis(data, terms, pivot, blocked, bound)
     print("-costs----------------")
     for term in terms:
         print(f"{term}")

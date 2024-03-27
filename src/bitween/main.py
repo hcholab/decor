@@ -16,7 +16,7 @@ from sklearn.linear_model import (  # noqa F401
 from sklearn.model_selection import GridSearchCV, train_test_split
 
 from bitween import settings, miscs
-from bitween import milp, milp_pulp
+from bitween import milp_gurobi, milp_pulp
 from bitween.miscs import Symbolic
 from bitween.z3utils import Z3
 
@@ -24,7 +24,7 @@ sympy.init_printing(use_unicode=False, wrap_line=False)
 
 log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
-TABLE_WIDTH = 75
+TABLE_WIDTH = 70
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ def calculate_monomial_data(terms, monomials, data):
     return monomial_values
 
 
-def process_trace(terms, data, degree):
+def process_trace(terms: list[str], data, degree):
     monomials = generate_monomials(terms, degree)
     extended_terms = terms + monomials[len(terms) :]
     monomial_data = calculate_monomial_data(terms, monomials, data)
@@ -310,7 +310,25 @@ def infer_equations(  # noqa F811
     objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
 
-    def milp_synthesis_wrapper(pivot, selected_terms, selected_data, model_desc):
+    # NOTE: Property Test for MILP-based Synthesis
+    def property_test(term_coefs: dict[str, float]) -> float:
+        # Evaluate the equation for each row in entire data
+        error = 0.0
+        for row in extended_data:
+            lhs = 0
+            for term, coef in term_coefs.items():
+                lhs += coef * row[extended_terms.index(term)]
+            error += abs(lhs)
+        return error / extended_data.shape[0]
+
+    # NOTE: MILP-based Synthesis
+    def milp_synthesis_wrapper(
+        pivot: str,
+        selected_terms: list[str],
+        selected_data: np.ndarray,
+        model_desc: str,
+        blocked: str,
+    ):
         str_ = ""
         optimal = None
 
@@ -334,13 +352,14 @@ def infer_equations(  # noqa F811
                 sample_size = selected_data.shape[0]
 
         if settings.MILP_SOLVER == "GUROBI":
-            optimal = milp.OPTIMAL
-            status, expr, obj, _ = milp.milp_synthesis(
+            optimal = milp_gurobi.OPTIMAL
+            status, expr, obj, term_coefs, _ = milp_gurobi.milp_synthesis(
                 selected_data,
                 selected_terms,
                 pivot,
                 bound=settings.MILP_BOUND,
                 timeout=settings.MILP_TIME_LIMIT,
+                blocked=blocked,
             )
         else:
             if settings.MILP_SOLVER != "PULP":
@@ -348,12 +367,13 @@ def infer_equations(  # noqa F811
                     f"Invalid MILP solver: {settings.MILP_SOLVER}, using PULP instead"
                 )
             optimal = milp_pulp.OPTIMAL
-            status, expr, obj, _ = milp_pulp.milp_synthesis(
+            status, expr, obj, term_coefs, _ = milp_pulp.milp_synthesis(
                 selected_data,
                 selected_terms,
                 pivot,
                 bound=settings.MILP_BOUND,
                 timeout=settings.MILP_TIME_LIMIT,
+                blocked=blocked,
             )
 
         if status == optimal:
@@ -367,11 +387,16 @@ def infer_equations(  # noqa F811
                 else:
                     s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+8}} "
 
-                str_ += s_eq + f"  (obj: {obj:.3e}): ({model_desc}) ****\n"
+                # NOTE: Property Test: Evaluate the equation for each row in entire data
+                error = property_test(term_coefs)
+                s_err = f"err: {round(error, 2):.2f}"
+                s_obj = f"obj: {round(obj, 2):.2f}"
+                str_ += s_eq + f"({s_err}); ({model_desc}); ({s_obj}) **\n"
 
-                me = obj
                 return (
-                    Equation(equation, me, pivot, sample_size, model_desc, dims, str_),
+                    Equation(
+                        equation, error, pivot, sample_size, model_desc, dims, str_
+                    ),
                     None,
                     None,
                 )
@@ -457,9 +482,9 @@ def infer_equations(  # noqa F811
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str_ += f"(error: {round(me, 2):.3e}): ({model_desc}), "
+        str_ += f"(err: {round(me, 2):.2f}): ({model_desc}), "
         if me < delta:
-            str_ += "*****\n"
+            str_ += "***\n"
         else:
             str_ += "\n"
 
@@ -486,6 +511,7 @@ def infer_equations(  # noqa F811
             selected_data,
         )
 
+    # NOTE: Inference starts here
     results = []
     milp_input = []
     term_frequencies = collections.Counter()
@@ -518,10 +544,12 @@ def infer_equations(  # noqa F811
     if settings.MILP:
         # NOTE: Parallel MILP Synthesis based on the regression model
         solver = settings.MILP_SOLVER.lower()
+        blocked = None  # NOTE: No blocked term for now
         if settings.PARALLEL_MILP:
             model_desc = f"Milp({solver})"
             milp_results = Parallel(n_jobs=-1)(
-                delayed(milp_synthesis_wrapper)(*mi, model_desc) for mi in milp_input
+                delayed(milp_synthesis_wrapper)(*mi, model_desc, blocked)
+                for mi in milp_input
             )
             for equation, _, _ in milp_results:
                 results.append(equation)
@@ -529,7 +557,7 @@ def infer_equations(  # noqa F811
         else:
             model_desc = f"Milp({solver})"
             milp_results = [
-                milp_synthesis_wrapper(*mi, model_desc) for mi in milp_input
+                milp_synthesis_wrapper(*mi, model_desc, blocked) for mi in milp_input
             ]
             for equation, _, _ in milp_results:
                 results.append(equation)
@@ -548,8 +576,9 @@ def infer_equations(  # noqa F811
         for pivot in terms:
             inputs.append((pivot, terms, selected_data, model_desc))
 
+        blocked = None  # NOTE: No blocked term for now
         milp_results = Parallel(n_jobs=-1)(
-            delayed(milp_synthesis_wrapper)(*mi) for mi in inputs
+            delayed(milp_synthesis_wrapper)(*mi, blocked) for mi in inputs
         )
         for equation, _, _ in milp_results:
             results.append(equation)
@@ -569,8 +598,9 @@ def infer_equations(  # noqa F811
                 data = np.delete(extended_data, -1, axis=1)
                 milp_input.append((pivot, terms, data, model_desc))
 
+            blocked = None  # NOTE: No blocked term for now
             milp_results = Parallel(n_jobs=-1)(
-                delayed(milp_synthesis_wrapper)(*mi) for mi in milp_input
+                delayed(milp_synthesis_wrapper)(*mi, blocked) for mi in milp_input
             )
             for equation, _, _ in milp_results:
                 results.append(equation)
@@ -674,7 +704,7 @@ def main():
         # print the header
         print(ruler)
         print(
-            f"{'Source':<{max_m}}| {'Term':<{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':<{max_s}} |"
+            f"{'Source':<{max_m}}| {'Term':{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
         )
         print(ruler)
         for eq in result:
@@ -683,7 +713,7 @@ def main():
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(
-                    f"{eq.model_desc:<{max_m}}| {eq.pivot:<{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:<{max_s}} |"
+                    f"{eq.model_desc:<{max_m}}| {eq.pivot:^{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:^{max_s}} |"
                 )
                 good_fit.add(eq.expr)
         print(ruler)

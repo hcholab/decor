@@ -86,14 +86,16 @@ def milp_synthesis(
         _print(f"Optimization ended with status {status}: ({pivot})")
         _print("------------------------------------------")
         print(message)
-        return status, None, None, None
+        return status, None, None, None, None
 
     _print("------------------------------------------")
     # Post-processing to generate expression and term costs
     expr = ""
     first_term = True
     terms.append("1")  # Add the constant term
+
     term_costs = {}
+    term_coefs: dict[str, float] = {}
 
     for v in m.variables():
         if v.name.startswith("term_"):
@@ -115,6 +117,7 @@ def milp_synthesis(
                 term_ = f"{coeff}{term}"
                 cost = sympify(term_).count_ops()
                 term_costs[term] = cost
+                term_coefs[term] = value
                 cost = f"cost: {cost}"
                 expr += term_
                 first_term = False
@@ -139,6 +142,7 @@ def milp_synthesis(
         m.status,
         expr,
         obj_val,
+        term_coefs,
         sorted(term_costs.keys(), key=lambda x: term_costs[x]),
     )
 
@@ -224,7 +228,7 @@ if __name__ == "__main__":  # noqa E123
     # Load the CSV file into a numpy array
     data = np.genfromtxt("data.csv", delimiter=",")
 
-    status, expr, obj, terms = milp_synthesis(data, terms, pivot, blocked, bound)
+    status, expr, obj, _, terms = milp_synthesis(data, terms, pivot, blocked, bound)
     print("-costs----------------")
     for term in terms:
         print(f"{term}")
