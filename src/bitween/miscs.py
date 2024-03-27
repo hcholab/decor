@@ -5,9 +5,10 @@ $ python -m doctest -v src/bitween/miscs.py
 
 import functools
 import sympy
+import numpy as np
 import itertools
 import logging
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
 
 from bitween import settings
 
@@ -179,6 +180,7 @@ class Symbolic:
         # return [sympy.Eq(eqt, 0) for eqt in eqts_]
         return expr, sample_size
 
+    # NOTE: This method is not used, it is just for reference
     @classmethod
     def solve_eqts(
         cls,
@@ -210,6 +212,7 @@ class Symbolic:
         # return [sympy.Eq(eqt, 0) for eqt in eqts_]
         return eqts_
 
+    # NOTE: This method is not used, it is just for reference
     @classmethod
     def instantiate_template(cls, terms: list, uks: list, vs: list) -> list:
         """
