@@ -740,12 +740,13 @@ def main(file_path: str = None):
         for eq in equations:
             print(f"{eq} = 0")
 
+        # NOTE: Reporting--Display the inferred equalities
+        log.debug(f"Time: {time() - st:.2f}s")
+
         if settings.SLOW_SIMPLIFY:
             equations = Z3._simplify_slow(equations, [], loc)
             for eq in equations:
                 print(f"{eq} = 0")
-
-        log.debug(f"Time: {time() - st:.2f}s")
 
         if settings.CONSISTENCY_CHECK:
             print("\nChecking Consistency of Equations:")
