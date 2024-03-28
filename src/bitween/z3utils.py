@@ -444,6 +444,22 @@ class Z3:
             log.debug(f"no need to simplify {msg} {len(ps)}")
             return ps
 
+        # NOTE: create a dictionary to map a new z3 variable name to a sympy variable
+        counter = 0
+        table = {}
+        subs = {}
+        for p in ps + others:
+            for v in p.free_symbols:
+                if v not in subs:
+                    symbol = sympy.Symbol(f"uk_{counter}")
+                    subs[v] = symbol
+                    table[symbol] = v
+                    counter += 1
+
+        # NOTE: substitute sympy variables with new symbols
+        ps = [p.subs(subs) for p in ps]
+        others = [p.subs(subs) for p in others]
+
         st = time()
         conj = [cls._get_expr(p) for p in others] if others else []
         ps_exprs = [cls._get_expr(p) for p in ps]
@@ -459,9 +475,13 @@ class Z3:
 
         results = Symbolic.simplify_idxs(list(range(len(ps))), _imply)
         results = [ps[i] for i in results]
+
         Symbolic.show_removed(
             f"_simplify_slow {msg}", len(ps), len(results), time() - st
         )
+
+        # NOTE: substitute back
+        results = [r.subs(table) for r in results]
 
         return results
 

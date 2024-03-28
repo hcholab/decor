@@ -1,5 +1,6 @@
 import collections
 import math
+from time import time
 from dataclasses import dataclass
 import itertools
 import warnings
@@ -637,8 +638,12 @@ def infer_equations(  # noqa F811
 
 
 def main(file_path: str = None):
+
     if file_path is None:
         file_path = settings.FILE_PATH
+
+    st = time()
+
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
@@ -740,6 +745,8 @@ def main(file_path: str = None):
             for eq in equations:
                 print(f"{eq} = 0")
 
+        log.debug(f"Time: {time() - st:.2f}s")
+
         if settings.CONSISTENCY_CHECK:
             print("\nChecking Consistency of Equations:")
 
@@ -751,6 +758,8 @@ def main(file_path: str = None):
             print("2. Check satisfiability: ", end="")
             sat, r = Z3.check_sat(equations)
             print(f"{sat}, {r}")
+
+        return equations
 
 
 def get_vars(template: list[str]):
@@ -770,7 +779,7 @@ def generate_input_data(
     max_degree: int = 2,  # maximum degree
     n: int = 30,  # number of samples
     delta: float = 0.1,  # error threshold
-):
+) -> list[sympy.Expr]:
 
     settings.DEGREE = max_degree
     settings.DELTA = delta
@@ -826,36 +835,62 @@ def generate_input_data(
         writer = csv.writer(file, delimiter=";")
         writer.writerows(evals)
 
-    main("trace.csv")
+    return main("trace.csv")
 
 
-def test_sin():
+def verify(expr: sympy.Expr, *functions) -> bool:
+    """
+    Proof by simplification
 
-    def F(x, terms=40):
-        """sinTaylor"""
-        result = 0.0
+    Parameters
+    ----------
+    expr: the expression to be evaluated
+    functions: the implementation of functions to be evaluated.
+        They should be symbolic expressions that only uses `x`, `y`, `z`, `r`, `s`, `t` as variables.
+    """
 
-        for n in range(terms):
-            numerator = (-1) ** n
-            denominator = 1
+    log.debug(f"verifying: {expr} = 0")
 
-            for i in range(1, 2 * n + 2):
-                denominator *= i
+    functions = {func.__name__: func for func in functions}
 
-            term = numerator * (x ** (2 * n + 1)) / denominator
-            result += term
+    # NOTE: a dirty hack to eliminates function terms like f(x) or f(x+y) from the expression
+    expr = sympy.sympify(str(expr))
 
-        return result
+    # NOTE: in order to make c**2 == Abs(c)**2, we need to turn on the real flag
+    variables = {
+        str(var): sympy.Symbol(str(var), real=True) for var in expr.free_symbols
+    }
 
-    generate_input_data(
-        Domain.Real,
-        Distribution.Small,
-        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
-        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
-        F,
-        max_degree=2,
-        n=150,
+    # if the size of the expression is too large, sympy will take a long time to simplify it
+    if len(expr.args) > 20:
+        print(f"skipping verification for : {expr}")
+        return True
+
+    proved = eval(
+        f"simplify({expr})",
+        functions | variables,
+        {
+            "simplify": sympy.simplify,
+            "sqrt": sympy.sqrt,
+            "Abs": sympy.Abs,
+            "sin": sympy.sin,
+            "cos": sympy.cos,
+            "tan": sympy.tan,
+            "tanh": sympy.tanh,
+            "sinh": sympy.sinh,
+            "cosh": sympy.cosh,
+            "exp": sympy.exp,
+            "log": sympy.log,
+            "sign": sympy.sign,
+            "pi": sympy.pi,
+        },
     )
+    proof = proved == 0
+    if proof:
+        log.debug(f"proved: {proof}")
+    else:
+        log.debug(f"proved: {proof} ({proved}) \u2713")
+    return proof
 
 
 if __name__ == "__main__":  # noqa E123

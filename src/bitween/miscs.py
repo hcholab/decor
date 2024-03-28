@@ -299,9 +299,24 @@ class Symbolic:
         if len(ps) <= 1:
             return ps
 
-        # NOTE: break complex terms here such as x*y is a term, not a product, make x and y as terms
+        # NOTE: break complex terms here such as f(x)*(y) is a term, not a product, make f(x) and f(y) as terms
         for i, p in enumerate(ps):
             ps[i] = sympy.sympify(str(p))
+
+        for i, eqt in enumerate(ps):
+            mapping = {}
+            for e in eqt.args:
+                if e.is_Mul or e.is_Pow:
+                    for arg in e.args:
+                        if arg.is_Pow:
+                            mapping[arg.base] = sympy.Symbol(str(arg.base))
+                        elif not arg.is_number:
+                            mapping[arg] = sympy.Symbol(str(arg).replace(" ", ""))
+                else:
+                    if not e.is_number:
+                        mapping[e] = sympy.Symbol(str(e).replace(" ", ""))
+
+            ps[i] = eqt.subs(mapping)
 
         ps_ = sympy.groebner(ps, *cls.get_vars(ps))
         ps_ = [x for x in ps_]
