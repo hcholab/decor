@@ -152,4 +152,4 @@ dmypy.json
 
 __docs
 tests/test.py
-src/bitween/lin_reg_intercept_from_dig_trace.py
+temp/bitween/lin_reg_intercept_from_dig_trace.py
