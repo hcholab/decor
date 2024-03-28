@@ -1,4 +1,5 @@
 import collections
+import math
 from dataclasses import dataclass
 import itertools
 import warnings
@@ -6,6 +7,7 @@ from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 import sympy
+import csv
 from sklearn.linear_model import (  # noqa F401
     ElasticNet,
     Ridge,
@@ -18,6 +20,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from bitween import settings, miscs
 from bitween import milp_gurobi, milp_pulp
 from bitween.miscs import Symbolic
+from bitween.sampler import Domain, Distribution, sample
 from bitween.z3utils import Z3
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
@@ -65,7 +68,8 @@ def parse_dig_vtrace_file(input_data) -> dict:
 
     # Processing each line
     for line in lines:
-        parts = line.split("; ")
+        parts = line.split(";")
+        parts = [part.strip() for part in parts]
         trace_type = parts[0]
         values = parts[1:]
 
@@ -383,15 +387,16 @@ def infer_equations(  # noqa F811
                 s_eq = str(equation.evalf())
                 if len(s_eq) > TABLE_WIDTH:
                     s_eq = s_eq[:TABLE_WIDTH] + " ..."
-                    s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+4}} "
+                    s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+4}} "
                 else:
-                    s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+8}} "
+                    s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+8}} "
 
                 # NOTE: Property Test: Evaluate the equation for each row in entire data
                 error = property_test(term_coefs)
-                s_err = f"err: {round(error, 2):.2f}"
+
+                s_err = f"err: {round(error, 2):<5.2f}"
                 s_obj = f"obj: {round(obj, 2):.2f}"
-                str_ += s_eq + f"({s_err}); ({model_desc}); ({s_obj}) **\n"
+                str_ += s_eq + f"({s_err}); ({model_desc}); ({s_obj}); [{pivot}] **\n"
 
                 return (
                     Equation(
@@ -429,7 +434,7 @@ def infer_equations(  # noqa F811
                 None,
             )
 
-        rhs = sympy.Rational(0)
+        rhs = 0
         coeff_terms = {}
         selected_terms = [pivot]  # Include LHS term
         terms = [item for item in extended_terms if item != pivot]
@@ -447,33 +452,36 @@ def infer_equations(  # noqa F811
 
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
-                coeff = round(coefficient, 2)
+                coeff = round(coefficient, 2)  # TODO be careful with rounding
                 if coeff != 0:
-                    rhs += sympy.Rational(coeff) * sympy.symbols(terms[i])
+                    rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
                     coeff_terms[terms[i]] = coeff
                     # Include term in selected list
                     selected_terms.append(terms[i])
 
         # Add the constant term (intercept)
-        intercept = round(model["intercept"], 2)
+        intercept = round(model["intercept"], 2)  # TODO be careful with rounding
         if intercept > coeff_threshold:
             rhs += sympy.Rational(intercept)
 
-        equation = sympy.symbols(pivot) - rhs
+        equation = sympy.Symbol(pivot) - rhs
         # equation = sympy.simplify(equation)
         s_eq = str(equation.evalf())
         if len(s_eq) > TABLE_WIDTH:
             s_eq = s_eq[:TABLE_WIDTH] + " ..."
-            s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+4}} "
+            s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+4}} "
         else:
-            s_eq = f"{pivot:<6}: {s_eq + ' = 0':<{TABLE_WIDTH+8}} "
+            s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+8}} "
 
         str_ += s_eq
 
+        print(f"\nModel for {pivot}: {s_eq}")
+        print(s_eq)
+
+        # NOTE: Property Test: Evaluate the equation for each row in X_test
         X_test = model["X_test"]
         y_test = model["y_test"]
 
-        # NOTE: Property Test: Evaluate the equation for each row in X_test
         rhs_values = np.zeros(y_test.shape[0])
         for i, row in enumerate(X_test):
             for t, coeff in coeff_terms.items():
@@ -482,7 +490,7 @@ def infer_equations(  # noqa F811
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str_ += f"(err: {round(me, 2):.2f}): ({model_desc}), "
+        str_ += f"(err: {round(me, 2):<5.2f}): ({model_desc}); [{pivot}]"
         if me < delta:
             str_ += "***\n"
         else:
@@ -500,8 +508,6 @@ def infer_equations(  # noqa F811
         selected_indices = [extended_terms.index(term) for term in selected_terms]
         selected_data = extended_data[:, selected_indices]
 
-        print(f"\nModel for {pivot}: {equation.evalf()}")
-        print(equation.evalf())
         print(selected_terms)
         # print(selected_data)
 
@@ -538,7 +544,7 @@ def infer_equations(  # noqa F811
     for equation in results:
         if not equation.model_desc.startswith("Milp"):
             term_frequencies.update([str(s) for s in equation.expr.free_symbols])
-    print(f"Term Frequencies: {term_frequencies}")
+    print(f"Term Frequencies: {term_frequencies}\n")
 
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
@@ -630,8 +636,9 @@ def infer_equations(  # noqa F811
     ], term_frequencies
 
 
-def main():
-    file_path = settings.FILE_PATH
+def main(file_path: str = None):
+    if file_path is None:
+        file_path = settings.FILE_PATH
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
@@ -667,7 +674,7 @@ def main():
             _str += "\n"
 
             result, term_freq = infer_equations(models, extended_terms, extended_data)
-            _str += f"Term Frequencies: {term_freq}; Size: {len(term_freq)}\n"
+            _str += f"Term Frequencies: {term_freq}; Size: {len(term_freq)}\n\n"
             results[loc].extend(result)
             for r in result:
                 _str += r.note
@@ -680,7 +687,7 @@ def main():
         print(
             f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
         )
-        p_width = 73
+        p_width = settings.PROPERTY_TABLE_WIDTH
         good_fit = set()
         max_p = 4  # pivot
         max_m = 15  # model
@@ -691,7 +698,8 @@ def main():
         max_d = len(init_d)  # dimension
         for eq in result:
             if eq.error < settings.DELTA:
-                eql_s = str(eq.expr.evalf())
+                # NOTE: a dirty hack to simplify the equation
+                eql_s = str(sympy.sympify(str(sympy.nsimplify(eq.expr.evalf()))))
                 max_m = max(max_m, len(eq.model_desc) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
                 max_error = max(max_error, len(str(round(eq.error, 3))))
@@ -704,12 +712,15 @@ def main():
         # print the header
         print(ruler)
         print(
-            f"{'Source':<{max_m}}| {'Term':{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
+            f"{'Source':<{max_m}}| {'Term':^{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
         )
         print(ruler)
         for eq in result:
             if eq.error < settings.DELTA:
-                s_eq = str(eq.expr.evalf()) + " = 0"
+                # NOTE: a dirty hack to simplify the equation
+                s_eq = (
+                    str(sympy.sympify(str(sympy.nsimplify(eq.expr.evalf())))) + " = 0"
+                )
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(
@@ -740,6 +751,111 @@ def main():
             print("2. Check satisfiability: ", end="")
             sat, r = Z3.check_sat(equations)
             print(f"{sat}, {r}")
+
+
+def get_vars(template: list[str]):
+    vars = set()
+    for t in template:
+        expr = sympy.sympify(t)
+        vars.update(expr.free_symbols)
+    return vars
+
+
+def generate_input_data(
+    domain: Domain,  # domain of the samples
+    distribution: Distribution,  # distribution of the samples
+    exprs: list[str],  # function calls to function basis
+    template: list[str],  # template for function basis
+    *functions,
+    max_degree: int = 2,  # maximum degree
+    n: int = 30,  # number of samples
+    delta: float = 0.1,  # error threshold
+):
+
+    settings.DEGREE = max_degree
+    settings.DELTA = delta
+
+    # get a dictionary of functions
+    functions = {func.__name__: func for func in functions}
+    # get the list of variables
+    variables = get_vars(template)
+
+    evals = [["vtrace1"] + [f"I {term}" for term in template]]
+    i = 0
+    while i < n:
+        variables = sample(domain, distribution, list(variables))
+        eval_row = ["vtrace1"]
+        try:
+            for expr in exprs:
+                eval_row.append(
+                    eval(
+                        expr,
+                        functions | variables,
+                        {
+                            "sqrt": math.sqrt,
+                            "abs": abs,
+                            "sin": math.sin,
+                            "cos": math.cos,
+                            "tan": math.tan,
+                            "tanh": math.tanh,
+                            "sinh": math.sinh,
+                            "cosh": math.cosh,
+                            "exp": math.exp,
+                            "log": math.log,
+                            "sign": np.sign,
+                            "pi": math.pi,
+                            "arcsin": math.asin,
+                            "asin": math.asin,
+                            "arccos": math.acos,
+                            "acos": math.acos,
+                            "arctan": math.atan,
+                            "atan": math.atan,
+                            "arctan2": math.atan2,
+                            "atan2": math.atan2,
+                        },
+                    )
+                )
+            evals.append(eval_row)
+        except ZeroDivisionError as e:
+            print(f"ZeroDivisionError: {e}, {variables}")
+            continue
+        i += 1
+
+    # Write the data to a CSV file
+    with open("trace.csv", mode="w", newline="") as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerows(evals)
+
+    main("trace.csv")
+
+
+def test_sin():
+
+    def F(x, terms=40):
+        """sinTaylor"""
+        result = 0.0
+
+        for n in range(terms):
+            numerator = (-1) ** n
+            denominator = 1
+
+            for i in range(1, 2 * n + 2):
+                denominator *= i
+
+            term = numerator * (x ** (2 * n + 1)) / denominator
+            result += term
+
+        return result
+
+    generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=2,
+        n=150,
+    )
 
 
 if __name__ == "__main__":  # noqa E123

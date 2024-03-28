@@ -105,6 +105,9 @@ SOLVER_TIMEOUT = 10  # in seconds
 SLOW_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 
+# NOTE: Reporting
+PROPERTY_TABLE_WIDTH = 75
+
 if __name__ == "__main__":
     from bitween.main import main
 

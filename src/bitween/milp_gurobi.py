@@ -3,7 +3,7 @@ from gurobipy import GRB
 import gurobipy as gp
 
 import numpy as np
-from sympy import sympify
+from sympy import sympify, Symbol, simplify, Rational
 
 from bitween.utilities import pp
 from bitween import settings, miscs
@@ -123,7 +123,7 @@ def milp_synthesis(  # noqa: C901
             abs_vars_name[f"error_{i}"] = var_error
             vals = []
             for j in range(len(data[i])):
-                # TODO: round the value of X[i][j] to ? decimal places
+                # TODO round the value of X[i][j] to ? decimal places
                 if ROUND is None:
                     vals.append(data[i][j] * scale * m.getVarByName(f"term_{j}"))
                 else:
@@ -200,8 +200,7 @@ def milp_synthesis(  # noqa: C901
             p("Optimization ended with status %d" % m.Status)
             return m.Status, None, None, None, None
 
-        expr = ""
-        first_term = True
+        expr = 0
         terms.append("1")  # NOTE: add the last constant as a term
 
         term_costs = {}
@@ -214,23 +213,14 @@ def milp_synthesis(  # noqa: C901
                 max_len = max([len(x) for x in terms])
                 cost = ""
                 if v.X != 0:
-                    coeff = ""
-                    if v.X > 0 and not first_term:
-                        coeff = " + "
-                    if v.X > 0 and first_term:
-                        coeff = ""
-                    if v.X < 0:
-                        coeff = " - "
-                    if v.X != 1 and v.X != -1:
-                        coeff += f"{pp(abs(v.X))}*"
+                    coeff = v.X
                     term = terms[int(v.VarName[5:])]
-                    term_ = f"{coeff}{terms[int(v.VarName[5:])]}"
-                    cost = sympify(term_).count_ops()
+                    term_ = Rational(coeff) * (1 if term == "1" else Symbol(term))
+                    cost = sympify(f"{coeff}*{term}").count_ops()
                     term_costs[term] = cost
                     term_coefs[term] = v.X
                     cost = f"cost: {cost}"
-                    expr += f"{coeff}{terms[int(v.VarName[5:])]}"
-                    first_term = False
+                    expr += term_
                 p(
                     f"%8s | %{max_len}s = %3s"
                     % (v.VarName, terms[int(v.VarName[5:])], pp(v.X))
@@ -238,10 +228,10 @@ def milp_synthesis(  # noqa: C901
                 )
 
         # for v in m.getVars():
-        #     if v.VarName.startswith("error_"):  # NOTE
+        #     if v.VarName.startswith("error_"):
         #         p('%s %g' % (v.VarName, v.X))
 
-        expr = expr.strip()
+        expr = simplify(expr)  # NOTE is simplifying the expression necessary?
         p("------------------------------------------")
         p(f"Time: {round(m.runTime, 2)}s")
         p("Optimal objective: %g" % m.ObjVal)
@@ -274,7 +264,7 @@ if __name__ == "__main__":  # noqa E123
     Test cases
     """
     import csv
-    from sympy import Function, Symbol, sin
+    from sympy import Function, Symbol, sin, sympify
     from bitween.terms import get_values_terms
     from bitween.verifier import property_test, verify
     from bitween.sampler import Distribution, Domain, sample
@@ -356,9 +346,10 @@ if __name__ == "__main__":  # noqa E123
     print("---------------------")
     assert status == GRB.OPTIMAL
     assert abs(obj) <= 1e-12
-    assert expr == "- f(x-y)*f(x+y) - f(y)*f(y) + f(x)*f(x)"
-    assert verify(expr, f)
+    expr_s = str(expr)
+    assert expr_s == "f(x)*f(x) - f(x-y)*f(x+y) - f(y)*f(y)"
+    assert verify(expr_s, f)
     print("---------------------")
-    assert property_test(expr, F)
+    assert property_test(expr_s, F)
 
     print("------------------------------------------")
