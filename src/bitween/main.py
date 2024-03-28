@@ -888,9 +888,9 @@ def verify(expr: sympy.Expr, *functions) -> bool:
     )
     proof = proved == 0
     if proof:
-        log.debug(f"proved: {proof}")
+        log.debug(f"proved: {proof} \u2713")
     else:
-        log.debug(f"proved: {proof} ({proved}) \u2713")
+        log.debug(f"proved: {proof} ({proved}) ")
     return proof
 
 

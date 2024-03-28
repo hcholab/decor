@@ -253,6 +253,176 @@ def test_inverse_tan_plus_one():
         assert verify(eq, f)
 
 
+def test_x_over_one_minus_x():
+    def F(x):
+        return x / (1 - x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return x / (1 - x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_minus_x_over_one_minus_x():
+    def F(x):
+        return -x / (1 - x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return -x / (1 - x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+# f(x)=\frac{\sin cx}{\sin(cx+a)
+def test_sin_over_sin():
+    def F(x, a=math.radians(90), c=1):
+        return math.sin(c * x) / math.sin(c * x + a)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=3,
+        n=300,
+    )
+
+    def f(x):
+        return sympy.sin(x) / sympy.sin(x + 1)
+
+    for eq in equations:
+        verify(eq, f)
+
+
+# f(x)=\frac{\sinh cx}{\sinh(cx+a)
+def test_sinh_over_sinh():
+    def F(x, a=1, c=1):
+        return math.sinh(c * x) / math.sinh(c * x + a)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return sympy.sinh(x) / sympy.sinh(x + 1)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_cosh():
+    def F(x):
+        return math.cosh(x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return sympy.cosh(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_squared():
+    def F(x):
+        return x**2
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return x**2
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_sinh():
+    def F(x):
+        return math.sinh(x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return sympy.sinh(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_sigmoid():
+    def F(x):
+        return 1 / (1 + math.exp(-x))
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return 1 / (1 + sympy.exp(-x))
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
 # test_cx()
 # test_exp()
 # test_exp_minus_one()
@@ -261,7 +431,14 @@ def test_inverse_tan_plus_one():
 # test_tanh()
 # test_inverse()
 # test_inverse_cot_plus_one()
-test_inverse_tan_plus_one()
-
-# test_sin()
+# test_inverse_tan_plus_one()
+# test_x_over_one_minus_x()
+# test_minus_x_over_one_minus_x()
+# test_sin_over_sin() # TODO fails
+# test_sinh_over_sinh() # TODO fails
 # test_cos()
+# test_cosh()
+# test_squared()
+# test_sin()
+# test_sinh()
+test_sigmoid()
