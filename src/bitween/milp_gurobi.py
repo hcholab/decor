@@ -30,8 +30,6 @@ def milp_synthesis(  # noqa: C901
     bound=2,
     timeout=10,  # 10 seconds
     scale=1,
-    sr_vals: list[float] = [],
-    sr_func: str | None = None,
 ) -> tuple[int, str | None, float | None, list[str]]:
     """
     Parameters
@@ -138,12 +136,7 @@ def milp_synthesis(  # noqa: C901
             sum_terms = gp.quicksum(vals)
             abs_vars_expr[f"error_{i}"] = sum_terms
             try:
-                if len(sr_vals) > 0:
-                    m.addConstr(
-                        sr_vals[i] == sum_terms + var_error, name=f"error_{i}_ub"
-                    )
-                else:
-                    m.addConstr(sum_terms == var_error, name=f"error_{i}_ub")
+                m.addConstr(sum_terms == var_error, name=f"error_{i}_ub")
             except gp.GurobiError as e:
                 p("------------------------------------------")
                 p("Error code " + str(e.errno) + ": " + str(e))
@@ -237,14 +230,7 @@ def milp_synthesis(  # noqa: C901
         p("Optimal objective: %g" % m.ObjVal)
         m.printStats()
         m.printQuality()
-        if sr_func is not None:
-            p(
-                f"milp property: {sr_func} = {expr} ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
-            )
-        else:
-            p(
-                f"milp property: {expr} = 0 ({m.ObjVal}) (block: {blocked}) (bound: {bound})"
-            )
+        p(f"milp property: {expr} = 0 ({m.ObjVal}) (block: {blocked}) (bound: {bound})")
         p("------------------------------------------")
         p(f"scale: {scale:e}")
 

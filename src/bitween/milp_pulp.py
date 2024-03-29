@@ -9,13 +9,14 @@ from pulp import (
 )
 import pulp
 import numpy as np
-from sympy import sympify
+from sympy import sympify, Symbol, simplify, Rational
 
 from bitween.utilities import pp
+from bitween import settings, miscs
+
+log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
 # Constants are the same
-INTEGRALITY_FOCUS = 1
-NUMERIC_FOCUS = 3
 ERROR_BOUND = 0.1
 ROUND = None
 OPTIMAL = 1  # In PuLP, the status code for optimal is 1
@@ -90,9 +91,8 @@ def milp_synthesis(
 
     _print("------------------------------------------")
     # Post-processing to generate expression and term costs
-    expr = ""
-    first_term = True
-    terms.append("1")  # Add the constant term
+    expr = 0
+    terms.append("1")  # NOTE: add the last constant as a term
 
     term_costs = {}
     term_coefs: dict[str, float] = {}
@@ -104,30 +104,21 @@ def milp_synthesis(
             cost = ""
             value = v.varValue
             if value != 0:
-                coeff = ""
-                if value > 0 and not first_term:
-                    coeff = " + "
-                if value > 0 and first_term:
-                    coeff = ""
-                if value < 0:
-                    coeff = " - "
-                if value != 1 and value != -1:
-                    coeff += f"{pp(abs(value))}*"
+                coeff = value
                 term = terms[int(v.name.split("_")[1])]
-                term_ = f"{coeff}{term}"
-                cost = sympify(term_).count_ops()
+                term_ = Rational(coeff) * (1 if term == "1" else Symbol(term))
+                cost = sympify(f"{coeff}*{term}").count_ops()
                 term_costs[term] = cost
                 term_coefs[term] = value
                 cost = f"cost: {cost}"
                 expr += term_
-                first_term = False
             _print(
                 f"%8s | %{max_len}s = %{max_val}s"
                 % (v.name, terms[int(v.name[5:])], pp(value))
                 + f" | {cost}"
             )
 
-    expr = expr.strip()
+    expr = simplify(expr)  # NOTE is simplifying the expression necessary?
     obj_val = m.objective.value()
 
     _print("------------------------------------------")
@@ -152,7 +143,6 @@ if __name__ == "__main__":  # noqa E123
     Test cases
     """
     import csv
-    import sympy
     from sympy import Function, Symbol, sin
     from bitween.terms import get_values_terms
     from bitween.verifier import property_test, verify
@@ -235,11 +225,10 @@ if __name__ == "__main__":  # noqa E123
     print("---------------------")
     assert status == OPTIMAL
     assert abs(obj) <= 1e-12
-    assert sympy.sympify(expr) == sympy.sympify(
-        "- f(x-y)*f(x+y) - f(y)*f(y) + f(x)*f(x)"
-    )
-    assert verify(expr, f)
+    expr_s = str(expr)
+    assert expr_s == "f(x)*f(x) - f(x-y)*f(x+y) - f(y)*f(y)"
+    assert verify(expr_s, f)
     print("---------------------")
-    assert property_test(expr, F)
+    assert property_test(expr_s, F)
 
     print("------------------------------------------")

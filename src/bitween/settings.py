@@ -35,6 +35,7 @@ FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces.csv"  # NOTE: NO NE
 # FILE_PATH = "benchmarks/bitween/dig/poly3.dig.dyn.traces.csv"
 # FILE_PATH = "benchmarks/bitween/dig/poly4.dig.dyn.traces.csv"
 # FILE_PATH = "benchmarks/bitween/dig/poly5.dig.dyn.traces.csv"
+# FILE_PATH = "trace.csv"
 
 LOGGER_LEVEL = 3
 

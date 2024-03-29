@@ -365,7 +365,7 @@ def test_squared():
         return x**2
 
     equations = generate_input_data(
-        Domain.Real,
+        Domain.Integer,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
@@ -432,7 +432,7 @@ def test_sigmoid():
 # test_inverse()
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
-# test_x_over_one_minus_x()
+test_x_over_one_minus_x()
 # test_minus_x_over_one_minus_x()
 # test_sin_over_sin() # TODO fails
 # test_sinh_over_sinh() # TODO fails
@@ -441,4 +441,4 @@ def test_sigmoid():
 # test_squared()
 # test_sin()
 # test_sinh()
-test_sigmoid()
+# test_sigmoid()

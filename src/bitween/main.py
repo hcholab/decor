@@ -852,6 +852,8 @@ def verify(expr: sympy.Expr, *functions) -> bool:
 
     log.debug(f"verifying: {expr} = 0")
 
+    st = time()
+
     functions = {func.__name__: func for func in functions}
 
     # NOTE: a dirty hack to eliminates function terms like f(x) or f(x+y) from the expression
@@ -891,6 +893,9 @@ def verify(expr: sympy.Expr, *functions) -> bool:
         log.debug(f"proved: {proof} \u2713")
     else:
         log.debug(f"proved: {proof} ({proved}) ")
+
+    log.debug(f"Verification Time: {time() - st:.2f}s")
+
     return proof
 
 
