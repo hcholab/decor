@@ -78,7 +78,10 @@ def milp_synthesis(
     # m.writeLP("synthesis_pulp.lp")
 
     # Solve the problem
-    m.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=timeout))
+    if settings.MILP_SOLVER == "PULP":
+        m.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=timeout))
+    elif settings.MILP_SOLVER == "GLPK":
+        m.solve(pulp.GLPK_CMD(msg=MSG, timeLimit=timeout))
 
     status = LpStatus[m.status]
 
@@ -143,10 +146,14 @@ if __name__ == "__main__":  # noqa E123
     Test cases
     """
     import csv
+    import pulp
     from sympy import Function, Symbol, sin
     from bitween.terms import get_values_terms
     from bitween.verifier import property_test, verify
     from bitween.sampler import Distribution, Domain, sample
+
+    solver_list = pulp.listSolvers(onlyAvailable=True)
+    print(solver_list)
 
     domain = Domain.Real
     distribution = Distribution.Small

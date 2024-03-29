@@ -367,7 +367,7 @@ def infer_equations(  # noqa F811
                 blocked=blocked,
             )
         else:
-            if settings.MILP_SOLVER != "PULP":
+            if settings.MILP_SOLVER != "PULP" and settings.MILP_SOLVER != "GLPK":
                 log.warning(
                     f"Invalid MILP solver: {settings.MILP_SOLVER}, using PULP instead"
                 )
@@ -441,9 +441,7 @@ def infer_equations(  # noqa F811
         terms = [item for item in extended_terms if item != pivot]
 
         # check all coefficients and if it is greater than 100, then skip it
-        if settings.USE_CUTOFF and np.any(
-            np.abs(model["coefficients"]) >= coeff_cutoff
-        ):
+        if settings.USE_CUTOFF and np.any(np.abs(model["coefficients"]) > coeff_cutoff):
             # str += f"Model for {pivot}: Large Coefficient!\n"
             return (
                 Equation(None, None, pivot, sample_size, model_desc, dims, str_),
