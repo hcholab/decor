@@ -365,7 +365,6 @@ def infer_equations(  # noqa F811
                 bound=settings.MILP_BOUND,
                 timeout=settings.MILP_TIME_LIMIT,
                 blocked=blocked,
-                scale=1e-10,
             )
         else:
             optimal = milp_pulp.OPTIMAL
