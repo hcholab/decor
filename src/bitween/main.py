@@ -356,7 +356,7 @@ def infer_equations(  # noqa F811
             else:
                 sample_size = selected_data.shape[0]
 
-        if settings.MILP_SOLVER == "GUROBI":
+        if settings.MILP_SOLVER == settings.MILPSolver.GUROBI:
             optimal = milp_gurobi.OPTIMAL
             status, expr, obj, term_coefs, _ = milp_gurobi.milp_synthesis(
                 selected_data,
@@ -367,10 +367,6 @@ def infer_equations(  # noqa F811
                 blocked=blocked,
             )
         else:
-            if settings.MILP_SOLVER != "PULP" and settings.MILP_SOLVER != "GLPK":
-                log.warning(
-                    f"Invalid MILP solver: {settings.MILP_SOLVER}, using PULP instead"
-                )
             optimal = milp_pulp.OPTIMAL
             status, expr, obj, term_coefs, _ = milp_pulp.milp_synthesis(
                 selected_data,

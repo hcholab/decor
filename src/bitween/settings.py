@@ -28,6 +28,7 @@ FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces.csv"  # NOTE: NO NE
 # FILE_PATH = "benchmarks/bitween/dig/ps4.dig.dyn.traces.csv"
 # FILE_PATH = "benchmarks/bitween/dig/ps5.dig.dyn.traces.csv"  # NOTE: Check on BITWEEN
 # FILE_PATH = "benchmarks/bitween/dig/ps5.dig.dyn.traces1.csv"  # NOTE: Check on BITWEEN
+# FILE_PATH = "benchmarks/bitween/dig/ps5.dig.traces.csv"  # NOTE: Check on BITWEEN
 # FILE_PATH = "benchmarks/bitween/dig/ps6.dig.traces.csv"  # NOTE: Check on BITWEEN
 # FILE_PATH = "benchmarks/bitween/dig/sqrt1.dig.traces.csv"
 
@@ -62,14 +63,21 @@ USE_CUTOFF = True  # if True, then we use the cutoffs
 COEFF_CUTOFF = 30  # remove equalities that are larger than this value
 INTERCEPT_CUTOFF = 50  # remove equalities that are larger than this value
 
+
+class MILPSolver(Enum):
+    PULP = 0
+    GUROBI = 1
+    GLPK = 2
+
+
 # NOTE: MILP Method parameters
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
-MILP_SOLVER = "GUROBI"  # PULP or GUROBI or GLPK
+MILP_SOLVER = MILPSolver.GUROBI  # PULP or GUROBI or GLPK
 OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
-MILP_OUTPUT = False  # if True, then we show the MILP warnings
+MILP_WARNINGS = False  # if True, then we show the MILP warnings
 
 
 # NOTE: Eager MILP

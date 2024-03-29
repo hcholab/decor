@@ -77,10 +77,10 @@ def milp_synthesis(
 
     # m.writeLP("synthesis_pulp.lp")
 
-    # Solve the problem
-    if settings.MILP_SOLVER == "PULP":
+    # NOTE: Solver Selection and solve the problem
+    if settings.MILP_SOLVER == settings.MILPSolver.PULP:
         m.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=timeout))
-    elif settings.MILP_SOLVER == "GLPK":
+    elif settings.MILP_SOLVER == settings.MILPSolver.GLPK:
         m.solve(pulp.GLPK_CMD(msg=MSG, timeLimit=timeout))
 
     status = LpStatus[m.status]
