@@ -365,6 +365,7 @@ def infer_equations(  # noqa F811
                 bound=settings.MILP_BOUND,
                 timeout=settings.MILP_TIME_LIMIT,
                 blocked=blocked,
+                scale=1e-10,
             )
         else:
             optimal = milp_pulp.OPTIMAL
@@ -544,7 +545,7 @@ def infer_equations(  # noqa F811
     # NOTE: MILP Synthesis based on the regression model
     if settings.MILP:
         # NOTE: Parallel MILP Synthesis based on the regression model
-        solver = settings.MILP_SOLVER.lower()
+        solver = settings.MILP_SOLVER.name.lower()
         blocked = None  # NOTE: No blocked term for now
         if settings.PARALLEL_MILP:
             model_desc = f"Milp({solver})"
@@ -572,7 +573,7 @@ def infer_equations(  # noqa F811
                 terms.append(term)
         selected_indices = [extended_terms.index(term) for term in terms]
         selected_data = extended_data[:, selected_indices]
-        model_desc = f"Milp({settings.MILP_SOLVER.lower()})+Freqs"
+        model_desc = f"Milp({settings.MILP_SOLVER.name.lower()})+Freqs"
         inputs = []
         for pivot in terms:
             inputs.append((pivot, terms, selected_data, model_desc))
