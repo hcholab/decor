@@ -765,7 +765,7 @@ def main(file_path: str = None):
             sat, r = Z3.check_sat(equations)
             print(f"{sat}, {r}")
 
-        return equations
+    return equations
 
 
 def get_vars(template: list[str]):
