@@ -69,7 +69,7 @@ def milp_synthesis(  # noqa: C901
         if not settings.MILP_WARNINGS:
             env.setParam("OutputFlag", 0)
         env.start()
-        m = gp.Model(f"{pivot}: {terms}", env=env)
+        m = gp.Model(f"{pivot}", env=env)
         m.setParam("TimeLimit", timeout)
         m.setParam("IntegralityFocus", INTEGRALITY_FOCUS)
         # m.setParam("MIPFocus", MIPFOCUS)
