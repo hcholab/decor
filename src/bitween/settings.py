@@ -45,8 +45,20 @@ DELTA = 0.001  # Property Test threshold
 
 TYPE = "INT"  # INT or REAL
 
+
+class InitialMethod(Enum):
+    MULTIPLE_REGRESSION = 0
+    SIMPLE_REGRESSION = 1
+    FORWARD_SELECTION = 2
+
+
+INITIAL_METHOD = InitialMethod.MULTIPLE_REGRESSION
+
+# NOTE: Forward Selection Method
+SELECTOR_INITIAL_RATE = 0.8
+SELECTOR_DECAY_RATE = 0.3
+
 # NOTE: Multiple Regression Method
-MULTIPLE_REGRESSION = True  # if True, then we use the multiple regression methods
 CROSS_VALIDATION = 3
 REGRESSION_SCORE = "r2"  # neg_mean_squared_error or r2
 

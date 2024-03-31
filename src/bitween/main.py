@@ -1,5 +1,6 @@
 import collections
 import math
+from tempfile import mkdtemp  # noqa F401
 from time import time
 from dataclasses import dataclass
 import itertools
@@ -7,6 +8,9 @@ import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.metrics import mean_squared_error
+from sklearn.pipeline import Pipeline
 import sympy
 import csv
 from sklearn.linear_model import (  # noqa F401
@@ -22,6 +26,7 @@ from bitween import settings, miscs
 from bitween import milp_gurobi, milp_pulp
 from bitween.miscs import Symbolic
 from bitween.sampler import Domain, Distribution, sample
+from bitween.utilities import pp
 from bitween.z3utils import Z3
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
@@ -155,6 +160,169 @@ def find_model(pivot, terms, data, test_size=0.2):
         "X_test": X,  # Include the entire X for evaluating the equation
         "y_test": y,  # Include the entire y for evaluating the equation
     }
+
+
+def find_models_w_feature_selector(
+    extended_terms, extended_data, degree=2, test_size=0.2
+):
+
+    def get_rate(
+        degree=degree,
+        initial_rate=settings.SELECTOR_INITIAL_RATE,
+        decay_rate=settings.SELECTOR_DECAY_RATE,
+    ):
+        """
+        Calculate the rate for a given degree using an exponential decay formula.
+
+        :param degree: The degree for which to calculate the rate.
+        :param initial_rate: The initial rate at degree 1.
+        :param decay_rate: The rate of decay per degree increase.
+        :return: The calculated rate.
+        """
+        return initial_rate * ((1 - decay_rate) ** (degree - 1))
+
+    # NOTE Include the constant term (intercept=False in LinearRegression)
+    # X = extended_data[:, :-1]  # Exclude the constant term
+    X_ = extended_data.copy()
+
+    sample_size = extended_data.shape[0]
+
+    if settings.REGRESSION_USE_SAMPLE_RATE and settings.REGRESSION_SAMPLE_RATE > 1:
+        # select a random subset of the extended_data based on the number of terms * sample rate
+        sample_size = int(len(extended_terms) * settings.REGRESSION_SAMPLE_RATE)
+        threshold = settings.REGRESSION_SAMPLE_THRESHOLD
+        if sample_size < threshold:
+            if extended_data.shape[0] > threshold:
+                sample_size = threshold
+            else:  # use all data
+                sample_size = extended_data.shape[0]
+
+        if sample_size < extended_data.shape[0]:
+            sample_indices = np.random.choice(
+                extended_data.shape[0], sample_size, replace=False
+            )
+            extended_data = extended_data[sample_indices]
+        else:
+            sample_size = extended_data.shape[0]
+
+    X = extended_data
+
+    def fit_model(target_idx):
+        y = extended_data[:, target_idx]
+        # Exclude the target variable from the features
+        X_train, X_test, y_train, y_test = train_test_split(
+            np.delete(X, target_idx, axis=1), y, test_size=test_size, random_state=42
+        )
+        # extract the target variable from the extended_terms and keep the rest
+        pivot = extended_terms[target_idx]
+        features = np.array([term for term in extended_terms if term != pivot])
+
+        # initial best model info
+        best_error = np.inf
+        best_score = -np.inf
+        best_model = None
+        best_intercept = None
+        best_coefficients = None
+
+        # TODO observe this hyperparameter
+        max_features = int(X_train.shape[1] * get_rate())
+        # Define the range of features to select
+        last_mse = np.inf
+        n_features = max_features
+        while n_features > 0:
+            print(f"\nEvaluating model with {n_features} features selected:")
+            # Define the feature selector with the current number of features
+            selector = SequentialFeatureSelector(
+                LinearRegression(fit_intercept=False),
+                n_features_to_select=n_features,
+                cv=5,
+                # n_jobs=-1,
+            )
+            # Define the pipeline with the current feature selector
+            # cachedir = mkdtemp()
+            pipe = Pipeline(
+                [
+                    ("selector", selector),
+                    ("linear", LinearRegression(fit_intercept=False)),
+                ],
+                # memory=cachedir,
+            )
+
+            # Fit the pipeline to the training data
+            pipe.fit(X_train, y_train)
+
+            # Get the selected features and their coefficients
+            mask = pipe.named_steps["selector"].get_support()
+            selected_features = features[mask]
+            model = pipe.named_steps["linear"]
+            coefficients = model.coef_
+
+            print("Selected features:", selected_features)
+            # TODO mask for coefficients, select better coefficients to find mse
+            coef_mask = []
+            # Construct the polynomial equation string
+            equation = 0
+            for feature, coeff in zip(selected_features, coefficients):
+                coeff = round(coeff, 3)
+                if feature == "1" and coeff != 0:
+                    equation += sympy.Rational(coeff)
+                    coef_mask.append(True)
+                elif coeff != 0:
+                    equation += sympy.Rational(coeff) * sympy.Symbol(feature)
+                    coef_mask.append(True)
+                else:
+                    coef_mask.append(False)
+            # equation = equation.rstrip(" + ")  # remove the last plus sign
+            print(f"Equation: {pivot} = {equation.evalf()}")
+            equation = sympy.Symbol(pivot) - equation
+
+            # Predict and evaluate the model on the test set
+            y_pred = model.predict(X_test[:, mask])
+            mse = mean_squared_error(y_test, y_pred)
+            if mse <= best_error:
+                best_score = model.score(X_test[:, mask], y_test)
+                best_model = model
+                best_intercept = model.intercept_
+                best_coefficients = coefficients
+
+            print(f"Mean Squared Error on Test Data: {pp(mse)}")
+
+            if mse < 1e-10:  # TODO check this threshold
+                print(f"Model for {pivot}: {equation.evalf()} (Found a perfect model)")
+                break
+
+            if mse - last_mse > 1e-4:  # TODO check this threshold
+                print(f"mse increased from {last_mse} to {mse}, stopping the search.")
+                break
+
+            last_mse = mse
+
+            # selected_features_n = selected_features.shape[0]
+            # if selected_features_n < (n_features - 1):
+            #     # Decrease the number of features to select
+            #     n_features = selected_features_n
+            # else:
+            #     # Decrease the number of features to select
+            n_features -= 1
+
+        return pivot, {
+            "model": best_model,
+            "score": best_score,
+            "model_type": "ForwardSelection",
+            "params": "",  # NOTE: No parameters for simple linear regression
+            "intercept": best_intercept,
+            "coefficients": best_coefficients,
+            "sample_size": sample_size,
+            "X_test": X_,  # NOTE: Include the entire X for evaluating the eq.
+            "y_test": X_[:, target_idx],  # NOTE: Include the entire y to eval the eq.
+        }
+
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    results = Parallel(n_jobs=1)(
+        delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
+    )
+
+    return {term: content for term, content in results}
 
 
 def find_models(extended_terms, extended_data, test_size=0.2):
@@ -662,19 +830,30 @@ def main(file_path: str = None):
         _str += f"Terms: {terms}\n"
         _str += f"Shape: {data.shape}\n"
 
-        for degree in range(1, settings.DEGREE + 1):
+        initial_degree = 1
+        if settings.InitialMethod.FORWARD_SELECTION:
+            initial_degree = settings.DEGREE
+
+        for degree in range(initial_degree, settings.DEGREE + 1):
             _str += f"\nDegree: {degree}\n"
             extended_terms, extended_data = process_trace(terms, data, degree)
             trace_data[loc]["extended_terms"] = extended_terms
 
             _str += f"{extended_terms}; size: {len(extended_terms)}\n"
 
-            if settings.MULTIPLE_REGRESSION:
+            if settings.INITIAL_METHOD == settings.InitialMethod.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
                 models = find_best_model(extended_terms, extended_data)
-            else:
+            elif settings.INITIAL_METHOD == settings.InitialMethod.SIMPLE_REGRESSION:
                 # (Option 2) use simple linear regression to find a model for each term
                 models = find_models(extended_terms, extended_data)
+            elif settings.INITIAL_METHOD == settings.InitialMethod.FORWARD_SELECTION:
+                # (Option 3) use forward selection to find a model for each term
+                models = find_models_w_feature_selector(
+                    extended_terms, extended_data, degree
+                )
+            else:
+                raise ValueError("Invalid initial method")
 
             # Display the models and their equations
             for term, content in models.items():
