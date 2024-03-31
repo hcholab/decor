@@ -6,9 +6,18 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SequentialFeatureSelector
 import numpy as np
 
+
+def pp(x):
+    """
+    Pretty print a number.
+    """
+    return np.format_float_positional(x, trim="-")
+
+
 # Generate sample data
 x = np.arange(100).reshape(-1, 1)
 y = 6 * x**5 + 15 * x**4 + 10 * x**3 - 30 * x
+# add correlated but irrelevant feature
 z = np.arange(12, 112).reshape(-1, 1)
 x = np.concatenate((x, z), axis=1)
 y = y.flatten()
@@ -27,7 +36,7 @@ for n_features in range(10, 1, -1):  # Will go from 7 to 4
         LinearRegression(fit_intercept=False),
         n_features_to_select=n_features,
         cv=5,
-        n_jobs=-1,
+        # n_jobs=-1,
     )
 
     # Define the pipeline with the current feature selector
@@ -64,7 +73,7 @@ for n_features in range(10, 1, -1):  # Will go from 7 to 4
     # Predict and evaluate the model on the test set
     y_pred = model.predict(x_test)
     mse = mean_squared_error(y_test, y_pred)
-    print(f"Mean Squared Error on Test Data: {mse}")
+    print(f"Mean Squared Error on Test Data: {pp(mse)}")
 
     if mse < 1e-10:
         break
