@@ -877,6 +877,11 @@ def main(file_path: str = None):
             f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
         )
         p_width = settings.PROPERTY_TABLE_WIDTH
+        # NOTE: a dirty hack to simplify the equation for display
+        # based on given function calls and variables
+        equations = [eq.expr.evalf() for eq in result]
+        equations = Symbolic.find_and_substitute_terms(equations)
+        equations = [sympy.nsimplify(eq) for eq in equations]
         good_fit = set()
         max_p = 4  # pivot
         max_m = 15  # model
@@ -885,10 +890,9 @@ def main(file_path: str = None):
         max_s = 2  # sample size
         init_d = str(len(trace_data[loc]["extended_terms"]))  # initial dimension
         max_d = len(init_d)  # dimension
-        for eq in result:
+        for i, eq in enumerate(result):
             if eq.error < settings.DELTA:
-                # NOTE: a dirty hack to simplify the equation
-                eql_s = str(sympy.sympify(str(sympy.nsimplify(eq.expr.evalf()))))
+                eql_s = str(equations[i])
                 max_m = max(max_m, len(eq.model_desc) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
                 max_error = max(max_error, len(str(round(eq.error, 3))))
@@ -904,12 +908,9 @@ def main(file_path: str = None):
             f"{'Source':<{max_m}}| {'Term':^{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
         )
         print(ruler)
-        for eq in result:
+        for i, eq in enumerate(result):
             if eq.error < settings.DELTA:
-                # NOTE: a dirty hack to simplify the equation
-                s_eq = (
-                    str(sympy.sympify(str(sympy.nsimplify(eq.expr.evalf())))) + " = 0"
-                )
+                s_eq = str(equations[i])
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(

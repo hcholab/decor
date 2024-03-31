@@ -271,6 +271,31 @@ class Symbolic:
         return sorted(results)
 
     @classmethod
+    def find_and_substitute_terms(cls, ps: list[sympy.Expr]):
+        """
+        Extract terms from the given list of expressions, and replace them with symbols
+        """
+        for i, p in enumerate(ps):
+            ps[i] = sympy.sympify(str(p))
+
+        for i, eqt in enumerate(ps):
+            mapping = {}
+            for e in eqt.args:
+                if e.is_Mul or e.is_Pow:
+                    for arg in e.args:
+                        if arg.is_Pow:
+                            mapping[arg.base] = sympy.Symbol(str(arg.base))
+                        elif not arg.is_number:
+                            mapping[arg] = sympy.Symbol(str(arg).replace(" ", ""))
+                else:
+                    if not e.is_number:
+                        mapping[e] = sympy.Symbol(str(e).replace(" ", ""))
+
+            ps[i] = eqt.subs(mapping)
+
+        return ps
+
+    @classmethod
     def reduce_eqts(cls, ps: list[sympy.Expr]) -> list[sympy.Expr]:
         """
         Return the basis (e.g., a min subset of ps that implies ps)
@@ -299,24 +324,8 @@ class Symbolic:
         if len(ps) <= 1:
             return ps
 
-        # NOTE: break complex terms here such as f(x)*(y) is a term, not a product, make f(x) and f(y) as terms
-        for i, p in enumerate(ps):
-            ps[i] = sympy.sympify(str(p))
-
-        for i, eqt in enumerate(ps):
-            mapping = {}
-            for e in eqt.args:
-                if e.is_Mul or e.is_Pow:
-                    for arg in e.args:
-                        if arg.is_Pow:
-                            mapping[arg.base] = sympy.Symbol(str(arg.base))
-                        elif not arg.is_number:
-                            mapping[arg] = sympy.Symbol(str(arg).replace(" ", ""))
-                else:
-                    if not e.is_number:
-                        mapping[e] = sympy.Symbol(str(e).replace(" ", ""))
-
-            ps[i] = eqt.subs(mapping)
+        # NOTE: break complex terms here such that f(x)*(y) is a term, not a product, make f(x) and f(y) as terms
+        ps = cls.find_and_substitute_terms(ps)
 
         ps_ = sympy.groebner(ps, *cls.get_vars(ps))
         ps_ = [x for x in ps_]
