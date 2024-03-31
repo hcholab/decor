@@ -425,14 +425,14 @@ def test_sigmoid():
 
 # test_cx()
 # test_exp()
-# test_exp_minus_one()
+test_exp_minus_one()
 # test_tan()
 # test_cot()
 # test_tanh()
 # test_inverse()
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
-test_x_over_one_minus_x()
+# test_x_over_one_minus_x()
 # test_minus_x_over_one_minus_x()
 # test_sin_over_sin() # TODO fails
 # test_sinh_over_sinh() # TODO fails

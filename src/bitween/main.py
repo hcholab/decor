@@ -225,6 +225,13 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             "model": Lasso(random_state=42),
             "params": {"alpha": [1e-4, 1e-3, 1e-2, 1e-1, 100, 1000]},
         },
+        # "ElasticNet": {
+        #     "model": ElasticNet(random_state=42),
+        #     "params": {
+        #         "alpha": [1e-4, 1e-3, 1e-2, 1e-1, 1, 10, 100],
+        #         "l1_ratio": [0.1, 0.5, 0.9, 0.95, 0.99, 1],
+        #     },
+        # },
     }
 
     sample_size = extended_data.shape[0]
@@ -264,7 +271,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         cv = settings.CROSS_VALIDATION
         for model_name, mp in model_params.items():
             clf = GridSearchCV(
-                mp["model"], mp["params"], cv=cv, scoring="r2", n_jobs=-1
+                mp["model"],
+                mp["params"],
+                cv=cv,
+                scoring=settings.REGRESSION_SCORE,
+                n_jobs=-1,
             )
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)

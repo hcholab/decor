@@ -48,6 +48,7 @@ TYPE = "INT"  # INT or REAL
 # NOTE: Multiple Regression Method
 MULTIPLE_REGRESSION = True  # if True, then we use the multiple regression methods
 CROSS_VALIDATION = 3
+REGRESSION_SCORE = "r2"  # neg_mean_squared_error or r2
 
 # NOTE: Regression Refinement Method
 REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
