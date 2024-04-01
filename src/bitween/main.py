@@ -129,6 +129,18 @@ def process_trace(terms: list[str], data, degree):
     return extended_terms, extended_data
 
 
+# NOTE: Property Test
+def property_test(term_coefs: dict[str, float], extended_terms, extended_data) -> float:
+    # Evaluate the equation for each row in entire data
+    error = 0.0
+    for row in extended_data:
+        lhs = 0
+        for term, coef in term_coefs.items():
+            lhs += coef * row[extended_terms.index(term)]
+        error += abs(lhs)
+    return error / extended_data.shape[0]
+
+
 def find_model(pivot, terms, data, test_size=0.2):
     X = data
     y = data[:, terms.index(pivot)]
@@ -183,7 +195,6 @@ def find_models_w_feature_selector(
 
     # NOTE Include the constant term (intercept=False in LinearRegression)
     # X = extended_data[:, :-1]  # Exclude the constant term
-    X_ = extended_data.copy()
 
     sample_size = extended_data.shape[0]
 
@@ -205,13 +216,12 @@ def find_models_w_feature_selector(
         else:
             sample_size = extended_data.shape[0]
 
-    X = extended_data
-
     def fit_model(target_idx):
         y = extended_data[:, target_idx]
         # Exclude the target variable from the features
+        X_ = np.delete(extended_data, target_idx, axis=1)
         X_train, X_test, y_train, y_test = train_test_split(
-            np.delete(X, target_idx, axis=1), y, test_size=test_size, random_state=42
+            X_, y, test_size=test_size, random_state=42
         )
         # extract the target variable from the extended_terms and keep the rest
         pivot = extended_terms[target_idx]
@@ -225,7 +235,8 @@ def find_models_w_feature_selector(
         best_coefficients = None
 
         # TODO observe this hyperparameter
-        max_features = int(X_train.shape[1] * get_rate())
+        # max_features = int(X_train.shape[1] * get_rate())
+        max_features = settings.SELECTOR_MAX_FEATURES
         # Define the range of features to select
         last_mse = np.inf
         n_features = max_features
@@ -235,7 +246,7 @@ def find_models_w_feature_selector(
             selector = SequentialFeatureSelector(
                 LinearRegression(fit_intercept=False),
                 n_features_to_select=n_features,
-                cv=5,
+                cv=3,  # TODO check this, 5 is the recommended value
                 # n_jobs=-1,
             )
             # Define the pipeline with the current feature selector
@@ -258,32 +269,32 @@ def find_models_w_feature_selector(
             coefficients = model.coef_
 
             print("Selected features:", selected_features)
-            # TODO mask for coefficients, select better coefficients to find mse
-            coef_mask = []
             # Construct the polynomial equation string
             equation = 0
+            extended_coefficients = np.zeros(features.shape[0])
+            feature_list = features.tolist()
             for feature, coeff in zip(selected_features, coefficients):
+                idx = feature_list.index(feature)
+                extended_coefficients[idx] = coeff
                 coeff = round(coeff, 3)
                 if feature == "1" and coeff != 0:
                     equation += sympy.Rational(coeff)
-                    coef_mask.append(True)
                 elif coeff != 0:
                     equation += sympy.Rational(coeff) * sympy.Symbol(feature)
-                    coef_mask.append(True)
-                else:
-                    coef_mask.append(False)
+
             # equation = equation.rstrip(" + ")  # remove the last plus sign
             print(f"Equation: {pivot} = {equation.evalf()}")
             equation = sympy.Symbol(pivot) - equation
 
             # Predict and evaluate the model on the test set
-            y_pred = model.predict(X_test[:, mask])
-            mse = mean_squared_error(y_test, y_pred)
+            # mse = mean_squared_error(y_test, model.predict(X_test[:, mask]))
+            # NOTE use the entire X and y for evaluating the equation
+            mse = mean_squared_error(y, model.predict(X_[:, mask]))
             if mse <= best_error:
                 best_score = model.score(X_test[:, mask], y_test)
                 best_model = model
                 best_intercept = model.intercept_
-                best_coefficients = coefficients
+                best_coefficients = extended_coefficients
 
             print(f"Mean Squared Error on Test Data: {pp(mse)}")
 
@@ -313,12 +324,12 @@ def find_models_w_feature_selector(
             "intercept": best_intercept,
             "coefficients": best_coefficients,
             "sample_size": sample_size,
-            "X_test": X_,  # NOTE: Include the entire X for evaluating the eq.
-            "y_test": X_[:, target_idx],  # NOTE: Include the entire y to eval the eq.
+            "X_test": extended_data,  # NOTE: Include the entire X for evaluating the eq.
+            "y_test": extended_data[:, target_idx],  # NOTE: Include the entire y
         }
 
     # Create a model for each term in extended_terms, excluding the constant '1'
-    results = Parallel(n_jobs=1)(
+    results = Parallel(n_jobs=-1 if settings.SELECTOR_PARALLEL else 1)(
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
@@ -494,17 +505,6 @@ def infer_equations(  # noqa F811
     objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
 
-    # NOTE: Property Test for MILP-based Synthesis
-    def property_test(term_coefs: dict[str, float]) -> float:
-        # Evaluate the equation for each row in entire data
-        error = 0.0
-        for row in extended_data:
-            lhs = 0
-            for term, coef in term_coefs.items():
-                lhs += coef * row[extended_terms.index(term)]
-            error += abs(lhs)
-        return error / extended_data.shape[0]
-
     # NOTE: MILP-based Synthesis
     def milp_synthesis_wrapper(
         pivot: str,
@@ -568,7 +568,7 @@ def infer_equations(  # noqa F811
                     s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+8}} "
 
                 # NOTE: Property Test: Evaluate the equation for each row in entire data
-                error = property_test(term_coefs)
+                error = property_test(term_coefs, extended_terms, extended_data)
 
                 s_err = f"err: {round(error, 2):<5.2f}"
                 s_obj = f"obj: {round(obj, 2):.2f}"

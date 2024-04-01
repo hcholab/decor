@@ -52,11 +52,14 @@ class InitialMethod(Enum):
     FORWARD_SELECTION = 2
 
 
-INITIAL_METHOD = InitialMethod.MULTIPLE_REGRESSION
+INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
 
 # NOTE: Forward Selection Method
 SELECTOR_INITIAL_RATE = 0.8
 SELECTOR_DECAY_RATE = 0.3
+SELECTOR_PARALLEL = True
+SELECTOR_MAX_FEATURES = 9 if 3 <= DEGREE <= 6 else (7 if DEGREE <= 2 else 11)
+
 
 # NOTE: Multiple Regression Method
 CROSS_VALIDATION = 3
@@ -65,7 +68,7 @@ REGRESSION_SCORE = "r2"  # neg_mean_squared_error or r2
 # NOTE: Regression Refinement Method
 REGRESSION_REFINEMENT = True  # if True, then use the regression refinement algorithm
 
-# NOTE: Regression Sample Size Limit
+# NOTE: Regression Sample Size Limit (for Regression-based Methods)
 REGRESSION_SAMPLE_RATE = 10  # if the number of data points is larger than this value, then we use the sample rate
 REGRESSION_SAMPLE_THRESHOLD = 50  # if the number of data points is larger than this value, then we use this number of data points
 REGRESSION_USE_SAMPLE_RATE = True  # if True, then we use the sample rate
@@ -85,7 +88,7 @@ class MILPSolver(Enum):
 
 # NOTE: MILP Method parameters
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
-MILP_SOLVER = MILPSolver.GUROBI  # PULP or GUROBI or GLPK
+MILP_SOLVER: MILPSolver = MILPSolver.GUROBI  # PULP or GUROBI or GLPK
 OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 20
 MILP_TIME_LIMIT = 3  # in seconds
