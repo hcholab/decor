@@ -102,7 +102,7 @@ def test_tanh():
         assert verify(eq, f)
 
 
-def test_cx():
+def test_identity():
     def F(x, c=5):
         return c * x
 
@@ -423,8 +423,9 @@ def test_sigmoid():
         assert verify(eq, f)
 
 
-# test_cx()
+# test_identity()
 # test_exp()
+# test_sigmoid()
 test_exp_minus_one()
 # test_tan()
 # test_cot()
@@ -441,4 +442,3 @@ test_exp_minus_one()
 # test_squared()
 # test_sin()
 # test_sinh()
-# test_sigmoid()
