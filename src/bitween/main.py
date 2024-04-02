@@ -629,7 +629,7 @@ def infer_equations(  # noqa F811
                 coeff = round(coefficient, 2)  # TODO be careful with rounding
                 if coeff != 0:
                     rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
-                    coeff_terms[terms[i]] = coeff
+                    coeff_terms[terms[i]] = coefficient
                     # Include term in selected list
                     selected_terms.append(terms[i])
 
