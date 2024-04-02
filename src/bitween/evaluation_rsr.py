@@ -220,7 +220,7 @@ def test_exp_div_by_x():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
-        max_degree=2,
+        max_degree=5,
         n=200,
     )
 
@@ -575,15 +575,15 @@ def test_sigmoid():
 # test_exp()
 # test_sigmoid()
 # test_exp_minus_one()
-# test_exp_div_by_x() # no solution
+# test_exp_div_by_x()  # no solution
 # test_floudas()
 # test_mean()
 # test_tan()
 # test_cot()
 # test_tanh()
+# test_sqrt_add()  # no solution
 # test_inverse()
 # test_inverse_one()
-# test_sqrt_add()  # no solution
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
 # test_x_over_one_minus_x()
