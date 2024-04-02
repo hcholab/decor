@@ -965,6 +965,7 @@ def generate_input_data(
     max_degree: int = 2,  # maximum degree
     n: int = 30,  # number of samples
     delta: float = 0.1,  # error threshold
+    precondition: callable = None,  # precondition for the samples
 ) -> list[sympy.Expr]:
 
     settings.DEGREE = max_degree
@@ -979,6 +980,11 @@ def generate_input_data(
     i = 0
     while i < n:
         variables = sample(domain, distribution, list(variables))
+        if precondition:
+            for var, value in variables.items():
+                if not precondition(value):
+                    continue
+
         eval_row = ["vtrace1"]
         try:
             for expr in exprs:
@@ -1013,6 +1019,9 @@ def generate_input_data(
             evals.append(eval_row)
         except ZeroDivisionError as e:
             print(f"ZeroDivisionError: {e}, {variables}")
+            continue
+        except ValueError as e:
+            print(f"ValueError: {e}, {variables}")
             continue
         i += 1
 
