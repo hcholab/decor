@@ -144,6 +144,50 @@ def test_inverse():
         assert verify(eq, f)
 
 
+def test_inverse_one():
+    def F(x):
+        return 1 / (x + 1)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return 1 / (x + 1)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+# double sqrt_add(double x) { return 1.0 / (sqrt((x + 1.0)) + sqrt(x)); }
+def test_sqrt_add():
+    def F(x):
+        return (1.0 / (math.sqrt((x + 1.0)) + math.sqrt(x))) ** 2
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=5,
+        n=1000,
+        precondition=lambda x: x > 0,
+    )
+
+    def f(x):
+        return 1.0 / (sympy.sqrt((x + 1.0)) + sympy.sqrt(x))
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
 def test_exp():
     def F(x):
         return math.exp(x)
@@ -160,6 +204,110 @@ def test_exp():
 
     def f(x):
         return sympy.exp(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+# double exp1x(double x) { return (exp(x) - 1.0) / x; }
+def test_exp_div_by_x():
+    def F(x):
+        return math.exp(x) / x
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=2,
+        n=200,
+    )
+
+    def f(x):
+        return sympy.exp(x) / x
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+# double exp1x_log(double x) { return (exp(x) - 1.0) / log(exp(x)); }
+def test_exp_div_by_log():
+    def F(x):
+        return (math.exp(x) - 1.0) / math.log(math.exp(x))
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return (sympy.exp(x) - 1.0) / sympy.log(sympy.exp(x))
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+# double floudas(double x1, double x2) { return x1 + x2; }
+def test_floudas():
+    def F(x1, x2):
+        return x1 + x2
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        [
+            "F(x1+x2,y1+y2)",
+            "F(x2+x3,y2+y3)",
+            "F(x1+x3,y1+y3)",
+            "F(x1,y1)",
+            "F(x2,y2)",
+            "1",
+        ],
+        [
+            "f(x1+x2,y1+y2)",
+            "f(x2+x3,y2+y3)",
+            "f(x1+x3,y1+y3)",
+            "f(x1,y1)",
+            "f(x2,y2)",
+            "1",
+        ],
+        F,
+        max_degree=1,
+        n=150,
+        precondition=lambda x1, x2: 0 <= x1 <= 2 and 0 <= x2 <= 3 and x1 + x2 <= 2,
+    )
+
+    def f(x1, x2):
+        return x1 + x2
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_mean():
+    def F(x, y, z):
+        return 1 / 3 * (x + y + z)
+
+    equations = generate_input_data(
+        Domain.Integer,
+        Distribution.Small,
+        # fmt: off
+        ["F(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "F(x1+x2,y1+y2,z1+z2)", "F(x2+x3,y2+y3,z2+z3)", "F(x1+x3,y1+y3,z1+z3)", "F(x1,y1,z1)", "F(x2,y2,z2)", "F(x3,y3,z3)", "1"],
+        ["f(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "f(x1+x2,y1+y2,z1+z2)", "f(x2+x3,y2+y3,z2+z3)", "f(x1+x3,y1+y3,z1+z3)", "f(x1,y1,z1)", "f(x2,y2,z2)", "f(x3,y3,z3)", "1"],
+        # fmt: on
+        F,
+        max_degree=1,
+        n=150,
+    )
+
+    def f(x, y, z):
+        return 1 / 3 * (x + y + z)
 
     for eq in equations:
         assert verify(eq, f)
@@ -426,11 +574,16 @@ def test_sigmoid():
 # test_identity()
 # test_exp()
 # test_sigmoid()
-test_exp_minus_one()
+# test_exp_minus_one()
+# test_exp_div_by_x() # no solution
+# test_floudas()
+# test_mean()
 # test_tan()
 # test_cot()
 # test_tanh()
 # test_inverse()
+# test_inverse_one()
+# test_sqrt_add()  # no solution
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
 # test_x_over_one_minus_x()

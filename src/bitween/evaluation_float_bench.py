@@ -1,4 +1,4 @@
-import math  # noqa
+import math
 import sympy
 
 from bitween.main import generate_input_data, verify
@@ -39,4 +39,53 @@ def test_sin():
         assert verify(eq, f)
 
 
+def test_sqrt():
+
+    def F(x):
+        return math.sqrt(x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        # [MILP(k=4, timeout=3, max_bound=10, obj=1e-12)],  # methods
+        ["F(x)", "F(x+1)", "x", "1"],
+        ["f(x)", "f(x+1)", "x", "1"],
+        F,
+        max_degree=2,
+        n=30,
+    )
+    # NOTE: x - f(x + 1)**2 + 1 = 0
+    # NOTE: f(x)**2 - f(x + 1)**2 + 1 = 0
+    # NOTE: x - f(x)**2 = 0
+
+    def f(x):
+        return sympy.sqrt(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_sin_periodic():
+    def f(x):
+        return math.sin(x)
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        ["f(x+pi)", "f(x-pi)", "f(x)", "f(-x)", "1"],
+        ["f(x+pi)", "f(x-pi)", "f(x)", "f(-x)", "1"],
+        f,
+        max_degree=1,
+        n=30,
+        epsilon=1e-13,
+    )
+
+    def f(x):
+        return sympy.sin(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
 test_sin()
+test_sqrt()
