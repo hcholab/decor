@@ -145,7 +145,7 @@ def test_inverse():
         assert verify(eq, f)
 
 
-def test_inverse_one():
+def test_inverse_add():
     def F(x):
         return 1 / (x + 1)
 
@@ -379,24 +379,24 @@ def test_cot():
 
 
 def test_inverse_cot_plus_one():
-    def cot(x):
-        return 1 / math.tan(x)
 
     def F(x):
-        return 1 / (cot(x) + 1)
+        return 1 / (1 / math.tan(x) + 1)
 
     equations = generate_input_data(
         Domain.Real,
         Distribution.Small,
-        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
-        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
         n=150,
+        # milp=MILPSolver.GUROBI,
+        # var_bound=4,
     )
 
     def f(x):
-        return 1 / (sympy.cot(x) + 1)
+        return 1 / (1 / sympy.tan(x) + 1)
 
     for eq in equations:
         assert verify(eq, f)
@@ -410,8 +410,8 @@ def test_inverse_tan_plus_one():
     equations = generate_input_data(
         Domain.Real,
         Distribution.Small,
-        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
-        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
         n=150,
@@ -434,8 +434,9 @@ def test_x_over_one_minus_x():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
-        max_degree=3,
-        n=150,
+        max_degree=2,
+        n=1000,
+        delta=0.001,
     )
 
     def f(x):
@@ -455,7 +456,7 @@ def test_minus_x_over_one_minus_x():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
-        max_degree=3,
+        max_degree=2,
         n=150,
     )
 
@@ -606,8 +607,8 @@ def test_sigmoid():
 # test_tanh()
 # test_diff_x2_y2()
 # test_sqrt_add()  # no solution
-test_inverse()
-# test_inverse_one()
+# test_inverse()
+# test_inverse_add()
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
 # test_x_over_one_minus_x()
@@ -618,4 +619,4 @@ test_inverse()
 # test_cosh()
 # test_squared()
 # test_sin()
-# test_sinh()
+test_sinh()
