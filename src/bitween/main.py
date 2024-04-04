@@ -3,6 +3,7 @@ import math
 from tempfile import mkdtemp  # noqa F401
 from time import time
 from dataclasses import dataclass
+import inspect
 import itertools
 import warnings
 from joblib import Parallel, delayed  # noqa F401
@@ -966,10 +967,16 @@ def generate_input_data(
     n: int = 30,  # number of samples
     delta: float = 0.1,  # error threshold
     precondition: callable = None,  # precondition for the samples
+    milp: settings.MILPSolver = None,
 ) -> list[sympy.Expr]:
 
     settings.DEGREE = max_degree
     settings.DELTA = delta
+    if milp:
+        settings.MILP = True
+        settings.MILP_SOLVER = milp
+    else:
+        settings.MILP = False
 
     # get a dictionary of functions
     functions = {func.__name__: func for func in functions}
@@ -981,9 +988,14 @@ def generate_input_data(
     while i < n:
         variables = sample(domain, distribution, list(variables))
         if precondition:
-            for var, value in variables.items():
-                if not precondition(value):
-                    continue
+            # This work only for the first function
+            func = list(functions.values())[0]
+            parameters = inspect.signature(func).parameters
+            vals = []
+            for param in list(parameters.keys()):
+                vals.append(variables[param])
+            if not precondition(*vals):
+                continue
 
         eval_row = ["vtrace1"]
         try:
