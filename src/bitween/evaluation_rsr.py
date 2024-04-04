@@ -3,6 +3,7 @@ import sympy
 
 from bitween.main import generate_input_data, verify
 from bitween.sampler import Domain, Distribution
+from bitween.settings import MILPSolver
 
 
 def test_sin():
@@ -168,7 +169,7 @@ def test_inverse_one():
 # double sqrt_add(double x) { return 1.0 / (sqrt((x + 1.0)) + sqrt(x)); }
 def test_sqrt_add():
     def F(x):
-        return (1.0 / (math.sqrt((x + 1.0)) + math.sqrt(x))) ** 2
+        return 1.0 / (math.sqrt((x + 1.0)) + math.sqrt(x))
 
     equations = generate_input_data(
         Domain.Real,
@@ -179,6 +180,7 @@ def test_sqrt_add():
         max_degree=5,
         n=1000,
         precondition=lambda x: x > 0,
+        milp=MILPSolver.GLPK,
     )
 
     def f(x):
@@ -216,7 +218,7 @@ def test_exp_div_by_x():
 
     equations = generate_input_data(
         Domain.Real,
-        Distribution.Small,
+        Distribution.Tiny,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -267,7 +269,6 @@ def test_floudas():
             "F(x1+x3,y1+y3)",
             "F(x1,y1)",
             "F(x2,y2)",
-            "1",
         ],
         [
             "f(x1+x2,y1+y2)",
@@ -275,7 +276,6 @@ def test_floudas():
             "f(x1+x3,y1+y3)",
             "f(x1,y1)",
             "f(x2,y2)",
-            "1",
         ],
         F,
         max_degree=1,
@@ -298,8 +298,8 @@ def test_mean():
         Domain.Integer,
         Distribution.Small,
         # fmt: off
-        ["F(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "F(x1+x2,y1+y2,z1+z2)", "F(x2+x3,y2+y3,z2+z3)", "F(x1+x3,y1+y3,z1+z3)", "F(x1,y1,z1)", "F(x2,y2,z2)", "F(x3,y3,z3)", "1"],
-        ["f(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "f(x1+x2,y1+y2,z1+z2)", "f(x2+x3,y2+y3,z2+z3)", "f(x1+x3,y1+y3,z1+z3)", "f(x1,y1,z1)", "f(x2,y2,z2)", "f(x3,y3,z3)", "1"],
+        ["F(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "F(x1+x2,y1+y2,z1+z2)", "F(x2+x3,y2+y3,z2+z3)", "F(x1+x3,y1+y3,z1+z3)", "F(x1,y1,z1)", "F(x2,y2,z2)", "F(x3,y3,z3)"],
+        ["f(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "f(x1+x2,y1+y2,z1+z2)", "f(x2+x3,y2+y3,z2+z3)", "f(x1+x3,y1+y3,z1+z3)", "f(x1,y1,z1)", "f(x2,y2,z2)", "f(x3,y3,z3)"],
         # fmt: on
         F,
         max_degree=1,
@@ -308,6 +308,29 @@ def test_mean():
 
     def f(x, y, z):
         return 1 / 3 * (x + y + z)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_diff_x2_y2():
+    def F(x1, x2):
+        return x1**2 - x2**2
+
+    equations = generate_input_data(
+        Domain.Real,
+        Distribution.Small,
+        # fmt: off
+        ["F(x-a,y-b)", "F(x+a,y-b)", "F(x,y)", "F(a,b)", "F(x-a, y)", "F(x+a, y)", "F(x, y-a)", "F(x, y+a)"],
+        ["f(x-a,y-b)", "f(x+a,y-b)", "f(x,y)", "f(a,b)", "f(x-a,y)", "f(x+a,y)", "f(x,y-a)", "f(x,y+a)"],
+        # fmt: on
+        F,
+        max_degree=3,
+        n=1000,
+    )
+
+    def f(x1, x2):
+        return x1**2 - x2**2
 
     for eq in equations:
         assert verify(eq, f)
@@ -560,7 +583,7 @@ def test_sigmoid():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
-        max_degree=3,
+        max_degree=2,
         n=150,
     )
 
@@ -581,8 +604,9 @@ def test_sigmoid():
 # test_tan()
 # test_cot()
 # test_tanh()
+# test_diff_x2_y2()
 # test_sqrt_add()  # no solution
-# test_inverse()
+test_inverse()
 # test_inverse_one()
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
