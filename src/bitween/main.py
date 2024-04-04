@@ -968,6 +968,7 @@ def generate_input_data(
     delta: float = 0.1,  # error threshold
     precondition: callable = None,  # precondition for the samples
     milp: settings.MILPSolver = None,
+    var_bound: int = None,
 ) -> list[sympy.Expr]:
 
     settings.DEGREE = max_degree
@@ -977,6 +978,9 @@ def generate_input_data(
         settings.MILP_SOLVER = milp
     else:
         settings.MILP = False
+
+    if var_bound:
+        settings.MILP_BOUND = var_bound
 
     # get a dictionary of functions
     functions = {func.__name__: func for func in functions}
