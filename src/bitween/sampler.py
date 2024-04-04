@@ -43,6 +43,7 @@ class Distribution(Enum):
     Standard: [-1000, 1000] for integers and [-500, 500] for reals
     """
 
+    Tiny = 0
     Small = 1
     Standard = 2
 
@@ -50,7 +51,9 @@ class Distribution(Enum):
         """
         :return: string representation of the distribution
         """
-        if self == Distribution.Small:
+        if self == Distribution.Tiny:
+            return "Tiny"
+        elif self == Distribution.Small:
             return "Small"
         elif self == Distribution.Standard:
             return "Standard"
@@ -61,7 +64,9 @@ class Distribution(Enum):
         """
         :return: latex representation of the distribution
         """
-        if self == Distribution.Small:
+        if self == Distribution.Tiny:
+            return "\\mathcal{U}(-2, 2)"
+        elif self == Distribution.Small:
             return "\\mathcal{U}(-10, 10)"
         elif self == Distribution.Standard:
             return "\\mathcal{U}(-1000, 1000)"
@@ -79,7 +84,12 @@ def sample(domain: Domain, distribution: Distribution, variables: list[str | Sym
     :return: dictionary of sampled values
     """
     if domain == Domain.Real:
-        if distribution == Distribution.Small:
+        if distribution == Distribution.Tiny:
+            # for linear functions such as f(x) = x
+            values = {}
+            for var in variables:
+                values[str(var)] = random.random() * 4 - 2
+        elif distribution == Distribution.Small:
             # for exponential functions such as f(x) = e^x
             values = {}
             for var in variables:
@@ -90,7 +100,11 @@ def sample(domain: Domain, distribution: Distribution, variables: list[str | Sym
             for var in variables:
                 values[str(var)] = random.random() * 1000 - 500
     elif domain == Domain.Integer:
-        if distribution == Distribution.Small:
+        if distribution == Distribution.Tiny:
+            values = {}
+            for var in variables:
+                values[str(var)] = random.randint(-2, 2)
+        elif distribution == Distribution.Small:
             values = {}
             for var in variables:
                 values[str(var)] = random.randint(-10, 10)
