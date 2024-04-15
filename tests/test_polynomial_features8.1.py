@@ -31,14 +31,14 @@ print(f"x_train shape: {x_train.shape}")
 # Define the range of features to select
 current = np.inf
 best_model = None
-for n_features in range(1, 10):  # Will go from 7 to 4
+for n_features in range(1, 12):  # Will go from 7 to 4
     print(f"\nEvaluating model with {n_features} features selected:")
 
     # Define the feature selector with the current number of features
     selector = SequentialFeatureSelector(
         LinearRegression(fit_intercept=False),
         n_features_to_select=n_features,
-        cv=5,
+        cv=3,
         # n_jobs=-1,
     )
 
@@ -93,7 +93,7 @@ selected_features = best_model.named_steps["poly"].get_feature_names_out(
 )[best_model.named_steps["selector"].get_support()]
 coefficients = best_model.named_steps["linear"].coef_
 
-print("Selected features:", selected_features)
+print("Selected features:", selected_features, "(best model)")
 
 # Construct the polynomial equation string
 equation = "y = "
