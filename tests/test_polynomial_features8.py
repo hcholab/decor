@@ -24,10 +24,12 @@ y = y.flatten()
 
 # Split the data into train and test sets
 x_train, x_test, y_train, y_test = train_test_split(
-    x, y, test_size=0.2, random_state=42
+    x, y, test_size=0.25, random_state=42
 )
-
+print(f"x_train shape: {x_train.shape}")
 # Define the range of features to select
+current = np.inf
+best_model = None
 for n_features in range(10, 1, -1):  # Will go from 7 to 4
     print(f"\nEvaluating model with {n_features} features selected:")
 
@@ -75,5 +77,30 @@ for n_features in range(10, 1, -1):  # Will go from 7 to 4
     mse = mean_squared_error(y_test, y_pred)
     print(f"Mean Squared Error on Test Data: {pp(mse)}")
 
+    if mse < current:
+        current = mse
+        best_model = model
+
     if mse < 1e-10:
         break
+
+# Print the final model
+print()
+# Get the final selected features and their coefficients
+selected_features = best_model.named_steps["poly"].get_feature_names_out(
+    input_features=["x", "z"]
+)[best_model.named_steps["selector"].get_support()]
+coefficients = best_model.named_steps["linear"].coef_
+
+print("Selected features:", selected_features)
+
+# Construct the polynomial equation string
+equation = "y = "
+for feature, coeff in zip(selected_features, coefficients):
+    coeff = round(coeff, 1)
+    if feature == "1" and coeff != 0:
+        equation += f"{coeff} + "
+    elif coeff != 0:
+        equation += f"{coeff}*{feature} + "
+equation = equation.rstrip(" + ")  # remove the last plus sign
+print(f"Equation: {equation}")
