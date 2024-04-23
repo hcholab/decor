@@ -215,7 +215,7 @@ def random_value(ctypes_type):
     return 0
 
 
-def fuzz_function(func, param_types, iterations=iterations):
+def fuzz_function(func, param_types, iterations):
     """
     Fuzzes the given C function by calling it with random inputs.
 
@@ -224,18 +224,21 @@ def fuzz_function(func, param_types, iterations=iterations):
         param_types: List of ctypes types for the function's parameters.
         iterations: Number of times the function should be called with random inputs.
     """
-    for _ in range(iterations):
-        random_args = [random_value(ptype) for ptype in param_types]
-        try:
-            result = func(*random_args)
-            print(
-                f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
-            )
-        except Exception as e:
-            print(
-                f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}"
-            )
+    try:
+        for i in range(iterations):
+            random_args = [random_value(ptype) for ptype in param_types]
+            try:
+                result = func(*random_args)
+                print(
+                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
+                )
+            except Exception as e:
+                print(
+                    f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}"
+                )
+    except KeyboardInterrupt:
+        print("Fuzzing interrupted by user.")
 
 
 # Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
-fuzz_function(func, param_types)
+fuzz_function(func, param_types, iterations)
