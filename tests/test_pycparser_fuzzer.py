@@ -8,8 +8,10 @@ import random
 # Example usage
 
 # This should be the path to your C file
-file_path = "./benchmarks/bitween/dig/bresenham.c"
+# file_path = "./benchmarks/bitween/dig/bresenham.c"
+file_path = "./benchmarks/bitween/dig/cohencu.c"
 func_name = "bresenham"  # This should be the name of the function you want to fuzz
+func_name = "cohencu"  # This should be the name of the function you want to fuzz
 iterations = 10  # Number of times to call the function with random inputs
 
 
@@ -174,7 +176,9 @@ except subprocess.CalledProcessError as e:
 lib = CDLL(f"./lib{func_name}.so")
 
 # Define the function prototype in ctypes
-func = lib.bresenham
+# Get the function by name
+func = getattr(lib, func_name)
+
 if transformer.return_type == "int":
     func.restype = ctypes.c_int
 elif transformer.return_type == "float":
