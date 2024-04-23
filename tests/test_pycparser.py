@@ -5,6 +5,11 @@ import ctypes
 from ctypes import CDLL
 import random
 
+# Example usage
+file_path = "bresenham.c"  # This should be the path to your C file
+func_name = "bresenham"  # This should be the name of the function you want to fuzz
+iterations = 1  # Number of times to call the function with random inputs
+
 
 def read_c_file(file_path):
     try:
@@ -19,18 +24,39 @@ def read_c_file(file_path):
         return None
 
 
-# Example usage
-file_path = "bresenham.c"  # This should be the path to your C file
-func_name = "bresenham"  # This should be the name of the function you want to fuzz
+def preprocess_c_code(c_code):
+    # Extract preprocessor directives and store them
+    preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
+
+    # Remove directives and vtrace function definitions from the code
+    preprocessed_code = re.sub(
+        r"^\s*#.*$|^void vtrace[0-9]+\(.*\)\s*\{\s*\}", "", c_code, flags=re.MULTILINE
+    )
+
+    # Pattern to match single-line and multi-line comments
+    comments_pattern = r"//.*?$|/\*.*?\*/"
+    # Pattern to remove specific function definitions
+    functions_pattern = r"^void vtrace[0-9]+\s*\(.*\)\s*\{.*?\}"
+
+    # Remove comments
+    preprocessed_code = re.sub(
+        comments_pattern, "", preprocessed_code, flags=re.DOTALL | re.MULTILINE
+    )
+    # Remove vtrace function definitions
+    preprocessed_code = re.sub(
+        functions_pattern, "", preprocessed_code, flags=re.MULTILINE | re.DOTALL
+    )
+
+    return preprocessed_code.strip(), preprocessor_directives
+
 
 c_code = read_c_file(file_path)
 
-# Extract and preserve preprocessor directives
-preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
-# Remove directives and vtrace function definitions from the code
-preprocessed_code = re.sub(
-    r"^\s*#.*$|^void vtrace[0-9]+\(.*\)\s*\{\s*\}", "", c_code, flags=re.MULTILINE
-)
+if c_code is None:
+    print("Error reading the C file.")
+    exit()
+
+preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
 
 # Parse the code using pycparser
 parser = c_parser.CParser()
@@ -40,13 +66,13 @@ ast = parser.parse(preprocessed_code.strip())
 class TransformFunc(c_ast.NodeVisitor):
     def visit_FuncDef(self, node):
         self.variables = {}
-        self.params = {}
+        self.params = []
         self.return_type = None  # Added to capture the function's return type
 
         if node.decl.name == func_name:
             # Extract the function's return type
             self.return_type = (
-                node.decl.type.type.names[0]
+                node.decl.type.type.type.names[0]
                 if isinstance(node.decl.type, c_ast.FuncDecl)
                 else "int"
             )
@@ -55,13 +81,16 @@ class TransformFunc(c_ast.NodeVisitor):
             params = node.decl.type.args.params
             for param in params:
                 self.variables[param.name] = param.type.type.names[0]
-                self.params[param.name] = param.type.type.names[0]
+                self.params.append((param.name, param.type.type.names[0]))
 
             # Collect local variable types from declarations
             for decl in node.body.block_items:
                 if isinstance(decl, c_ast.Decl):
                     self.variables[decl.name] = decl.type.type.names[0]
 
+            print(f"Function Name: {func_name}")
+            print(f"Parameters: {self.params}")
+            print(f"Return Type: {self.return_type}")
             print(f"Types: {self.variables}")
 
             # Traverse and modify the function body
@@ -144,28 +173,67 @@ lib = CDLL(f"./lib{func_name}.so")
 
 # Define the function prototype in ctypes
 func = lib.bresenham
-func.restype = ctypes.c_int
+if transformer.return_type == "int":
+    func.restype = ctypes.c_int
+elif transformer.return_type == "float":
+    func.restype = ctypes.c_float
+elif transformer.return_type == "double":
+    func.restype = ctypes.c_double
+
+# convert transformers params to ctypes
+param_types = []
+for param in transformer.params:
+    if param[1] == "int":
+        param_types.append(ctypes.c_int)
+    elif param[1] == "float":
+        param_types.append(ctypes.c_float)
+    elif param[1] == "double":
+        param_types.append(ctypes.c_double)
 
 # Define the types of the parameters
-param_types = {"X": ctypes.c_int, "Y": ctypes.c_double}
-func.argtypes = [param_types["X"], param_types["Y"]]
+func.argtypes = param_types
 
 
-# Function to generate random values based on type
 def random_value(ctypes_type):
+    """
+    Generates a random value based on the ctypes type.
+
+    Args:
+        ctypes_type: The ctypes type for which to generate a value.
+
+    Returns:
+        A random value appropriate for the given type.
+    """
     if ctypes_type == ctypes.c_int:
-        return random.randint(-1000, 1000)
+        return random.randint(0, 300)
     elif ctypes_type == ctypes.c_float:
-        return ctypes.c_float(random.uniform(-1000.0, 1000.0))
+        return ctypes.c_float(random.uniform(-100.0, 100.0))
     elif ctypes_type == ctypes.c_double:
-        return ctypes.c_double(random.uniform(-1000.0, 1000.0))
+        return ctypes.c_double(random.uniform(-100.0, 100.0))
     return 0
 
 
-# Fuzzing the function
-num_tests = 10
-for _ in range(num_tests):
-    random_X = random_value(ctypes.c_int)
-    random_Y = random_value(ctypes.c_double)
-    result = func(random_X, random_Y)
-    print(f"Called {func_name}(X={random_X}, Y={random_Y}) = {result}")
+def fuzz_function(func, param_types, iterations=iterations):
+    """
+    Fuzzes the given C function by calling it with random inputs.
+
+    Args:
+        func: The C function to be fuzzed.
+        param_types: List of ctypes types for the function's parameters.
+        iterations: Number of times the function should be called with random inputs.
+    """
+    for _ in range(iterations):
+        random_args = [random_value(ptype) for ptype in param_types]
+        try:
+            result = func(*random_args)
+            print(
+                f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
+            )
+        except Exception as e:
+            print(
+                f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}"
+            )
+
+
+# Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
+fuzz_function(func, param_types)
