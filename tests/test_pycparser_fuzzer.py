@@ -1,17 +1,21 @@
 import re
+import sys
 from pycparser import c_parser, c_generator, c_ast
 import subprocess
 import ctypes
 from ctypes import CDLL
 import random
+import os
 
 # Example usage
 
 # This should be the path to your C file
-# file_path = "./benchmarks/bitween/dig/bresenham.c"
-file_path = "./benchmarks/bitween/dig/cohencu.c"
+file_path = "./benchmarks/bitween/dig/bresenham.c"
 func_name = "bresenham"  # This should be the name of the function you want to fuzz
-func_name = "cohencu"  # This should be the name of the function you want to fuzz
+
+# file_path = "./benchmarks/bitween/dig/cohencu.c"
+# func_name = "cohencu"  # This should be the name of the function you want to fuzz
+
 iterations = 10  # Number of times to call the function with random inputs
 
 
@@ -219,30 +223,49 @@ def random_value(ctypes_type):
     return 0
 
 
-def fuzz_function(func, param_types, iterations):
+def fuzz_function(func, param_types, func_name, iterations=10):
     """
-    Fuzzes the given C function by calling it with random inputs.
+    Fuzzes the given C function by calling it with random inputs and writes the output
+    to a trace file named after the function.
 
     Args:
         func: The C function to be fuzzed.
         param_types: List of ctypes types for the function's parameters.
+        func_name: Name of the function, used to name the trace file.
         iterations: Number of times the function should be called with random inputs.
     """
+    original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
+    trace_file_name = f"{func_name}.trace"
+
     try:
-        for i in range(iterations):
-            random_args = [random_value(ptype) for ptype in param_types]
-            try:
-                result = func(*random_args)
-                print(
-                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
+        with open(trace_file_name, "w+") as trace_file:
+            for i in range(iterations):
+                random_args = [random_value(ptype) for ptype in param_types]
+
+                # Redirect stdout to our trace file
+                sys.stdout.flush()  # Flush any library-level buffers
+                os.dup2(trace_file.fileno(), original_stdout_fd)
+
+                try:
+                    result = func(*random_args)
+                except Exception as e:
+                    trace_file.write(
+                        f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}\n"
+                    )
+
+                # Restore stdout to allow normal Python print() functionality
+                os.dup2(original_stdout_fd, trace_file.fileno())
+
+                trace_file.write(
+                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}\n"
                 )
-            except Exception as e:
-                print(
-                    f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}"
-                )
+            print(f"Trace file '{trace_file_name}' created.")
     except KeyboardInterrupt:
         print("Fuzzing interrupted by user.")
+    finally:
+        # Ensure stdout is restored even if interrupted
+        os.dup2(original_stdout_fd, sys.stdout.fileno())
 
 
 # Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
-fuzz_function(func, param_types, iterations)
+fuzz_function(func, param_types, func_name, iterations)
