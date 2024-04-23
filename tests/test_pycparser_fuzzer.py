@@ -70,6 +70,8 @@ preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
 parser = c_parser.CParser()
 ast = parser.parse(preprocessed_code.strip())
 
+trace_headers = {}
+
 
 class TransformFunc(c_ast.NodeVisitor):
     def visit_FuncDef(self, node):
@@ -112,10 +114,14 @@ class TransformFunc(c_ast.NodeVisitor):
                     "vtrace"
                 ):
                     # Create the correct format string based on variable types
-                    args_str = ", ".join(
+                    args_str = f"{item.name.name}; "
+                    args_str += "; ".join(
                         self.format_specifier(arg.name) for arg in item.args.exprs
                     )
-                    args = ", ".join([f"{arg.name}" for arg in item.args.exprs])
+                    trace_headers[f"{item.name.name}"] = (
+                        f"{item.name.name}; "
+                        + "; ".join([f"I {arg.name}" for arg in item.args.exprs])
+                    )
                     new_func_call = c_ast.FuncCall(
                         name=c_ast.ID(name="printf"),
                         args=c_ast.ExprList(
@@ -226,7 +232,8 @@ def random_value(ctypes_type):
 def fuzz_function(func, param_types, func_name, iterations=10):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
-    to a trace file named after the function.
+    to a trace file named after the function, while keeping other outputs such as status
+    messages and errors in the console.
 
     Args:
         func: The C function to be fuzzed.
@@ -235,37 +242,51 @@ def fuzz_function(func, param_types, func_name, iterations=10):
         iterations: Number of times the function should be called with random inputs.
     """
     original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
-    trace_file_name = f"{func_name}.trace"
+    trace_file_name = f"{func_name}.trace.csv"
+
+    # Create a duplicate of the original stdout for restoring later
+    saved_stdout_fd = os.dup(original_stdout_fd)
 
     try:
         with open(trace_file_name, "w+") as trace_file:
             for i in range(iterations):
                 random_args = [random_value(ptype) for ptype in param_types]
 
+                # Flush any library-level buffers before redirection
+                sys.stdout.flush()
+
                 # Redirect stdout to our trace file
-                sys.stdout.flush()  # Flush any library-level buffers
                 os.dup2(trace_file.fileno(), original_stdout_fd)
 
                 try:
+                    # Perform the function call with stdout redirected
                     result = func(*random_args)
                 except Exception as e:
-                    trace_file.write(
-                        f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}\n"
+                    # Write errors directly to the trace file if function fails
+                    print(
+                        f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}",
+                        file=trace_file,
                     )
+                finally:
+                    # Restore stdout immediately after the function call
+                    os.dup2(saved_stdout_fd, original_stdout_fd)
 
-                # Restore stdout to allow normal Python print() functionality
-                os.dup2(original_stdout_fd, trace_file.fileno())
-
-                trace_file.write(
-                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}\n"
+                # Output the call status to console
+                print(
+                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
                 )
+
             print(f"Trace file '{trace_file_name}' created.")
     except KeyboardInterrupt:
         print("Fuzzing interrupted by user.")
     finally:
         # Ensure stdout is restored even if interrupted
-        os.dup2(original_stdout_fd, sys.stdout.fileno())
+        os.dup2(saved_stdout_fd, original_stdout_fd)
+        # Close the duplicated file descriptor
+        os.close(saved_stdout_fd)
 
 
 # Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
 fuzz_function(func, param_types, func_name, iterations)
+
+# sort_file_by_trace_marker(trace_file_name)
