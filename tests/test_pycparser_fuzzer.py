@@ -6,9 +6,11 @@ from ctypes import CDLL
 import random
 
 # Example usage
-file_path = "bresenham.c"  # This should be the path to your C file
+
+# This should be the path to your C file
+file_path = "./benchmarks/bitween/dig/bresenham.c"
 func_name = "bresenham"  # This should be the name of the function you want to fuzz
-iterations = 1  # Number of times to call the function with random inputs
+iterations = 10  # Number of times to call the function with random inputs
 
 
 def read_c_file(file_path):
