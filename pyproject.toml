@@ -21,6 +21,7 @@ torch = "^2.1.0"
 tqdm = "^4.66.1"
 z3-solver = "^4.13.0.0"
 pulp = "^2.8.0"
+pycparser = "^2.22"
 
 [tool.poetry.dev-dependencies]
 
