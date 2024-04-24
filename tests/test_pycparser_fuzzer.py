@@ -252,6 +252,7 @@ def random_value(ctypes_type):
     return 0
 
 
+# Define the trace file name
 trace_file_name = f"{func_name}.trace.csv"
 
 
@@ -311,7 +312,7 @@ def fuzz_function(func, param_types, iterations=10):
         os.close(saved_stdout_fd)
 
 
-# Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
+# Fuzz the function with random inputs
 fuzz_function(func, param_types, iterations)
 
 
@@ -350,4 +351,5 @@ def sort_file_by_trace_marker(input_file_path, output_file_path=None):
             file.writelines(trace_dict[key])
 
 
+# Sort the trace file by trace markers
 sort_file_by_trace_marker(trace_file_name)
