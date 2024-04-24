@@ -19,8 +19,6 @@ func_name = "cohencu"  # This should be the name of the function you want to fuz
 
 iterations = 30  # Number of times to call the function with random inputs
 
-start_time = time.time()
-
 
 def read_c_file(file_path):
     try:
@@ -33,9 +31,6 @@ def read_c_file(file_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
-
-
-# NOTE: 1. Preprocessing part
 
 
 def preprocess_c_code(c_code):
@@ -71,27 +66,11 @@ def preprocess_c_code(c_code):
     return preprocessed_code.strip(), preprocessor_directives
 
 
-c_code = read_c_file(file_path)
-
-if c_code is None:
-    print("Error reading the C file.")
-    exit()
-
-preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
-
-# NOTE: 2. Parsing and instrumentation part
-
-# Parse the code using pycparser
-parser = c_parser.CParser()
-ast = parser.parse(preprocessed_code.strip())
-
-trace_headers = {}
-
-
 class TransformFunc(c_ast.NodeVisitor):
     def visit_FuncDef(self, node):
         self.variables = {}
         self.params = []
+        self.trace_headers = {}
         self.return_type = None  # Added to capture the function's return type
 
         if node.decl.name == func_name:
@@ -133,7 +112,7 @@ class TransformFunc(c_ast.NodeVisitor):
                     args_str += "; ".join(
                         self.format_specifier(arg.name) for arg in item.args.exprs
                     )
-                    trace_headers[f"{item.name.name}"] = (
+                    self.trace_headers[f"{item.name.name}"] = (
                         f"{item.name.name}; "
                         + "; ".join([f"I {arg.name}" for arg in item.args.exprs])
                     )
@@ -180,71 +159,6 @@ class TransformFunc(c_ast.NodeVisitor):
         return "%d"  # Default case, consider int if type not found
 
 
-# Visit and process the function definition
-transformer = TransformFunc()
-transformer.visit(ast)
-
-# Generate the modified C code
-generator = c_generator.CGenerator()
-final_code = generator.visit(ast)
-
-# Add back the preprocessor directives
-final_c_code_with_directives = "\n".join(preprocessor_directives) + "\n" + final_code
-print(final_c_code_with_directives)
-
-func_name_annotated = f"{func_name}.annotated.c"
-
-with open(func_name_annotated, "w") as file:
-    file.write(final_c_code_with_directives)
-
-# NOTE: 3. Compilation part
-
-# Compile the C file into a shared library (.so file)
-shared_lib_name = f"lib{func_name}.so"
-compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
-
-try:
-    # Execute the compile command
-    compilation_result = subprocess.run(
-        compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
-    )
-    print("Compilation successful. Shared library created:", shared_lib_name)
-except subprocess.CalledProcessError as e:
-    # Handle errors in compilation
-    print("Compilation failed:")
-    print(e.stderr)
-
-
-# NOTE: 4. Fuzzing part
-
-# Load the shared library
-lib = CDLL(f"./lib{func_name}.so")
-
-# Define the function prototype in ctypes
-# Get the function by name
-func = getattr(lib, func_name)
-
-if transformer.return_type == "int":
-    func.restype = ctypes.c_int
-elif transformer.return_type == "float":
-    func.restype = ctypes.c_float
-elif transformer.return_type == "double":
-    func.restype = ctypes.c_double
-
-# convert transformers params to ctypes
-param_types = []
-for param in transformer.params:
-    if param[1] == "int":
-        param_types.append(ctypes.c_int)
-    elif param[1] == "float":
-        param_types.append(ctypes.c_float)
-    elif param[1] == "double":
-        param_types.append(ctypes.c_double)
-
-# Define the types of the parameters
-func.argtypes = param_types
-
-
 def random_value(ctypes_type):
     """
     Generates a random value based on the ctypes type.
@@ -262,10 +176,6 @@ def random_value(ctypes_type):
     elif ctypes_type == ctypes.c_double:
         return ctypes.c_double(random.uniform(-100.0, 100.0))
     return 0
-
-
-# Define the trace file name
-trace_file_name = f"{func_name}.trace.csv"
 
 
 def fuzz_function(func, param_types, iterations=10):
@@ -324,13 +234,6 @@ def fuzz_function(func, param_types, iterations=10):
         os.close(saved_stdout_fd)
 
 
-# Fuzz the function with random inputs
-fuzz_function(func, param_types, iterations)
-
-
-# NOTE: 5. Post-processing part
-
-
 # Sort the trace file by trace markers
 def sort_file_by_trace_marker(input_file_path, output_file_path=None):
     """
@@ -363,8 +266,102 @@ def sort_file_by_trace_marker(input_file_path, output_file_path=None):
     # Write sorted lines back to file
     with open(output_file_path, "w") as file:
         for key in sorted_keys:
-            file.write(trace_headers[key] + "\n")
+            file.write(transformer.trace_headers[key] + "\n")
             file.writelines(trace_dict[key])
+
+
+# NOTE: 0. Load the C code to be fuzzed
+start_time = time.time()
+
+c_code = read_c_file(file_path)
+
+if c_code is None:
+    print("Error reading the C file.")
+    exit()
+
+# NOTE: 1. Preprocessing part
+
+# Preprocess the C code and extract preprocessor directives
+preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
+
+# NOTE: 2. Parsing and instrumentation part
+
+# Parse the code using pycparser
+parser = c_parser.CParser()
+ast = parser.parse(preprocessed_code.strip())
+# Visit and process the function definition
+transformer = TransformFunc()
+transformer.visit(ast)
+
+# Generate the modified C code
+generator = c_generator.CGenerator()
+final_code = generator.visit(ast)
+
+# Add back the preprocessor directives
+final_c_code_with_directives = "\n".join(preprocessor_directives) + "\n" + final_code
+print(final_c_code_with_directives)
+
+func_name_annotated = f"{func_name}.annotated.c"
+
+with open(func_name_annotated, "w") as file:
+    file.write(final_c_code_with_directives)
+
+# NOTE: 3. Compilation part
+
+# Compile the C file into a shared library (.so file)
+shared_lib_name = f"lib{func_name}.so"
+compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
+
+try:
+    # Execute the compile command
+    compilation_result = subprocess.run(
+        compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
+    )
+    print("Compilation successful. Shared library created:", shared_lib_name)
+except subprocess.CalledProcessError as e:
+    # Handle errors in compilation
+    print("Compilation failed:")
+    print(e.stderr)
+
+
+# NOTE: 4. Fuzzing part
+
+# Define the trace file name
+trace_file_name = f"{func_name}.trace.csv"
+
+# Load the shared library
+lib = CDLL(f"./lib{func_name}.so")
+
+# Define the function prototype in ctypes
+# Get the function by name
+func = getattr(lib, func_name)
+
+if transformer.return_type == "int":
+    func.restype = ctypes.c_int
+elif transformer.return_type == "float":
+    func.restype = ctypes.c_float
+elif transformer.return_type == "double":
+    func.restype = ctypes.c_double
+
+# convert transformers params to ctypes
+param_types = []
+for param in transformer.params:
+    if param[1] == "int":
+        param_types.append(ctypes.c_int)
+    elif param[1] == "float":
+        param_types.append(ctypes.c_float)
+    elif param[1] == "double":
+        param_types.append(ctypes.c_double)
+
+# Define the types of the parameters
+func.argtypes = param_types
+
+
+# Fuzz the function with random inputs
+fuzz_function(func, param_types, iterations)
+
+
+# NOTE: 5. Post-processing part
 
 
 # Sort the trace file by trace markers
