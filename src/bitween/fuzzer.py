@@ -173,9 +173,9 @@ def random_value(ctypes_type):
     if ctypes_type == ctypes.c_int:
         return random.randint(0, 300)
     elif ctypes_type == ctypes.c_float:
-        return ctypes.c_float(random.uniform(-100.0, 100.0))
+        return ctypes.c_float(random.uniform(-5.0, 5.0))
     elif ctypes_type == ctypes.c_double:
-        return ctypes.c_double(random.uniform(-100.0, 100.0))
+        return ctypes.c_double(random.uniform(-5.0, 5.0))
     return 0
 
 
@@ -401,11 +401,13 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/divbin.c"
     # func_name = "divbin"
 
-    # file_path = "./benchmarks/bitween/fpcore/salsa.c"
-    # func_name = "Odometry"
+    # file_path = "./benchmarks/bitween/fpcore/rosa.c"
+    # func_name = "doppler1"
 
-    file_path = "./benchmarks/bitween/fpcore/rosa.c"
-    func_name = "doppler1"
+    file_path = "./benchmarks/bitween/fpcore/salsa.c"
+    # func_name = "Odometry"
+    func_name = "PID"
+    # func_name = "Runge_Kutta_4"
 
     iterations = 30  # Number of times to call the function with random inputs
 
