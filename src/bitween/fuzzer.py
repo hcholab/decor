@@ -8,20 +8,6 @@ import random
 import os
 import time
 
-# Example usage
-
-# This should be the path to your C file
-# file_path = "./benchmarks/bitween/dig/bresenham.c"
-# func_name = "bresenham"  # This should be the name of the function you want to fuzz
-
-# file_path = "./benchmarks/bitween/dig/cohencu.c"
-# func_name = "cohencu"
-
-file_path = "./benchmarks/bitween/dig/cohendiv.c"
-func_name = "cohendiv"
-
-iterations = 30  # Number of times to call the function with random inputs
-
 
 def read_c_file(file_path):
     try:
@@ -191,6 +177,46 @@ def random_value(ctypes_type):
     return 0
 
 
+def load_shared_library_func(
+    func_name: str, return_type: str, params: list[tuple[str, str]]
+):
+    """
+    Loads the shared library and defines the function prototype using ctypes.
+
+    Args:
+        func_name (str): Name of the function to be loaded.
+        return_type (str): Return type of the function.
+        params (list): List of tuples containing parameter names and types.
+    """
+    # Load the shared library
+    lib = CDLL(f"./lib{func_name}.so")
+
+    # Define the function prototype in ctypes
+    func = getattr(lib, func_name)
+
+    if return_type == "int":
+        func.restype = ctypes.c_int
+    elif return_type == "float":
+        func.restype = ctypes.c_float
+    elif return_type == "double":
+        func.restype = ctypes.c_double
+
+    # Convert the parameter types to ctypes
+    param_types = []
+    for param in params:
+        if param[1] == "int":
+            param_types.append(ctypes.c_int)
+        elif param[1] == "float":
+            param_types.append(ctypes.c_float)
+        elif param[1] == "double":
+            param_types.append(ctypes.c_double)
+
+    # Define the types of the parameters
+    func.argtypes = param_types
+
+    return func
+
+
 def fuzz_function(func, iterations=10):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
@@ -286,6 +312,21 @@ def sort_file_by_trace_marker(input_file_path, output_file_path=None):
             file.writelines(trace_dict[key])
 
 
+# Example usage
+
+# This should be the path to your C file
+# file_path = "./benchmarks/bitween/dig/bresenham.c"
+# func_name = "bresenham"  # This should be the name of the function you want to fuzz
+
+# file_path = "./benchmarks/bitween/dig/cohencu.c"
+# func_name = "cohencu"
+
+file_path = "./benchmarks/bitween/dig/cohendiv.c"
+func_name = "cohendiv"
+
+iterations = 30  # Number of times to call the function with random inputs
+
+
 # NOTE: 0. Load the C code to be fuzzed
 start_time = time.time()
 
@@ -343,33 +384,8 @@ except subprocess.CalledProcessError as e:
 
 # NOTE: 4. Fuzzing part
 
-# Load the shared library
-lib = CDLL(f"./lib{func_name}.so")
-
-# Define the function prototype in ctypes
-# Get the function by name
-func = getattr(lib, func_name)
-
-if transformer.return_type == "int":
-    func.restype = ctypes.c_int
-elif transformer.return_type == "float":
-    func.restype = ctypes.c_float
-elif transformer.return_type == "double":
-    func.restype = ctypes.c_double
-
-# convert transformers params to ctypes
-param_types = []
-for param in transformer.params:
-    if param[1] == "int":
-        param_types.append(ctypes.c_int)
-    elif param[1] == "float":
-        param_types.append(ctypes.c_float)
-    elif param[1] == "double":
-        param_types.append(ctypes.c_double)
-
-# Define the types of the parameters
-func.argtypes = param_types
-
+# Load the shared library function
+func = load_shared_library_func(func_name, transformer.return_type, transformer.params)
 
 # Fuzz the function with random inputs
 fuzz_function(func, iterations)
@@ -382,3 +398,6 @@ fuzz_function(func, iterations)
 sort_file_by_trace_marker(f"{func_name}.trace.csv")
 
 print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
+
+if __name__ == "__main__":
+    pass
