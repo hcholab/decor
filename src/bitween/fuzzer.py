@@ -277,19 +277,11 @@ def fuzz_function(func, iterations=10):
 
 
 # Sort the trace file by trace markers
-def sort_file_by_trace_marker(input_file_path, output_file_path=None):
+def sort_file_by_trace_marker(file_path, trace_headers):
     """
     Sorts the lines in a file based on the trace markers (e.g., vtrace1, vtrace2, etc.).
-    Args:
-        input_file_path (str): Path to the input file containing unsorted trace entries.
-        output_file_path (str, optional): Path to the output file where sorted data will be written.
-                                         If not specified, the input file will be overwritten.
     """
-    # Use the input file path as the default output file path if none is provided
-    if output_file_path is None:
-        output_file_path = input_file_path
-
-    with open(input_file_path, "r") as file:
+    with open(file_path, "r") as file:
         lines = file.readlines()
 
     # Create a dictionary to hold lines based on their trace marker
@@ -306,98 +298,101 @@ def sort_file_by_trace_marker(input_file_path, output_file_path=None):
     sorted_keys = sorted(trace_dict.keys(), key=lambda x: (x[:-1], int(x[-1])))
 
     # Write sorted lines back to file
-    with open(output_file_path, "w") as file:
+    with open(file_path, "w") as file:
         for key in sorted_keys:
-            file.write(transformer.trace_headers[key] + "\n")
+            file.write(trace_headers[key] + "\n")
             file.writelines(trace_dict[key])
 
 
-# Example usage
+def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
 
-# This should be the path to your C file
-# file_path = "./benchmarks/bitween/dig/bresenham.c"
-# func_name = "bresenham"  # This should be the name of the function you want to fuzz
+    # NOTE: 0. Load the C code to be fuzzed
+    start_time = time.time()
 
-# file_path = "./benchmarks/bitween/dig/cohencu.c"
-# func_name = "cohencu"
+    c_code = read_c_file(file_path)
 
-file_path = "./benchmarks/bitween/dig/cohendiv.c"
-func_name = "cohendiv"
+    if c_code is None:
+        print("Error reading the C file.")
+        exit()
 
-iterations = 30  # Number of times to call the function with random inputs
+    # NOTE: 1. Preprocessing part
 
+    # Preprocess the C code and extract preprocessor directives
+    # CParser does not handle preprocessor directives, so we need to extract and add them back later
+    preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
 
-# NOTE: 0. Load the C code to be fuzzed
-start_time = time.time()
+    # NOTE: 2. Parsing and instrumentation part
 
-c_code = read_c_file(file_path)
+    # Parse the code using pycparser
+    parser = c_parser.CParser()
+    ast = parser.parse(preprocessed_code.strip())
+    # Visit and process the function definition
+    transformer = TransformFunc()
+    transformer.visit(ast)
 
-if c_code is None:
-    print("Error reading the C file.")
-    exit()
+    # Generate the modified C code
+    generator = c_generator.CGenerator()
+    final_code = generator.visit(ast)
 
-# NOTE: 1. Preprocessing part
-
-# Preprocess the C code and extract preprocessor directives
-# CParser does not handle preprocessor directives, so we need to extract and add them back later
-preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
-
-# NOTE: 2. Parsing and instrumentation part
-
-# Parse the code using pycparser
-parser = c_parser.CParser()
-ast = parser.parse(preprocessed_code.strip())
-# Visit and process the function definition
-transformer = TransformFunc()
-transformer.visit(ast)
-
-# Generate the modified C code
-generator = c_generator.CGenerator()
-final_code = generator.visit(ast)
-
-# Add back the preprocessor directives
-final_c_code_with_directives = "\n".join(preprocessor_directives) + "\n" + final_code
-print(final_c_code_with_directives)
-
-func_name_annotated = f"{func_name}.annotated.c"
-
-with open(func_name_annotated, "w") as file:
-    file.write(final_c_code_with_directives)
-
-# NOTE: 3. Compilation part
-
-# Compile the C file into a shared library (.so file)
-shared_lib_name = f"lib{func_name}.so"
-compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
-
-try:
-    # Execute the compile command
-    compilation_result = subprocess.run(
-        compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
+    # Add back the preprocessor directives
+    final_c_code_with_directives = (
+        "\n".join(preprocessor_directives) + "\n" + final_code
     )
-    print("Compilation successful. Shared library created:", shared_lib_name)
-except subprocess.CalledProcessError as e:
-    # Handle errors in compilation
-    print("Compilation failed:")
-    print(e.stderr)
+    print(final_c_code_with_directives)
 
+    func_name_annotated = f"{func_name}.annotated.c"
 
-# NOTE: 4. Fuzzing part
+    with open(func_name_annotated, "w") as file:
+        file.write(final_c_code_with_directives)
 
-# Load the shared library function
-func = load_shared_library_func(func_name, transformer.return_type, transformer.params)
+    # NOTE: 3. Compilation part
 
-# Fuzz the function with random inputs
-fuzz_function(func, iterations)
+    # Compile the C file into a shared library (.so file)
+    shared_lib_name = f"lib{func_name}.so"
+    compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
 
+    try:
+        # Execute the compile command
+        compilation_result = subprocess.run(
+            compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
+        )
+        print("Compilation successful. Shared library created:", shared_lib_name)
+    except subprocess.CalledProcessError as e:
+        # Handle errors in compilation
+        print("Compilation failed:")
+        print(e.stderr)
 
-# NOTE: 5. Post-processing part
+    # NOTE: 4. Fuzzing part
 
+    # Load the shared library function
+    func = load_shared_library_func(
+        func_name, transformer.return_type, transformer.params
+    )
 
-# Sort the trace file by trace markers
-sort_file_by_trace_marker(f"{func_name}.trace.csv")
+    # Fuzz the function with random inputs
+    fuzz_function(func, iterations)
 
-print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
+    # NOTE: 5. Post-processing part
+
+    # Sort the trace file by trace markers
+    sort_file_by_trace_marker(f"{func_name}.trace.csv", transformer.trace_headers)
+
+    print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
+
 
 if __name__ == "__main__":
-    pass
+    # Example usage
+
+    # This should be the path to your C file
+    # file_path = "./benchmarks/bitween/dig/bresenham.c"
+    # func_name = "bresenham"  # This should be the name of the function you want to fuzz
+
+    # file_path = "./benchmarks/bitween/dig/cohencu.c"
+    # func_name = "cohencu"
+
+    file_path = "./benchmarks/bitween/dig/cohendiv.c"
+    func_name = "cohendiv"
+
+    iterations = 30  # Number of times to call the function with random inputs
+
+    fuzz_and_trace(file_path, func_name, iterations)
