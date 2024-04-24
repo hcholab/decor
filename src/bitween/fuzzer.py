@@ -217,7 +217,7 @@ def load_shared_library_func(
     return func
 
 
-def fuzz_function(func, iterations=10):
+def fuzz_function(func, iterations=30, distributions=None):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
     to a trace file named after the function, while keeping other outputs such as status
@@ -304,7 +304,7 @@ def sort_file_by_trace_marker(file_path, trace_headers):
             file.writelines(trace_dict[key])
 
 
-def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
+def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distributions=None):
 
     # NOTE: 0. Load the C code to be fuzzed
     start_time = time.time()
@@ -390,9 +390,15 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/cohencu.c"
     # func_name = "cohencu"
 
-    file_path = "./benchmarks/bitween/dig/cohendiv.c"
-    func_name = "cohendiv"
+    # file_path = "./benchmarks/bitween/dig/cohendiv.c"
+    # func_name = "cohendiv"
+
+    # file_path = "./benchmarks/bitween/dig/dijkstra.c"
+    # func_name = "dijkstra"
+
+    file_path = "./benchmarks/bitween/dig/divbin.c"
+    func_name = "divbin"
 
     iterations = 30  # Number of times to call the function with random inputs
 
-    fuzz_and_trace(file_path, func_name, iterations)
+    fuzz_and_trace(file_path, func_name, iterations, distributions=None)
