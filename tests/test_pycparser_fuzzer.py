@@ -6,6 +6,7 @@ import ctypes
 from ctypes import CDLL
 import random
 import os
+import time
 
 # Example usage
 
@@ -16,7 +17,9 @@ import os
 file_path = "./benchmarks/bitween/dig/cohencu.c"
 func_name = "cohencu"  # This should be the name of the function you want to fuzz
 
-iterations = 10  # Number of times to call the function with random inputs
+iterations = 30  # Number of times to call the function with random inputs
+
+start_time = time.time()
 
 
 def read_c_file(file_path):
@@ -366,3 +369,7 @@ def sort_file_by_trace_marker(input_file_path, output_file_path=None):
 
 # Sort the trace file by trace markers
 sort_file_by_trace_marker(trace_file_name)
+
+end_time = time.time()
+
+print(f"Fuzzing time: {end_time - start_time:.2f} seconds.")
