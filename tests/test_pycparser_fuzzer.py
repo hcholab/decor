@@ -32,6 +32,9 @@ def read_c_file(file_path):
         return None
 
 
+# NOTE: 1. Preprocessing part
+
+
 def preprocess_c_code(c_code):
     # Extract preprocessor directives and store them
     preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
@@ -72,6 +75,8 @@ if c_code is None:
     exit()
 
 preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
+
+# NOTE: 2. Parsing and instrumentation part
 
 # Parse the code using pycparser
 parser = c_parser.CParser()
@@ -189,6 +194,8 @@ func_name_annotated = f"{func_name}_annotated.c"
 with open(func_name_annotated, "w") as file:
     file.write(final_c_code_with_directives)
 
+# NOTE: 3. Compilation part
+
 # Compile the C file into a shared library (.so file)
 shared_lib_name = f"lib{func_name}.so"
 compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
@@ -204,6 +211,8 @@ except subprocess.CalledProcessError as e:
     print("Compilation failed:")
     print(e.stderr)
 
+
+# NOTE: 4. Fuzzing part
 
 # Load the shared library
 lib = CDLL(f"./lib{func_name}.so")
@@ -316,6 +325,10 @@ def fuzz_function(func, param_types, iterations=10):
 fuzz_function(func, param_types, iterations)
 
 
+# NOTE: 5. Post-processing part
+
+
+# Sort the trace file by trace markers
 def sort_file_by_trace_marker(input_file_path, output_file_path=None):
     """
     Sorts the lines in a file based on the trace markers (e.g., vtrace1, vtrace2, etc.).
