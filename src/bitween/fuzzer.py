@@ -56,12 +56,14 @@ def preprocess_c_code(c_code):
 
 
 class TransformFunc(c_ast.NodeVisitor):
-    def visit_FuncDef(self, node):
+
+    def __init__(self):
         self.variables = {}
         self.params = []
         self.trace_headers = {}
         self.return_type = None  # Added to capture the function's return type
 
+    def visit_FuncDef(self, node):
         if node.decl.name == func_name:
             # Extract the function's return type
             self.return_type = (
@@ -396,8 +398,14 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/dijkstra.c"
     # func_name = "dijkstra"
 
-    file_path = "./benchmarks/bitween/dig/divbin.c"
-    func_name = "divbin"
+    # file_path = "./benchmarks/bitween/dig/divbin.c"
+    # func_name = "divbin"
+
+    # file_path = "./benchmarks/bitween/fpcore/salsa.c"
+    # func_name = "Odometry"
+
+    file_path = "./benchmarks/bitween/fpcore/rosa.c"
+    func_name = "doppler1"
 
     iterations = 30  # Number of times to call the function with random inputs
 
