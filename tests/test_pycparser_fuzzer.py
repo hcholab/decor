@@ -315,4 +315,39 @@ def fuzz_function(func, param_types, iterations=10):
 fuzz_function(func, param_types, iterations)
 
 
-# sort_file_by_trace_marker(trace_file_name)
+def sort_file_by_trace_marker(input_file_path, output_file_path=None):
+    """
+    Sorts the lines in a file based on the trace markers (e.g., vtrace1, vtrace2, etc.).
+    Args:
+        input_file_path (str): Path to the input file containing unsorted trace entries.
+        output_file_path (str, optional): Path to the output file where sorted data will be written.
+                                         If not specified, the input file will be overwritten.
+    """
+    # Use the input file path as the default output file path if none is provided
+    if output_file_path is None:
+        output_file_path = input_file_path
+
+    with open(input_file_path, "r") as file:
+        lines = file.readlines()
+
+    # Create a dictionary to hold lines based on their trace marker
+    trace_dict = {}
+    for line in lines:
+        # Assume line format starts with 'vtraceN;' where N is a number
+        marker = line.split(";")[0]
+        if marker in trace_dict:
+            trace_dict[marker].append(line)
+        else:
+            trace_dict[marker] = [line]
+
+    # Sort dictionary keys to ensure vtrace1, vtrace2,... order
+    sorted_keys = sorted(trace_dict.keys(), key=lambda x: (x[:-1], int(x[-1])))
+
+    # Write sorted lines back to file
+    with open(output_file_path, "w") as file:
+        for key in sorted_keys:
+            file.write(trace_headers[key] + "\n")
+            file.writelines(trace_dict[key])
+
+
+sort_file_by_trace_marker(trace_file_name)
