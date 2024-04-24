@@ -87,6 +87,10 @@ class TransformFunc(c_ast.NodeVisitor):
             if node.decl.name == self.func_name:
                 self.params.append((param.name, type_name))
 
+        # if block_items is None, the function is defined but not implemented
+        if node.body.block_items is None:
+            return
+
         # Collect local variable types from declarations
         for decl in node.body.block_items:
             if isinstance(decl, c_ast.Decl):
@@ -407,15 +411,15 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/dijkstra.c"
     # func_name = "dijkstra"
 
-    # file_path = "./benchmarks/bitween/dig/divbin.c"
-    # func_name = "divbin"
+    file_path = "./benchmarks/bitween/dig/divbin.c"
+    func_name = "divbin"
 
     # file_path = "./benchmarks/bitween/fpcore/rosa.c"
     # func_name = "doppler1"
 
-    file_path = "./benchmarks/bitween/fpcore/salsa.c"
+    # file_path = "./benchmarks/bitween/fpcore/salsa.c"
     # func_name = "Odometry"
-    func_name = "PID"
+    # func_name = "PID"
     # func_name = "Runge_Kutta_4"
 
     iterations = 30  # Number of times to call the function with random inputs
