@@ -191,7 +191,7 @@ def random_value(ctypes_type):
     return 0
 
 
-def fuzz_function(func, param_types, iterations=10):
+def fuzz_function(func, iterations=10):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
     to a trace file named after the function, while keeping other outputs such as status
@@ -203,6 +203,9 @@ def fuzz_function(func, param_types, iterations=10):
         func_name: Name of the function, used to name the trace file.
         iterations: Number of times the function should be called with random inputs.
     """
+    # Define the trace file name
+    trace_file_name = f"{func.__name__}.trace.csv"
+
     original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
 
     # Create a duplicate of the original stdout for restoring later
@@ -211,7 +214,7 @@ def fuzz_function(func, param_types, iterations=10):
     try:
         with open(trace_file_name, "w+") as trace_file:
             for i in range(iterations):
-                random_args = [random_value(ptype) for ptype in param_types]
+                random_args = [random_value(ptype) for ptype in func.argtypes]
 
                 # Flush any library-level buffers before redirection
                 sys.stdout.flush()
@@ -295,6 +298,7 @@ if c_code is None:
 # NOTE: 1. Preprocessing part
 
 # Preprocess the C code and extract preprocessor directives
+# CParser does not handle preprocessor directives, so we need to extract and add them back later
 preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
 
 # NOTE: 2. Parsing and instrumentation part
@@ -339,9 +343,6 @@ except subprocess.CalledProcessError as e:
 
 # NOTE: 4. Fuzzing part
 
-# Define the trace file name
-trace_file_name = f"{func_name}.trace.csv"
-
 # Load the shared library
 lib = CDLL(f"./lib{func_name}.so")
 
@@ -371,13 +372,13 @@ func.argtypes = param_types
 
 
 # Fuzz the function with random inputs
-fuzz_function(func, param_types, iterations)
+fuzz_function(func, iterations)
 
 
 # NOTE: 5. Post-processing part
 
 
 # Sort the trace file by trace markers
-sort_file_by_trace_marker(trace_file_name)
+sort_file_by_trace_marker(f"{func_name}.trace.csv")
 
 print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
