@@ -153,3 +153,5 @@ dmypy.json
 __docs
 tests/test.py
 temp/bitween/lin_reg_intercept_from_dig_trace.py
+.csv
+*.annotated.c
