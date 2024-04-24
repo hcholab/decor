@@ -57,39 +57,48 @@ def preprocess_c_code(c_code):
 
 class TransformFunc(c_ast.NodeVisitor):
 
-    def __init__(self):
-        self.variables = {}
-        self.params = []
+    def __init__(self, func_name):
+        self.func_name = func_name
         self.trace_headers = {}
+        # Added to capture the entry function's signature
+        self.params = []
         self.return_type = None  # Added to capture the function's return type
 
     def visit_FuncDef(self, node):
-        if node.decl.name == func_name:
-            # Extract the function's return type
-            self.return_type = (
-                node.decl.type.type.type.names[0]
-                if isinstance(node.decl.type, c_ast.FuncDecl)
-                else "int"
-            )
+        self.curr_params = []
+        self.curr_variables = {}
+        self.curr_return_type = None
 
-            # Collect function parameter types
-            params = node.decl.type.args.params
-            for param in params:
-                self.variables[param.name] = param.type.type.names[0]
-                self.params.append((param.name, param.type.type.names[0]))
+        # Extract the function's return type
+        self.curr_return_type = (
+            node.decl.type.type.type.names[0]
+            if isinstance(node.decl.type, c_ast.FuncDecl)
+            else "int"
+        )
+        if node.decl.name == self.func_name:
+            self.return_type = self.curr_return_type
 
-            # Collect local variable types from declarations
-            for decl in node.body.block_items:
-                if isinstance(decl, c_ast.Decl):
-                    self.variables[decl.name] = decl.type.type.names[0]
+        # Collect function parameter types
+        params = node.decl.type.args.params
+        for param in params:
+            type_name = param.type.type.names[0]
+            self.curr_variables[param.name] = type_name
+            self.curr_params.append((param.name, type_name))
+            if node.decl.name == self.func_name:
+                self.params.append((param.name, type_name))
 
-            print(f"Function Name: {func_name}")
-            print(f"Parameters: {self.params}")
-            print(f"Return Type: {self.return_type}")
-            print(f"Types: {self.variables}")
+        # Collect local variable types from declarations
+        for decl in node.body.block_items:
+            if isinstance(decl, c_ast.Decl):
+                self.curr_variables[decl.name] = decl.type.type.names[0]
 
-            # Traverse and modify the function body
-            self.replace_vtrace_calls(node.body)
+        print(f"Function Name: {node.decl.name}")
+        print(f"Parameters: {self.curr_params}")
+        print(f"Return Type: {self.curr_return_type}")
+        print(f"Types: {self.curr_variables}")
+
+        # Traverse and modify the function body
+        self.replace_vtrace_calls(node.body)
 
     def replace_vtrace_calls(self, node):
         if isinstance(node, c_ast.Compound):
@@ -150,7 +159,7 @@ class TransformFunc(c_ast.NodeVisitor):
         return if_statement
 
     def format_specifier(self, variable_name):
-        type_name = self.variables.get(variable_name, "int")
+        type_name = self.curr_variables.get(variable_name, "int")
         if type_name == "double":
             return "%lf"
         elif type_name == "float":
@@ -329,7 +338,7 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distribution
     parser = c_parser.CParser()
     ast = parser.parse(preprocessed_code.strip())
     # Visit and process the function definition
-    transformer = TransformFunc()
+    transformer = TransformFunc(func_name)
     transformer.visit(ast)
 
     # Generate the modified C code
