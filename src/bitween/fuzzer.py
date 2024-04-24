@@ -14,8 +14,11 @@ import time
 # file_path = "./benchmarks/bitween/dig/bresenham.c"
 # func_name = "bresenham"  # This should be the name of the function you want to fuzz
 
-file_path = "./benchmarks/bitween/dig/cohencu.c"
-func_name = "cohencu"  # This should be the name of the function you want to fuzz
+# file_path = "./benchmarks/bitween/dig/cohencu.c"
+# func_name = "cohencu"
+
+file_path = "./benchmarks/bitween/dig/cohendiv.c"
+func_name = "cohendiv"
 
 iterations = 30  # Number of times to call the function with random inputs
 
@@ -107,46 +110,56 @@ class TransformFunc(c_ast.NodeVisitor):
                 if isinstance(item, c_ast.FuncCall) and item.name.name.startswith(
                     "vtrace"
                 ):
-                    # Create the correct format string based on variable types
-                    args_str = f"{item.name.name}; "
-                    args_str += "; ".join(
-                        self.format_specifier(arg.name) for arg in item.args.exprs
-                    )
-                    self.trace_headers[f"{item.name.name}"] = (
-                        f"{item.name.name}; "
-                        + "; ".join([f"I {arg.name}" for arg in item.args.exprs])
-                    )
-                    new_printf_call = c_ast.FuncCall(
-                        name=c_ast.ID(name="printf"),
-                        args=c_ast.ExprList(
-                            exprs=[
-                                c_ast.Constant(type="string", value=f'"{args_str}\\n"'),
-                                *item.args.exprs,
-                            ]
-                        ),
-                    )
-                    # Create the fflush call
-                    fflush_call = c_ast.FuncCall(
-                        name=c_ast.ID(name="fflush"),
-                        args=c_ast.ExprList(exprs=[c_ast.ID(name="stdout")]),
-                    )
+                    new_printf_call, fflush_call = self.handle_vtrace_call(item)
+                    items_to_replace.append((item, (new_printf_call, fflush_call)))
+                elif isinstance(item, c_ast.FuncCall) and item.name.name == "vassume":
+                    new_if_statement = self.handle_vassume_call(item)
+                    items_to_replace.append((item, new_if_statement))
 
-                    # Append the tuple of old item, new printf call, and new fflush call to items_to_replace
-                    items_to_replace.append((item, new_printf_call, fflush_call))
-
-            # Perform replacements outside of the original loop
-            for old_item, new_printf_call, fflush_call in items_to_replace:
+            for old_item, new_item in items_to_replace:
                 index = node.block_items.index(old_item)
-                node.block_items[index] = (
-                    new_printf_call  # Replace the old vtrace call with new printf call
-                )
-                node.block_items.insert(
-                    index + 1, fflush_call
-                )  # Insert fflush right after the new printf call
+                if isinstance(new_item, tuple):  # This is from vtrace handling
+                    node.block_items[index] = new_item[0]  # Replace with printf call
+                    node.block_items.insert(index + 1, new_item[1])  # Insert fflush
+                else:  # This is from vassume handling
+                    node.block_items[index] = new_item  # Replace with if statement
 
         # Recursively process child nodes
         for child in node:
             self.replace_vtrace_calls(child)
+
+    def handle_vtrace_call(self, item):
+        args_str = f"{item.name.name}; " + "; ".join(
+            self.format_specifier(arg.name) for arg in item.args.exprs
+        )
+        self.trace_headers[f"{item.name.name}"] = f"{item.name.name}; " + "; ".join(
+            [f"I {arg.name}" for arg in item.args.exprs]
+        )
+        new_printf_call = c_ast.FuncCall(
+            name=c_ast.ID(name="printf"),
+            args=c_ast.ExprList(
+                exprs=[
+                    c_ast.Constant(type="string", value=f'"{args_str}\\n"'),
+                    *item.args.exprs,
+                ]
+            ),
+        )
+        fflush_call = c_ast.FuncCall(
+            name=c_ast.ID(name="fflush"),
+            args=c_ast.ExprList(exprs=[c_ast.ID(name="stdout")]),
+        )
+        return new_printf_call, fflush_call
+
+    def handle_vassume_call(self, item):
+        # Negate the condition and create an if statement
+        negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
+        return_statement = c_ast.Return(expr=c_ast.Constant(type="int", value="0"))
+        if_statement = c_ast.If(
+            cond=negated_condition,
+            iftrue=c_ast.Compound(block_items=[return_statement]),
+            iffalse=None,
+        )
+        return if_statement
 
     def format_specifier(self, variable_name):
         type_name = self.variables.get(variable_name, "int")
