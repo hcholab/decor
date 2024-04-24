@@ -186,14 +186,14 @@ def random_value(ctypes_type):
     if ctypes_type == ctypes.c_int:
         return random.randint(0, 300)
     elif ctypes_type == ctypes.c_float:
-        return ctypes.c_float(random.uniform(-5.0, 5.0))
+        return ctypes.c_float(random.uniform(-2.0, 2.0))
     elif ctypes_type == ctypes.c_double:
-        return ctypes.c_double(random.uniform(-5.0, 5.0))
+        return ctypes.c_double(random.uniform(-2.0, 2.0))
     return 0
 
 
 def load_shared_library_func(
-    func_name: str, return_type: str, params: list[tuple[str, str]]
+    folder_path: str, func_name: str, return_type: str, params: list[tuple[str, str]]
 ):
     """
     Loads the shared library and defines the function prototype using ctypes.
@@ -204,7 +204,7 @@ def load_shared_library_func(
         params (list): List of tuples containing parameter names and types.
     """
     # Load the shared library
-    lib = CDLL(f"./lib{func_name}.so")
+    lib = CDLL(f"{folder_path}/{func_name}.so")
 
     # Define the function prototype in ctypes
     func = getattr(lib, func_name)
@@ -232,7 +232,7 @@ def load_shared_library_func(
     return func
 
 
-def fuzz_function(func, iterations=30, distributions=None):
+def fuzz_function(func, trace_path, iterations=30, distributions=None):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
     to a trace file named after the function, while keeping other outputs such as status
@@ -244,8 +244,6 @@ def fuzz_function(func, iterations=30, distributions=None):
         func_name: Name of the function, used to name the trace file.
         iterations: Number of times the function should be called with random inputs.
     """
-    # Define the trace file name
-    trace_file_name = f"{func.__name__}.trace.csv"
 
     original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
 
@@ -253,7 +251,7 @@ def fuzz_function(func, iterations=30, distributions=None):
     saved_stdout_fd = os.dup(original_stdout_fd)
 
     try:
-        with open(trace_file_name, "w+") as trace_file:
+        with open(trace_path, "w+") as trace_file:
             for i in range(iterations):
                 random_args = [random_value(ptype) for ptype in func.argtypes]
 
@@ -281,7 +279,7 @@ def fuzz_function(func, iterations=30, distributions=None):
                     f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
                 )
 
-            print(f"Trace file '{trace_file_name}' created.")
+            print(f"Trace file '{trace_path}' created.")
     except KeyboardInterrupt:
         print("Fuzzing interrupted by user.")
     finally:
@@ -292,11 +290,11 @@ def fuzz_function(func, iterations=30, distributions=None):
 
 
 # Sort the trace file by trace markers
-def sort_file_by_trace_marker(file_path, trace_headers):
+def sort_file_by_trace_marker(trace_path, trace_headers):
     """
     Sorts the lines in a file based on the trace markers (e.g., vtrace1, vtrace2, etc.).
     """
-    with open(file_path, "r") as file:
+    with open(trace_path, "r") as file:
         lines = file.readlines()
 
     # Create a dictionary to hold lines based on their trace marker
@@ -313,13 +311,19 @@ def sort_file_by_trace_marker(file_path, trace_headers):
     sorted_keys = sorted(trace_dict.keys(), key=lambda x: (x[:-1], int(x[-1])))
 
     # Write sorted lines back to file
-    with open(file_path, "w") as file:
+    with open(trace_path, "w") as file:
         for key in sorted_keys:
             file.write(trace_headers[key] + "\n")
             file.writelines(trace_dict[key])
 
 
 def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distributions=None):
+    """
+    Fuzzes the given C function by calling it with random inputs and writes the output as a trace file.
+    """
+
+    # remove the .c extension from the file_path
+    folder_path = os.path.dirname(file_path)
 
     # NOTE: 0. Load the C code to be fuzzed
     start_time = time.time()
@@ -355,16 +359,18 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distribution
     )
     print(final_c_code_with_directives)
 
-    func_name_annotated = f"{func_name}.annotated.c"
+    func_name_instrumented = f"{folder_path}/{func_name}.instrumented.c"
 
-    with open(func_name_annotated, "w") as file:
+    with open(func_name_instrumented, "w") as file:
         file.write(final_c_code_with_directives)
 
     # NOTE: 3. Compilation part
 
     # Compile the C file into a shared library (.so file)
-    shared_lib_name = f"lib{func_name}.so"
-    compile_command = f"gcc -shared -fPIC -o {shared_lib_name} {func_name_annotated}"
+    shared_lib_name = f"{func_name}.so"
+    compile_command = (
+        f"gcc -shared -fPIC -o {folder_path}/{shared_lib_name} {func_name_instrumented}"
+    )
 
     try:
         # Execute the compile command
@@ -381,16 +387,18 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distribution
 
     # Load the shared library function
     func = load_shared_library_func(
-        func_name, transformer.return_type, transformer.params
+        folder_path, func_name, transformer.return_type, transformer.params
     )
 
+    trace_path = f"{folder_path}/{func_name}.trace.csv"
+
     # Fuzz the function with random inputs
-    fuzz_function(func, iterations)
+    fuzz_function(func, trace_path, iterations)
 
     # NOTE: 5. Post-processing part
 
     # Sort the trace file by trace markers
-    sort_file_by_trace_marker(f"{func_name}.trace.csv", transformer.trace_headers)
+    sort_file_by_trace_marker(trace_path, transformer.trace_headers)
 
     print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
 
@@ -411,16 +419,110 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/dijkstra.c"
     # func_name = "dijkstra"
 
-    file_path = "./benchmarks/bitween/dig/divbin.c"
-    func_name = "divbin"
+    # file_path = "./benchmarks/bitween/dig/divbin.c"
+    # func_name = "divbin"
 
-    # file_path = "./benchmarks/bitween/fpcore/rosa.c"
-    # func_name = "doppler1"
+    # file_path = "./benchmarks/bitween/dig/egcd.c"
+    # func_name = "egcd"
+
+    # file_path = "./benchmarks/bitween/dig/egcd2.c"
+    # func_name = "egcd2"
+
+    # file_path = "./benchmarks/bitween/dig/egcd3.c"
+    # func_name = "egcd3"
+
+    # file_path = "./benchmarks/bitween/dig/fermat1.c"
+    # func_name = "fermat1"
+
+    # file_path = "./benchmarks/bitween/dig/fermat2.c"
+    # func_name = "fermat2"
+
+    # file_path = "./benchmarks/bitween/dig/freire1_int.c"
+    # func_name = "freire1_int"
+
+    # file_path = "./benchmarks/bitween/dig/freire1.c"
+    # func_name = "freire1"
+
+    # file_path = "./benchmarks/bitween/dig/freire2.c"
+    # func_name = "freire2"
+
+    # file_path = "./benchmarks/bitween/dig/geo1.c"
+    # func_name = "geo1"
+
+    # file_path = "./benchmarks/bitween/dig/geo2.c"
+    # func_name = "geo2"
+
+    # file_path = "./benchmarks/bitween/dig/geo3.c"
+    # func_name = "geo3"
+
+    # file_path = "./benchmarks/bitween/dig/hard.c"
+    # func_name = "hard"
+
+    # file_path = "./benchmarks/bitween/dig/knuth.c"
+    # func_name = "knuth"
+
+    # file_path = "./benchmarks/bitween/dig/lcm1.c"
+    # func_name = "lcm1"
+
+    # file_path = "./benchmarks/bitween/dig/lcm2.c"
+    # func_name = "lcm2"
+
+    # file_path = "./benchmarks/bitween/dig/mannadiv.c"
+    # func_name = "mannadiv"
+
+    # file_path = "./benchmarks/bitween/dig/poly3_1.c"
+    # func_name = "poly3_1"
+
+    # file_path = "./benchmarks/bitween/dig/poly3.c"
+    # func_name = "poly3"
+
+    # file_path = "./benchmarks/bitween/dig/poly4.c"
+    # func_name = "poly4"
+
+    # file_path = "./benchmarks/bitween/dig/poly5.c"
+    # func_name = "poly5"
+
+    # file_path = "./benchmarks/bitween/dig/prod4br.c"
+    # func_name = "prod4br"
+
+    # file_path = "./benchmarks/bitween/dig/prodbin.c"
+    # func_name = "prodbin"
+
+    # file_path = "./benchmarks/bitween/dig/ps1.c"
+    # func_name = "ps1"
+
+    # file_path = "./benchmarks/bitween/dig/ps2.c"
+    # func_name = "ps2"
+
+    # file_path = "./benchmarks/bitween/dig/ps3.c"
+    # func_name = "ps3"
+
+    # file_path = "./benchmarks/bitween/dig/ps4.c"
+    # func_name = "ps4"
+
+    # file_path = "./benchmarks/bitween/dig/ps5.c"
+    # func_name = "ps5"
+
+    # file_path = "./benchmarks/bitween/dig/ps6.c"
+    # func_name = "ps6"
+
+    # file_path = "./benchmarks/bitween/dig/sqrt1.c"
+    # func_name = "sqrt1"
 
     # file_path = "./benchmarks/bitween/fpcore/salsa.c"
     # func_name = "Odometry"
     # func_name = "PID"
     # func_name = "Runge_Kutta_4"
+    # func_name = "Lead_lag_System"
+    # func_name = "Trapeze"
+    # func_name = "rocket_trajectory"  # NOTE: be careful with this one
+    # func_name = "Jacobis_Method" # NOTE: be careful with this one
+    # func_name = "Newton_Raphsons_Method"
+    # func_name = "Eigenvalue_Computation"  # NOTE: be careful with this one
+    # func_name = "Iterative_Gram_Schmidt_Method"
+
+    file_path = "./benchmarks/bitween/fpcore/rosa.c"
+    func_name = "doppler1"
 
     iterations = 30  # Number of times to call the function with random inputs
 
