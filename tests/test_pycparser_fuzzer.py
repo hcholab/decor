@@ -10,11 +10,11 @@ import os
 # Example usage
 
 # This should be the path to your C file
-file_path = "./benchmarks/bitween/dig/bresenham.c"
-func_name = "bresenham"  # This should be the name of the function you want to fuzz
+# file_path = "./benchmarks/bitween/dig/bresenham.c"
+# func_name = "bresenham"  # This should be the name of the function you want to fuzz
 
-# file_path = "./benchmarks/bitween/dig/cohencu.c"
-# func_name = "cohencu"  # This should be the name of the function you want to fuzz
+file_path = "./benchmarks/bitween/dig/cohencu.c"
+func_name = "cohencu"  # This should be the name of the function you want to fuzz
 
 iterations = 10  # Number of times to call the function with random inputs
 
@@ -35,6 +35,13 @@ def read_c_file(file_path):
 def preprocess_c_code(c_code):
     # Extract preprocessor directives and store them
     preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
+    # Check if stdio.h is included
+    stdio_included = any(
+        "#include <stdio.h>" in directive for directive in preprocessor_directives
+    )
+    # Add stdio.h if not included
+    if not stdio_included:
+        preprocessor_directives.append("#include <stdio.h>")
 
     # Remove directives and vtrace function definitions from the code
     preprocessed_code = re.sub(
@@ -122,7 +129,7 @@ class TransformFunc(c_ast.NodeVisitor):
                         f"{item.name.name}; "
                         + "; ".join([f"I {arg.name}" for arg in item.args.exprs])
                     )
-                    new_func_call = c_ast.FuncCall(
+                    new_printf_call = c_ast.FuncCall(
                         name=c_ast.ID(name="printf"),
                         args=c_ast.ExprList(
                             exprs=[
@@ -131,10 +138,26 @@ class TransformFunc(c_ast.NodeVisitor):
                             ]
                         ),
                     )
-                    items_to_replace.append((item, new_func_call))
-            for old_item, new_item in items_to_replace:
+                    # Create the fflush call
+                    fflush_call = c_ast.FuncCall(
+                        name=c_ast.ID(name="fflush"),
+                        args=c_ast.ExprList(exprs=[c_ast.ID(name="stdout")]),
+                    )
+
+                    # Append the tuple of old item, new printf call, and new fflush call to items_to_replace
+                    items_to_replace.append((item, new_printf_call, fflush_call))
+
+            # Perform replacements outside of the original loop
+            for old_item, new_printf_call, fflush_call in items_to_replace:
                 index = node.block_items.index(old_item)
-                node.block_items[index] = new_item
+                node.block_items[index] = (
+                    new_printf_call  # Replace the old vtrace call with new printf call
+                )
+                node.block_items.insert(
+                    index + 1, fflush_call
+                )  # Insert fflush right after the new printf call
+
+        # Recursively process child nodes
         for child in node:
             self.replace_vtrace_calls(child)
 
@@ -229,7 +252,10 @@ def random_value(ctypes_type):
     return 0
 
 
-def fuzz_function(func, param_types, func_name, iterations=10):
+trace_file_name = f"{func_name}.trace.csv"
+
+
+def fuzz_function(func, param_types, iterations=10):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
     to a trace file named after the function, while keeping other outputs such as status
@@ -242,7 +268,6 @@ def fuzz_function(func, param_types, func_name, iterations=10):
         iterations: Number of times the function should be called with random inputs.
     """
     original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
-    trace_file_name = f"{func_name}.trace.csv"
 
     # Create a duplicate of the original stdout for restoring later
     saved_stdout_fd = os.dup(original_stdout_fd)
@@ -287,6 +312,7 @@ def fuzz_function(func, param_types, func_name, iterations=10):
 
 
 # Example usage: assuming 'func' and 'param_types' are set up as described previously in the script
-fuzz_function(func, param_types, func_name, iterations)
+fuzz_function(func, param_types, iterations)
+
 
 # sort_file_by_trace_marker(trace_file_name)
