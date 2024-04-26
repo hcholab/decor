@@ -29,6 +29,7 @@ from bitween.miscs import Symbolic
 from bitween.sampler import Domain, Distribution, sample
 from bitween.utilities import pp
 from bitween.z3utils import Z3
+from bitween.fuzzer import fuzz_and_trace  # noqa F401
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
@@ -392,18 +393,30 @@ def find_models(extended_terms, extended_data, test_size=0.2):
 
 
 def find_best_model(extended_terms, extended_data, test_size=0.2):
-    X_ = extended_data[:, :-1]  # Use all terms except the target variable itself
+    X_ = extended_data[:, :-1]  # Exclude the constant term
 
     # Define the models and parameters for grid search
     model_params = {
-        "Linear": {"model": LinearRegression(), "params": {}},
+        "Linear": {
+            "model": LinearRegression(),
+            # "params": {},
+            # "params": {"positive": [True, False]},
+            # "params": {"fit_intercept": [True, False]},
+            "params": {"fit_intercept": [False, True], "positive": [True, False]},
+        },
         "Ridge": {
             "model": Ridge(random_state=42),
-            "params": {"alpha": [1e-3, 1e-2, 1e-1, 100, 1000]},
+            "params": {
+                "alpha": [1e-3, 1e-2, 1e-1, 100, 1000],
+                "fit_intercept": [True, False],
+            },
         },
         "Lasso": {
             "model": Lasso(random_state=42),
-            "params": {"alpha": [1e-4, 1e-3, 1e-2, 1e-1, 100, 1000]},
+            "params": {
+                "alpha": [1e-4, 1e-3, 1e-2, 1e-1, 100, 1000],
+                "fit_intercept": [True, False],
+            },
         },
         # "ElasticNet": {
         #     "model": ElasticNet(random_state=42),
@@ -460,14 +473,20 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
                 warnings.simplefilter("ignore")
-                clf.fit(X_train, y_train)
-                if clf.best_score_ > best_score:
-                    best_score = clf.best_score_
-                    best_model = clf.best_estimator_
-                    best_model_name = model_name
-                    best_params = clf.best_params_
-                    best_intercept = best_model.intercept_
-                    best_coefficients = best_model.coef_
+                try:
+                    clf.fit(X_train, y_train)
+                    if clf.best_score_ > best_score:
+                        best_score = clf.best_score_
+                        best_model = clf.best_estimator_
+                        best_model_name = model_name
+                        best_params = clf.best_params_
+                        best_intercept = best_model.intercept_
+                        best_coefficients = best_model.coef_
+                except Exception as e:
+                    log.debug(
+                        f"Model for {extended_terms[i]}: {model_name}({mp['params']})"
+                    )
+                    log.debug(e)
 
         return extended_terms[i], {
             "model": best_model,
