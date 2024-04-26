@@ -871,6 +871,17 @@ def main(file_path: str = None):
 
     print(_str)
 
+    def sanitize_source(s):
+        return (
+            s.replace("'", "")
+            # .replace("alpha", "a")
+            .replace("{", "")
+            .replace("}", "")
+            .replace("fit_intercept", "intercept")
+            .replace("True", "T")
+            .replace("False", "F")
+        )
+
     # NOTE: Reporting--Display the inferred equalities
     print("\nInferred Equalities:")
     for loc, result in results.items():
@@ -894,7 +905,7 @@ def main(file_path: str = None):
         for i, eq in enumerate(result):
             if eq.error < settings.DELTA:
                 eql_s = str(equations[i])
-                max_m = max(max_m, len(eq.model_desc) + 1)
+                max_m = max(max_m, len(sanitize_source(eq.model_desc)) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
                 max_error = max(max_error, len(str(round(eq.error, 3))))
                 max_p = max(max_p, len(eq.pivot))
@@ -915,7 +926,7 @@ def main(file_path: str = None):
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
                 print(
-                    f"{eq.model_desc:<{max_m}}| {eq.pivot:^{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:^{max_s}} |"
+                    f"{sanitize_source(eq.model_desc):<{max_m}}| {eq.pivot:^{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:^{max_s}} |"
                 )
                 good_fit.add(eq.expr)
         print(ruler)
