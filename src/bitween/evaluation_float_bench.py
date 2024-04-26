@@ -1,7 +1,7 @@
 import math
 import sympy
 
-from bitween.main import generate_input_data, verify
+from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
 
 
@@ -22,7 +22,7 @@ def test_sin():
 
         return result
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -44,7 +44,7 @@ def test_sqrt():
     def F(x):
         return math.sqrt(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         # [MILP(k=4, timeout=3, max_bound=10, obj=1e-12)],  # methods
@@ -69,7 +69,7 @@ def test_sin_periodic():
     def f(x):
         return math.sin(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["f(x+pi)", "f(x-pi)", "f(x)", "f(-x)", "1"],

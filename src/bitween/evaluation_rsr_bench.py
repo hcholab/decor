@@ -1,7 +1,7 @@
 import math
 import sympy
 
-from bitween.main import generate_input_data, verify
+from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
 from bitween.settings import MILPSolver
 
@@ -23,7 +23,7 @@ def test_sin():
 
         return result
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -44,7 +44,7 @@ def test_cos():
     def F(x):
         return math.cos(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -65,7 +65,7 @@ def test_tan():
     def F(x):
         return math.tan(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -86,7 +86,7 @@ def test_tanh():
     def F(x):
         return math.tanh(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -107,7 +107,7 @@ def test_identity():
     def F(x, c=5):
         return c * x
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -128,7 +128,7 @@ def test_inverse():
     def F(x):
         return 1 / x
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -149,7 +149,7 @@ def test_inverse_add():
     def F(x):
         return 1 / (x + 1)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -171,7 +171,7 @@ def test_sqrt_add():
     def F(x):
         return 1.0 / (math.sqrt((x + 1.0)) + math.sqrt(x))
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -194,7 +194,7 @@ def test_exp():
     def F(x):
         return math.exp(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -216,7 +216,7 @@ def test_exp_div_by_x():
     def F(x):
         return math.exp(x) / x
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Tiny,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -238,7 +238,7 @@ def test_exp_div_by_log():
     def F(x):
         return (math.exp(x) - 1.0) / math.log(math.exp(x))
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
@@ -260,7 +260,7 @@ def test_floudas():
     def F(x1, x2):
         return x1 + x2
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         [
@@ -294,7 +294,7 @@ def test_mean():
     def F(x, y, z):
         return 1 / 3 * (x + y + z)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Integer,
         Distribution.Small,
         # fmt: off
@@ -317,7 +317,7 @@ def test_diff_x2_y2():
     def F(x1, x2):
         return x1**2 - x2**2
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         # fmt: off
@@ -340,7 +340,7 @@ def test_exp_minus_one():
     def F(x):
         return math.exp(x) - 1
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -361,7 +361,7 @@ def test_cot():
     def F(x):
         return 1 / math.tan(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -383,7 +383,7 @@ def test_inverse_cot_plus_one():
     def F(x):
         return 1 / (1 / math.tan(x) + 1)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -407,7 +407,7 @@ def test_inverse_tan_plus_one():
     def F(x):
         return 1 / (math.tan(x) + 1)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -428,7 +428,7 @@ def test_x_over_one_minus_x():
     def F(x):
         return x / (1 - x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -450,7 +450,7 @@ def test_minus_x_over_one_minus_x():
     def F(x):
         return -x / (1 - x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -472,7 +472,7 @@ def test_sin_over_sin():
     def F(x, a=math.radians(90), c=1):
         return math.sin(c * x) / math.sin(c * x + a)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
@@ -494,7 +494,7 @@ def test_sinh_over_sinh():
     def F(x, a=1, c=1):
         return math.sinh(c * x) / math.sinh(c * x + a)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
@@ -515,7 +515,7 @@ def test_cosh():
     def F(x):
         return math.cosh(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
@@ -536,7 +536,7 @@ def test_squared():
     def F(x):
         return x**2
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Integer,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
@@ -557,7 +557,7 @@ def test_sinh():
     def F(x):
         return math.sinh(x)
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
@@ -578,7 +578,7 @@ def test_sigmoid():
     def F(x):
         return 1 / (1 + math.exp(-x))
 
-    equations = generate_input_data(
+    equations = infer_property(
         Domain.Real,
         Distribution.Small,
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
