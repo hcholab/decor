@@ -1,10 +1,10 @@
 from enum import Enum
 
-FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
+FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.traces.csv"  # NOTE: NO NEED MILP
 # FILE_PATH = "benchmarks/bitween/dig/cohencu.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
 # FILE_PATH = "benchmarks/bitween/dig/cohendiv.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
 # FILE_PATH = "benchmarks/bitween/dig/dijkstra.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
-# FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
+# FILE_PATH = "benchmarks/bitween/dig/egcd.dig.dyn.traces.csv"  # NOTE: NO NEED MILP / ForwardSelection performs well
 # FILE_PATH = "benchmarks/bitween/dig/egcd2.dig.dyn.traces.csv"  # NOTE: NO NEED MILP
 # FILE_PATH = "benchmarks/bitween/dig/egcd3.dig.dyn.traces.csv"  # NOTE: NO NEED MILP / COMPARE this with egcd2
 # FILE_PATH = "benchmarks/bitween/dig/fermat1.dig.dyn.traces.csv"
@@ -50,6 +50,7 @@ class InitialMethod(Enum):
     MULTIPLE_REGRESSION = 0
     SIMPLE_REGRESSION = 1
     FORWARD_SELECTION = 2
+    EAGER_MILP = 3  # don't use this, it is for the ablation study
 
 
 INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
@@ -58,7 +59,7 @@ INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
 SELECTOR_INITIAL_RATE = 0.8
 SELECTOR_DECAY_RATE = 0.3
 SELECTOR_PARALLEL = True
-SELECTOR_MAX_FEATURES = 9 if 3 <= DEGREE <= 6 else (7 if DEGREE <= 2 else 11)
+SELECTOR_MAX_FEATURES = 9 if 3 <= DEGREE <= 6 else (8 if DEGREE <= 2 else 11)
 
 
 # NOTE: Multiple Regression Method

@@ -201,12 +201,6 @@ class TransformFunc(c_ast.NodeVisitor):
 def random_value(ctypes_type, distr=None):
     """
     Generates a random value based on the ctypes type.
-
-    Args:
-        ctypes_type: The ctypes type for which to generate a value.
-
-    Returns:
-        A random value appropriate for the given type.
     """
     if ctypes_type == ctypes.c_int:
         if distr:
