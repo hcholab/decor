@@ -178,14 +178,35 @@ class TransformFunc(c_ast.NodeVisitor):
         # Assuming the vdistr call looks like vdistr(var, min, max)
         if len(item.args.exprs) == 3:
             var_name = item.args.exprs[0].name
-            min_val = item.args.exprs[1].value
-            max_val = item.args.exprs[2].value
+            min_val = self.extract_value(item.args.exprs[1])
+            max_val = self.extract_value(item.args.exprs[2])
             if var_name not in [param[0] for param in self.params]:
                 print(f"Variable {var_name} not found in function parameters.")
                 return
             self.distr[var_name] = [min_val, max_val]  # Store the distribution interval
         else:
             print("Invalid vdistr call:", item)
+
+    def extract_value(self, expr):
+        # This method extracts the value from the expression,
+        # whether it is a direct constant or a negated value.
+        if isinstance(expr, c_ast.Constant):
+            type = expr.type
+            value = expr.value
+            if type == "int":
+                return int(value)
+            elif type == "float" or type == "double":
+                return float(value)
+        elif isinstance(expr, c_ast.UnaryOp) and expr.op == "-":
+            # Handle negation
+            type = expr.expr.type
+            value = expr.expr.value
+            if type == "int":
+                return int(value)
+            elif type == "float" or type == "double":
+                return float(value)
+        else:
+            raise ValueError(f"Unsupported expression type for bounds: {type(expr)}")
 
     def format_specifier(self, variable_name):
         type_name = self.curr_variables.get(variable_name, "int")
@@ -415,6 +436,11 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     )
 
     trace_path = f"{folder_path}/{func_name}.trace.csv"
+
+    print(f"Fuzzing {func_name} function with {iterations} random inputs...")
+    print(f"Params: {transformer.params}")
+    if transformer.distr:
+        print(f"Distributions: {transformer.distr}")
 
     # Fuzz the function with random inputs
     fuzz_function(
