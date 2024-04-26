@@ -458,6 +458,8 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
 
     print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
 
+    return trace_path
+
 
 if __name__ == "__main__":
     # Example usage
