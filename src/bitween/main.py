@@ -872,6 +872,9 @@ def main(file_path: str = None):
                 models = find_models_w_feature_selector(
                     extended_terms, extended_data, degree
                 )
+            elif settings.INITIAL_METHOD == settings.InitialMethod.EAGER_MILP:
+                # (Option 4) for ablation study
+                models = find_models(extended_terms, extended_data)
             else:
                 raise ValueError("Invalid initial method")
 
