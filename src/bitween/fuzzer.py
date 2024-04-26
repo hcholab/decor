@@ -23,6 +23,9 @@ def read_c_file(file_path):
 
 
 def preprocess_c_code(c_code):
+    """
+    Preprocesses the C code by removing comments, vtrace function definitions, and adding stdio.h if not included.
+    """
     # Extract preprocessor directives and store them
     preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
     # Check if stdio.h is included
@@ -56,6 +59,9 @@ def preprocess_c_code(c_code):
 
 
 class TransformFunc(c_ast.NodeVisitor):
+    """
+    A class to transform a C function by replacing vtrace calls with printf calls and handling vassume calls.
+    """
 
     def __init__(self, func_name):
         self.func_name = func_name
@@ -63,6 +69,7 @@ class TransformFunc(c_ast.NodeVisitor):
         # Added to capture the entry function's signature
         self.params = []
         self.return_type = None  # Added to capture the function's return type
+        self.distr = {}  # Dictionary to store distribution intervals
 
     def visit_FuncDef(self, node):
         self.curr_params = []
@@ -108,22 +115,27 @@ class TransformFunc(c_ast.NodeVisitor):
         if isinstance(node, c_ast.Compound):
             items_to_replace = []
             for item in node.block_items:
-                if isinstance(item, c_ast.FuncCall) and item.name.name.startswith(
-                    "vtrace"
-                ):
-                    new_printf_call, fflush_call = self.handle_vtrace_call(item)
-                    items_to_replace.append((item, (new_printf_call, fflush_call)))
-                elif isinstance(item, c_ast.FuncCall) and item.name.name == "vassume":
-                    new_if_statement = self.handle_vassume_call(item)
-                    items_to_replace.append((item, new_if_statement))
+                if isinstance(item, c_ast.FuncCall):
+                    if item.name.name.startswith("vtrace"):
+                        new_printf_call, fflush_call = self.handle_vtrace_call(item)
+                        items_to_replace.append((item, (new_printf_call, fflush_call)))
+                    elif item.name.name == "vassume":
+                        new_if_statement = self.handle_vassume_call(item)
+                        items_to_replace.append((item, new_if_statement))
+                    elif item.name.name == "vdistr":
+                        self.handle_vdistr_call(item)
+                        items_to_replace.append((item, None))
 
             for old_item, new_item in items_to_replace:
                 index = node.block_items.index(old_item)
                 if isinstance(new_item, tuple):  # This is from vtrace handling
                     node.block_items[index] = new_item[0]  # Replace with printf call
                     node.block_items.insert(index + 1, new_item[1])  # Insert fflush
-                else:  # This is from vassume handling
-                    node.block_items[index] = new_item  # Replace with if statement
+                else:  # This is from vassume and vdistr handling
+                    if new_item is not None:
+                        node.block_items[index] = new_item  # Replace with if statement
+                    else:
+                        node.block_items.remove(old_item)
 
         # Recursively process child nodes
         for child in node:
@@ -162,6 +174,19 @@ class TransformFunc(c_ast.NodeVisitor):
         )
         return if_statement
 
+    def handle_vdistr_call(self, item):
+        # Assuming the vdistr call looks like vdistr(var, min, max)
+        if len(item.args.exprs) == 3:
+            var_name = item.args.exprs[0].name
+            min_val = item.args.exprs[1].value
+            max_val = item.args.exprs[2].value
+            if var_name not in [param[0] for param in self.params]:
+                print(f"Variable {var_name} not found in function parameters.")
+                return
+            self.distr[var_name] = [min_val, max_val]  # Store the distribution interval
+        else:
+            print("Invalid vdistr call:", item)
+
     def format_specifier(self, variable_name):
         type_name = self.curr_variables.get(variable_name, "int")
         if type_name == "double":
@@ -173,7 +198,7 @@ class TransformFunc(c_ast.NodeVisitor):
         return "%d"  # Default case, consider int if type not found
 
 
-def random_value(ctypes_type):
+def random_value(ctypes_type, distr=None):
     """
     Generates a random value based on the ctypes type.
 
@@ -184,10 +209,16 @@ def random_value(ctypes_type):
         A random value appropriate for the given type.
     """
     if ctypes_type == ctypes.c_int:
+        if distr:
+            return random.randint(int(distr[0]), int(distr[1]))
         return random.randint(0, 300)
     elif ctypes_type == ctypes.c_float:
+        if distr:
+            return ctypes.c_float(random.uniform(float(distr[0]), float(distr[1])))
         return ctypes.c_float(random.uniform(-2.0, 2.0))
     elif ctypes_type == ctypes.c_double:
+        if distr:
+            return ctypes.c_double(random.uniform(float(distr[0]), float(distr[1])))
         return ctypes.c_double(random.uniform(-2.0, 2.0))
     return 0
 
@@ -232,17 +263,13 @@ def load_shared_library_func(
     return func
 
 
-def fuzz_function(func, trace_path, iterations=30, distributions=None):
+def fuzz_function(
+    func, trace_path, iterations=30, params=list[str], distr=dict[str:list]
+):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
     to a trace file named after the function, while keeping other outputs such as status
     messages and errors in the console.
-
-    Args:
-        func: The C function to be fuzzed.
-        param_types: List of ctypes types for the function's parameters.
-        func_name: Name of the function, used to name the trace file.
-        iterations: Number of times the function should be called with random inputs.
     """
 
     original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
@@ -253,7 +280,10 @@ def fuzz_function(func, trace_path, iterations=30, distributions=None):
     try:
         with open(trace_path, "w+") as trace_file:
             for i in range(iterations):
-                random_args = [random_value(ptype) for ptype in func.argtypes]
+                random_args = [
+                    random_value(ptype, distr.get(params[i], None))
+                    for i, ptype in enumerate(func.argtypes)
+                ]
 
                 # Flush any library-level buffers before redirection
                 sys.stdout.flush()
@@ -317,7 +347,7 @@ def sort_file_by_trace_marker(trace_path, trace_headers):
             file.writelines(trace_dict[key])
 
 
-def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distributions=None):
+def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output as a trace file.
     """
@@ -393,7 +423,13 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int, distribution
     trace_path = f"{folder_path}/{func_name}.trace.csv"
 
     # Fuzz the function with random inputs
-    fuzz_function(func, trace_path, iterations)
+    fuzz_function(
+        func,
+        trace_path,
+        iterations,
+        [p[0] for p in transformer.params],
+        transformer.distr,
+    )
 
     # NOTE: 5. Post-processing part
 
@@ -407,8 +443,8 @@ if __name__ == "__main__":
     # Example usage
 
     # This should be the path to your C file
-    # file_path = "./benchmarks/bitween/dig/bresenham.c"
-    # func_name = "bresenham"  # This should be the name of the function you want to fuzz
+    file_path = "./benchmarks/bitween/dig/bresenham.c"
+    func_name = "bresenham"  # This should be the name of the function you want to fuzz
 
     # file_path = "./benchmarks/bitween/dig/cohencu.c"
     # func_name = "cohencu"
@@ -521,9 +557,9 @@ if __name__ == "__main__":
     # func_name = "Eigenvalue_Computation"  # NOTE: be careful with this one
     # func_name = "Iterative_Gram_Schmidt_Method"
 
-    file_path = "./benchmarks/bitween/fpcore/rosa.c"
-    func_name = "doppler1"
+    # file_path = "./benchmarks/bitween/fpcore/rosa.c"
+    # func_name = "doppler1"
 
     iterations = 30  # Number of times to call the function with random inputs
 
-    fuzz_and_trace(file_path, func_name, iterations, distributions=None)
+    fuzz_and_trace(file_path, func_name, iterations)
