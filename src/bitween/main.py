@@ -957,7 +957,7 @@ def get_vars(template: list[str]):
     return vars
 
 
-def generate_input_data(
+def infer_property(
     domain: Domain,  # domain of the samples
     distribution: Distribution,  # distribution of the samples
     exprs: list[str],  # function calls to function basis
