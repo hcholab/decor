@@ -196,7 +196,7 @@ class TransformFunc(c_ast.NodeVisitor):
             if type == "int":
                 return int(value)
             elif type == "float" or type == "double":
-                return float(value)
+                return float(value.strip("f"))
         elif isinstance(expr, c_ast.UnaryOp) and expr.op == "-":
             # Handle negation
             type = expr.expr.type
@@ -204,7 +204,7 @@ class TransformFunc(c_ast.NodeVisitor):
             if type == "int":
                 return int(value)
             elif type == "float" or type == "double":
-                return float(value)
+                return float(value.strip("f"))
         else:
             raise ValueError(f"Unsupported expression type for bounds: {type(expr)}")
 
