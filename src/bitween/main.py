@@ -995,7 +995,7 @@ def infer_invariants(
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
     n: int = 50,  # number of iterations
-    delta: float = 0.1,  # error threshold
+    delta: float = 0.001,  # error threshold
     milp: settings.MILPSolver = None,
     var_bound: int = None,
 ):
