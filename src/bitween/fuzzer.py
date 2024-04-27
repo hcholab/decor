@@ -202,9 +202,9 @@ class TransformFunc(c_ast.NodeVisitor):
             type = expr.expr.type
             value = expr.expr.value
             if type == "int":
-                return int(value)
+                return -1 * int(value)
             elif type == "float" or type == "double":
-                return float(value.strip("f"))
+                return -1 * float(value.strip("f"))
         else:
             raise ValueError(f"Unsupported expression type for bounds: {type(expr)}")
 
@@ -465,8 +465,8 @@ if __name__ == "__main__":
     # Example usage
 
     # This should be the path to your C file
-    file_path = "./benchmarks/bitween/dig/bresenham.c"
-    func_name = "bresenham"  # This should be the name of the function you want to fuzz
+    # file_path = "./benchmarks/bitween/dig/bresenham.c"
+    # func_name = "bresenham"  # This should be the name of the function you want to fuzz
 
     # file_path = "./benchmarks/bitween/dig/cohencu.c"
     # func_name = "cohencu"
@@ -567,9 +567,9 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/sqrt1.c"
     # func_name = "sqrt1"
 
-    # file_path = "./benchmarks/bitween/fpcore/salsa.c"
+    file_path = "./benchmarks/bitween/fpcore/salsa.c"
     # func_name = "Odometry"
-    # func_name = "PID"
+    func_name = "PID"
     # func_name = "Runge_Kutta_4"
     # func_name = "Lead_lag_System"
     # func_name = "Trapeze"
