@@ -13,7 +13,7 @@ def odometry():
 def pid():
     file_path = "./benchmarks/bitween/fpcore/salsa.c"
     func_name = "PID"
-    infer_invariants(file_path, func_name, max_degree=3, n=5, milp=solver)
+    infer_invariants(file_path, func_name, max_degree=2, n=10, milp=solver)
 
 
 if __name__ == "__main__":
