@@ -10,7 +10,7 @@ from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SequentialFeatureSelector
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error  # noqa F401
 from sklearn.pipeline import Pipeline
 import sympy
 import csv
@@ -242,8 +242,8 @@ def find_models_w_feature_selector(
         max_features = settings.SELECTOR_MAX_FEATURES
         # Define the range of features to select
         last_mse = np.inf
-        n_features = max_features
-        while n_features > 0:
+        # n_features = max_features
+        for n_features in range(1, max_features):  # Will go from 7 to 4
             print(f"\nEvaluating model with {n_features} features selected:")
             # Define the feature selector with the current number of features
             selector = SequentialFeatureSelector(
@@ -292,9 +292,10 @@ def find_models_w_feature_selector(
             # Predict and evaluate the model on the test set
             # mse = mean_squared_error(y_test, model.predict(X_test[:, mask]))
             # NOTE use the entire X and y for evaluating the equation
-            mse = mean_squared_error(y, model.predict(X_[:, mask]))
+            # mse = mean_squared_error(y, model.predict(X_[:, mask]))
+            mse = mean_absolute_error(y, model.predict(X_[:, mask]))
             if mse <= best_error:
-                best_score = model.score(X_test[:, mask], y_test)
+                best_score = mse
                 best_model = model
                 best_intercept = model.intercept_
                 best_coefficients = extended_coefficients
@@ -317,7 +318,7 @@ def find_models_w_feature_selector(
             #     n_features = selected_features_n
             # else:
             #     # Decrease the number of features to select
-            n_features -= 1
+            # n_features -= 1
 
         return pivot, {
             "model": best_model,

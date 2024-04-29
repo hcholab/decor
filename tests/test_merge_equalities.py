@@ -212,14 +212,9 @@ class Reducer:
 
     @classmethod
     def merge_equations(cls, eqts: list[sympy.Expr]) -> list[sympy.Expr]:
-        """
-        Merge similar equations into a single equation
-        """
 
         if not eqts:
             return eqts
-
-        n_eqts = len(eqts)
 
         for i, eq in enumerate(eqts):
             eqts[i] = cls.elim_denom(cls.normalize_expr(eq))
@@ -239,17 +234,12 @@ class Reducer:
             root = uf.find(i)
             groups.setdefault(root, []).append(eq)
 
-        # print(groups)
+        print(groups)
 
         # Choose best representation from each group
         equivalence_classes = []
         for group in groups.values():
             equivalence_classes.append(min(group, key=lambda e: len(str(e))))
-
-        log.debug(f"Union Find: from {n_eqts} to {len(equivalence_classes)} ps")
-
-        # for eq in equivalence_classes:
-        #     print(f"{eq} = 0")
 
         eqts = cls.reduce_eqts(equivalence_classes)
         eqts = [cls.elim_denom(s) for s in eqts]
@@ -281,5 +271,4 @@ if __name__ == "__main__":
     # equations = Reducer.merge_equations([eq7, eq8])
     # equations = Reducer.merge_equations([eq1, eq2, eq3])
     equations = Reducer.merge_equations([eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8])
-    for eq in equations:
-        print(f"{eq} = 0")
+    print(equations)

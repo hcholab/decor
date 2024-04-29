@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     st = time()
 
-    # bresenham()
+    bresenham()
     # cohencu()
     # cohendiv()
     # dijkstra()
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     # ps2()
     # ps3()
     # ps4()
-    ps5()
+    # ps5()
     # ps6()
     # sqrt1()
 
