@@ -9,13 +9,13 @@ log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
-    infer_invariants(file_path, func_name, max_degree=2, n=20, milp=solver)
+    infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
 
 
 def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    infer_invariants(file_path, func_name, max_degree=2, n=20, milp=solver)
+    infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
 
 
 def cohendiv():
@@ -52,7 +52,7 @@ def egcd2():
 def egcd3():
     file_path = "./benchmarks/bitween/dig/egcd3.c"
     func_name = "egcd3"
-    infer_invariants(file_path, func_name, max_degree=2, n=20, milp=solver)
+    infer_invariants(file_path, func_name, max_degree=2, n=18, milp=solver)
 
 
 def fermat1():
@@ -100,7 +100,7 @@ def geo2():
 def geo3():
     file_path = "./benchmarks/bitween/dig/geo3.c"
     func_name = "geo3"
-    infer_invariants(file_path, func_name, max_degree=3, n=50, bound=8, milp=solver)
+    infer_invariants(file_path, func_name, max_degree=3, n=60, milp=solver)
 
 
 def hard():
@@ -234,8 +234,8 @@ if __name__ == "__main__":
     # ps2()
     # ps3()
     # ps4()
-    # ps5()
+    ps5()
     # ps6()
-    sqrt1()
+    # sqrt1()
 
     log.debug(f"Time: {time() - st:.2f}s")
