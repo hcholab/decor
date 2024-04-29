@@ -128,7 +128,7 @@ UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coeffi
 
 # NOTE: Z3
 SOLVER_TIMEOUT = 10  # in seconds
-SLOW_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
+SLOW_SIMPLIFY = False  # simplify results, e.g., removing weaker invariants
 CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 
 # NOTE: Reporting
