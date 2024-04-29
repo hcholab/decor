@@ -30,6 +30,7 @@ from bitween.sampler import Domain, Distribution, sample
 from bitween.utilities import pp
 from bitween.z3utils import Z3
 from bitween.fuzzer import fuzz_and_trace  # noqa F401
+from bitween.reducer import Reducer  # noqa F401
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
@@ -961,7 +962,9 @@ def main(file_path: str = None):
         log.debug(f"Total time before the last reduction: {time() - st:.2f}s")
 
         log.debug("Reduced Equalities:")
-        equations = Symbolic.refine(good_fit)
+        # TODO: which one is better?
+        # equations = Symbolic.refine(good_fit)
+        equations = Reducer.merge_equations(list(good_fit))
 
         for eq in equations:
             print(f"{eq} = 0")
