@@ -36,6 +36,13 @@ def preprocess_c_code(c_code):
     if not stdio_included:
         preprocessor_directives.append("#include <stdio.h>")
 
+    assert_included = any(
+        "#include <assert.h>" in directive for directive in preprocessor_directives
+    )
+    # Add assert.h if not included
+    if not assert_included:
+        preprocessor_directives.append("#include <assert.h>")
+
     # Remove directives and vtrace function definitions from the code
     preprocessed_code = re.sub(
         r"^\s*#.*$|^void vtrace[0-9]+\(.*\)\s*\{\s*\}", "", c_code, flags=re.MULTILINE
@@ -119,7 +126,7 @@ class TransformFunc(c_ast.NodeVisitor):
                     if item.name.name.startswith("vtrace"):
                         new_printf_call, fflush_call = self.handle_vtrace_call(item)
                         items_to_replace.append((item, (new_printf_call, fflush_call)))
-                    elif item.name.name == "vassume":
+                    elif item.name.name == "vassume" or item.name.name == "assume":
                         new_if_statement = self.handle_vassume_call(item)
                         items_to_replace.append((item, new_if_statement))
                     elif item.name.name == "vdistr":
@@ -239,7 +246,11 @@ def random_value(ctypes_type, distr=None):
 
 
 def load_shared_library_func(
-    folder_path: str, func_name: str, return_type: str, params: list[tuple[str, str]]
+    folder_path: str,
+    func_name: str,
+    return_type: str,
+    params: list[tuple[str, str]],
+    check_assertions=False,
 ):
     """
     Loads the shared library and defines the function prototype using ctypes.
@@ -250,7 +261,10 @@ def load_shared_library_func(
         params (list): List of tuples containing parameter names and types.
     """
     # Load the shared library
-    lib = CDLL(f"{folder_path}/{func_name}.so")
+    if check_assertions:
+        lib = CDLL(f"{folder_path}/{func_name}_assertions.so")
+    else:
+        lib = CDLL(f"{folder_path}/{func_name}.so")
 
     # Define the function prototype in ctypes
     func = getattr(lib, func_name)
@@ -278,7 +292,34 @@ def load_shared_library_func(
     return func
 
 
-def fuzz_function(
+def fuzz_function_to_check_assertions(func, iterations, params, distr):
+
+    try:
+        for i in range(iterations):
+            random_args = [
+                random_value(ptype, distr.get(params[i], None))
+                for i, ptype in enumerate(func.argtypes)
+            ]
+
+            try:
+                # Perform the function call with stdout redirected
+                result = func(*random_args)
+            except Exception as e:
+                # Write errors directly to the trace file if function fails
+                print(
+                    f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}"
+                )
+
+            # Output the call status to console
+            print(
+                f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
+            )
+
+    except KeyboardInterrupt:
+        print("Fuzzing interrupted by user.")
+
+
+def fuzz_function_to_collect_traces(
     func, trace_path, iterations=30, params=list[str], distr=dict[str:list]
 ):
     """
@@ -443,7 +484,7 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
         print(f"Distributions: {transformer.distr}")
 
     # Fuzz the function with random inputs
-    fuzz_function(
+    fuzz_function_to_collect_traces(
         func,
         trace_path,
         iterations,
@@ -461,12 +502,175 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     return trace_path
 
 
+class TransformFuncForAssertions(c_ast.NodeVisitor):
+    def __init__(self, func_name, trace_equations):
+        self.func_name = func_name
+        # Dictionary of trace locations to equations
+        self.trace_equations = trace_equations
+        # Added to capture the entry function's signature
+        self.params = []
+        self.return_type = None  # Added to capture the function's return type
+        self.distr = {}  # Dictionary to store distribution intervals
+
+    def visit_FuncDef(self, node):
+        # Extract the function's return type
+        if node.decl.name == self.func_name:
+            self.return_type = (
+                node.decl.type.type.type.names[0]
+                if isinstance(node.decl.type, c_ast.FuncDecl)
+                else "int"
+            )
+
+        # Collect function parameter types
+        params = node.decl.type.args.params
+        if node.decl.name == self.func_name:
+            for param in params:
+                type_name = param.type.type.names[0]
+                self.params.append((param.name, type_name))
+
+        # if block_items is None, the function is defined but not implemented
+        if node.body.block_items is None:
+            return
+
+        if node.decl.name == self.func_name:
+            # Traverse and modify the function body if it matches the specified function name
+            self.replace_vtrace_calls(node.body)
+
+    def replace_vtrace_calls(self, node):
+        if isinstance(node, c_ast.Compound):
+            new_items = []
+            for item in node.block_items:
+                if (
+                    isinstance(item, c_ast.FuncCall)
+                    and item.name.name in self.trace_equations
+                ):
+                    # Replace vtrace calls with assert statements
+                    for equation in self.trace_equations[item.name.name]:
+                        assert_stmt = self.create_assert_statement(equation)
+                        new_items.append(assert_stmt)
+                elif isinstance(item, c_ast.FuncCall) and item.name.name == "vdistr":
+                    # Ignore vdistr calls, do not add to new_items
+                    continue
+                elif isinstance(item, c_ast.FuncCall) and (
+                    item.name.name == "assume" or item.name.name == "vassume"
+                ):
+                    # Transform assume calls into if conditions leading to return
+                    new_if_statement = self.handle_assume_call(item)
+                    new_items.append(new_if_statement)
+                else:
+                    new_items.append(item)
+            node.block_items = new_items
+
+        # Recursively process child nodes
+        for child in node:
+            self.replace_vtrace_calls(child)
+
+    def create_assert_statement(self, equation):
+        # Create an assert statement for the given equation
+        return c_ast.FuncCall(
+            name=c_ast.ID(name="assert"),
+            args=c_ast.ExprList(exprs=[c_ast.Constant(type="int", value=equation)]),
+        )
+
+    def handle_assume_call(self, item):
+        # Transform assume call into an if statement that checks condition and returns if false
+        negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
+        return_statement = c_ast.Return(expr=c_ast.Constant(type="int", value="0"))
+        if_statement = c_ast.If(
+            cond=negated_condition,
+            iftrue=c_ast.Compound(block_items=[return_statement]),
+            iffalse=None,
+        )
+        return if_statement
+
+
+def fuzz_and_check(file_path, func_name, iterations, trace_equations):
+    """
+    Fuzzes the given C function by calling it with random inputs and checks the assertions.
+    """
+
+    # remove the .c extension from the file_path
+    folder_path = os.path.dirname(file_path)
+
+    c_code = read_c_file(file_path)
+
+    if c_code is None:
+        print("Error reading the C file.")
+        exit()
+
+    # NOTE: 1. Preprocessing part
+
+    # Preprocess the C code and extract preprocessor directives
+    # CParser does not handle preprocessor directives, so we need to extract and add them back later
+    preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
+
+    # NOTE: 2. Parsing and instrumentation part
+
+    # Parse the code using pycparser
+    parser = c_parser.CParser()
+    ast = parser.parse(preprocessed_code.strip())
+    # Visit and process the function definition
+    transformer = TransformFuncForAssertions(func_name, trace_equations)
+    transformer.visit(ast)
+
+    # Generate the modified C code
+    generator = c_generator.CGenerator()
+    final_code = generator.visit(ast)
+
+    # Add back the preprocessor directives
+    final_c_code_with_directives = (
+        "\n".join(preprocessor_directives) + "\n" + final_code
+    )
+    print(final_c_code_with_directives)
+
+    func_name_instrumented = f"{folder_path}/{func_name}.assertions.c"
+
+    with open(func_name_instrumented, "w") as file:
+        file.write(final_c_code_with_directives)
+
+    # NOTE: 3. Compilation part
+
+    # Compile the C file into a shared library (.so file)
+    shared_lib_name = f"{func_name}_assertions.so"
+    compile_command = (
+        f"gcc -shared -fPIC -o {folder_path}/{shared_lib_name} {func_name_instrumented}"
+    )
+
+    try:
+        # Execute the compile command
+        compilation_result = subprocess.run(
+            compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
+        )
+        print("Compilation successful. Shared library created:", shared_lib_name)
+    except subprocess.CalledProcessError as e:
+        # Handle errors in compilation
+        print("Compilation failed:")
+        print(e.stderr)
+
+    # NOTE: 4. Fuzzing part
+
+    # Load the shared library function
+    func = load_shared_library_func(
+        folder_path, func_name, transformer.return_type, transformer.params, True
+    )
+
+    print(f"Fuzzing {func_name} function with {iterations} random inputs...")
+    print(f"Params: {transformer.params}")
+    if transformer.distr:
+        print(f"Distributions: {transformer.distr}")
+
+    # Fuzz the function with random inputs
+    fuzz_function_to_check_assertions(
+        func, iterations, [p[0] for p in transformer.params], transformer.distr
+    )
+
+
 if __name__ == "__main__":
     # Example usage
 
     # This should be the path to your C file
-    # file_path = "./benchmarks/bitween/dig/bresenham.c"
-    # func_name = "bresenham"  # This should be the name of the function you want to fuzz
+    file_path = "./benchmarks/bitween/dig/bresenham.c"
+    func_name = "bresenham"  # This should be the name of the function you want to fuzz
 
     # file_path = "./benchmarks/bitween/dig/cohencu.c"
     # func_name = "cohencu"
@@ -528,60 +732,24 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/mannadiv.c"
     # func_name = "mannadiv"
 
-    # file_path = "./benchmarks/bitween/dig/poly3_1.c"
-    # func_name = "poly3_1"
-
-    # file_path = "./benchmarks/bitween/dig/poly3.c"
-    # func_name = "poly3"
-
-    # file_path = "./benchmarks/bitween/dig/poly4.c"
-    # func_name = "poly4"
-
-    # file_path = "./benchmarks/bitween/dig/poly5.c"
-    # func_name = "poly5"
-
-    # file_path = "./benchmarks/bitween/dig/prod4br.c"
-    # func_name = "prod4br"
-
-    # file_path = "./benchmarks/bitween/dig/prodbin.c"
-    # func_name = "prodbin"
-
-    # file_path = "./benchmarks/bitween/dig/ps1.c"
-    # func_name = "ps1"
-
-    # file_path = "./benchmarks/bitween/dig/ps2.c"
-    # func_name = "ps2"
-
-    # file_path = "./benchmarks/bitween/dig/ps3.c"
-    # func_name = "ps3"
-
-    # file_path = "./benchmarks/bitween/dig/ps4.c"
-    # func_name = "ps4"
-
-    # file_path = "./benchmarks/bitween/dig/ps5.c"
-    # func_name = "ps5"
-
-    # file_path = "./benchmarks/bitween/dig/ps6.c"
-    # func_name = "ps6"
-
-    # file_path = "./benchmarks/bitween/dig/sqrt1.c"
-    # func_name = "sqrt1"
-
-    file_path = "./benchmarks/bitween/fpcore/salsa.c"
-    # func_name = "Odometry"
-    func_name = "PID"
-    # func_name = "Runge_Kutta_4"
-    # func_name = "Lead_lag_System"
-    # func_name = "Trapeze"
-    # func_name = "rocket_trajectory"  # NOTE: be careful with this one
-    # func_name = "Jacobis_Method" # NOTE: be careful with this one
-    # func_name = "Newton_Raphsons_Method"
-    # func_name = "Eigenvalue_Computation"  # NOTE: be careful with this one
-    # func_name = "Iterative_Gram_Schmidt_Method"
-
     # file_path = "./benchmarks/bitween/fpcore/rosa.c"
     # func_name = "doppler1"
+
+    # file_path = "./benchmarks/bitween/fpcore/salsa.c"
+    # func_name = "Odometry"
+    # func_name = "PID"
+    # func_name = "Runge_Kutta_4"
 
     iterations = 30  # Number of times to call the function with random inputs
 
     fuzz_and_trace(file_path, func_name, iterations)
+
+    fuzz_and_check(
+        file_path,
+        func_name,
+        iterations,
+        {
+            "vtrace1": ["X + 2*X*y - 2*Y - 2*Y*x + v == 0"],
+            "vtrace2": ["2*Y*x - 2*X*y - X + 2*Y - v == 0", "X - x + 1 == 0"],
+        },
+    )
