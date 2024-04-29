@@ -532,6 +532,7 @@ def infer_equations(  # noqa F811
         selected_data: np.ndarray,
         model_desc: str,
         blocked: str,
+        bound: int = settings.MILP_BOUND,
     ):
         str_ = ""
         optimal = None
@@ -561,7 +562,7 @@ def infer_equations(  # noqa F811
                 selected_data,
                 selected_terms,
                 pivot,
-                bound=settings.MILP_BOUND,
+                bound=bound,
                 timeout=settings.MILP_TIME_LIMIT,
                 blocked=blocked,
             )
@@ -571,7 +572,7 @@ def infer_equations(  # noqa F811
                 selected_data,
                 selected_terms,
                 pivot,
-                bound=settings.MILP_BOUND,
+                bound=bound,
                 timeout=settings.MILP_TIME_LIMIT,
                 blocked=blocked,
             )
@@ -836,6 +837,7 @@ def main(file_path: str = None):
         file_path = settings.FILE_PATH
 
     st = time()
+    samples = 0
 
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
@@ -845,6 +847,7 @@ def main(file_path: str = None):
     for loc, data in trace_data.items():
         terms = data["terms"]
         data = data["data"]
+        samples += data.shape[0]
 
         _str += f"\nLocation: {loc}\n"
         _str += f"Terms: {terms}\n"
@@ -953,14 +956,17 @@ def main(file_path: str = None):
                 good_fit.add(eq.expr)
         print(ruler)
 
-        print("\nReduced Equalities:")
+        # NOTE: Reductions
+
+        log.debug(f"Total time before the last reduction: {time() - st:.2f}s")
+
+        log.debug("Reduced Equalities:")
         equations = Symbolic.refine(good_fit)
 
         for eq in equations:
             print(f"{eq} = 0")
 
-        # NOTE: Reporting--Display the inferred equalities
-        log.debug(f"Time: {time() - st:.2f}s")
+        log.debug(f"Analysis Time: {time() - st:.2f}s")
 
         if settings.SLOW_SIMPLIFY:
             equations = Z3._simplify_slow(equations, [], loc)
@@ -979,6 +985,9 @@ def main(file_path: str = None):
             sat, r = Z3.check_sat(equations)
             print(f"{sat}, {r}")
 
+    # debug the total number of traces
+    log.debug(f"{samples} samples is used.")
+
     return equations
 
 
@@ -994,10 +1003,11 @@ def infer_invariants(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
-    n: int = 50,  # number of iterations
+    n: int = 40,  # number of iterations
     delta: float = 0.001,  # error threshold
     milp: settings.MILPSolver = None,
-    var_bound: int = None,
+    bound: int = None,
+    method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
 ):
     """
     Infers invariants from given C program having vtraces, vassumes, and vdistrs.
@@ -1011,8 +1021,10 @@ def infer_invariants(
     else:
         settings.MILP = False
 
-    if var_bound:
-        settings.MILP_BOUND = var_bound
+    if bound:
+        settings.MILP_BOUND = bound
+
+    settings.INITIAL_METHOD = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
