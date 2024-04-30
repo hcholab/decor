@@ -4,6 +4,10 @@ from pycparser import c_parser, c_generator, c_ast
 import subprocess
 import os
 
+"""
+This module provides a function to fuzz a C function with random inputs and check assertions.
+"""
+
 
 def read_c_file(file_path):
     try:
