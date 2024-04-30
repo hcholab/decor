@@ -277,11 +277,14 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
         )
 
         # Store the result along with the input data
-        results.append((input_str, result.stdout, result.returncode))
+        results.append((input_str, result.stdout, result.stderr, result.returncode))
 
     # Analyze the results
-    for input_data, output, return_code in results:
-        print(f"Input: {input_data} | Output: {output} | Return Code: {return_code}")
+    for input_data, output, error, return_code in results:
+        if return_code != 0:
+            print(f"Test Failed | Input: {input_data} | Error Message: {error.strip()}")
+        else:
+            print(f"Test Passed | Input: {input_data} | Output: {output.strip()}")
 
 
 def fuzz_and_check(file_path, func_name, iterations, trace_equations):
