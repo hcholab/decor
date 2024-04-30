@@ -3,6 +3,7 @@ import re
 from pycparser import c_parser, c_generator, c_ast
 import subprocess
 import os
+import sympy
 
 """
 This module provides a function to fuzz a C function with random inputs and check assertions.
@@ -28,20 +29,27 @@ def preprocess_c_code(c_code):
     """
     # Extract preprocessor directives and store them
     preprocessor_directives = re.findall(r"^\s*#.*$", c_code, flags=re.MULTILINE)
-    # Check if stdio.h is included
+    # Add stdio.h if not included
     stdio_included = any(
         "#include <stdio.h>" in directive for directive in preprocessor_directives
     )
-    # Add stdio.h if not included
     if not stdio_included:
         preprocessor_directives.append("#include <stdio.h>")
 
+    # Add assert.h if not included
     assert_included = any(
         "#include <assert.h>" in directive for directive in preprocessor_directives
     )
-    # Add assert.h if not included
     if not assert_included:
         preprocessor_directives.append("#include <assert.h>")
+
+    # Add math.h if not included
+    math_included = any(
+        "#include <math.h>" in directive for directive in preprocessor_directives
+    )
+    # Add math.h if not included
+    if not math_included:
+        preprocessor_directives.append("#include <math.h>")
 
     # Remove directives and vtrace function definitions from the code
     preprocessed_code = re.sub(
@@ -266,7 +274,9 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
         for param in params:
             param_name = param[0]
             param_type = param[1]
-            test_inputs.append(str(random_value(param_type, distributions[param_name])))
+            test_inputs.append(
+                str(random_value(param_type, distributions.get(param_name, None)))
+            )
 
         # Convert list to command-line arguments
         input_str = " ".join(test_inputs)
@@ -287,10 +297,12 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
             print(f"Test Passed | Input: {input_data} | Output: {output.strip()}")
 
 
-def fuzz_and_check(file_path, func_name, iterations, trace_equations):
+def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     """
     Fuzzes the given C function by calling it with random inputs and checks the assertions.
     """
+    for trace, equations in trace_equations.items():
+        trace_equations[trace] = [sympy.ccode(equation) for equation in equations]
 
     # remove the .c extension from the file_path
     folder_path = os.path.dirname(file_path)
@@ -367,14 +379,41 @@ if __name__ == "__main__":
 
     # This should be the path to your C file
     file_path = "./benchmarks/bitween/dig/bresenham.c"
-    func_name = "bresenham"  # This should be the name of the function you want to fuzz
+    func_name = "bresenham"
 
     fuzz_and_check(
         file_path,
         func_name,
-        5,
         {
-            "vtrace1": ["X + 2*X*y - 2*Y - 2*Y*x + v == 0"],
-            "vtrace2": ["2*Y*x - 2*X*y - X + 2*Y - v == 0", "X - x + 1 == 0"],
+            "vtrace1": [
+                sympy.parse_expr("X + 2*X*y - 2*Y - 2*Y*x + v == 0", evaluate=False)
+            ],
+            "vtrace2": [
+                sympy.parse_expr("2*Y*x - 2*X*y - X + 2*Y - v == 0", evaluate=False),
+                sympy.parse_expr("X - x + 1 == 0", evaluate=False),
+            ],
         },
+        5,
+    )
+
+    print("\n\n\n")
+
+    file_path = "./benchmarks/bitween/dig/cohencu.c"
+    func_name = "cohencu"
+
+    fuzz_and_check(
+        file_path,
+        func_name,
+        {
+            "vtrace1": [
+                sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
+                sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
+            ],
+            "vtrace2": [
+                sympy.parse_expr("6*a - z + 12 == 0", evaluate=False),
+                sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
+                sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
+            ],
+        },
+        5,
     )
