@@ -549,7 +549,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
                         assert_stmt = self.create_assert_statement(equation)
                         new_items.append(assert_stmt)
                 elif isinstance(item, c_ast.FuncCall) and item.name.name == "vdistr":
-                    # Ignore vdistr calls, do not add to new_items
+                    self.handle_vdistr_call(item)
                     continue
                 elif isinstance(item, c_ast.FuncCall) and (
                     item.name.name == "assume" or item.name.name == "vassume"
@@ -582,6 +582,40 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             iffalse=None,
         )
         return if_statement
+
+    def handle_vdistr_call(self, item):
+        # Assuming the vdistr call looks like vdistr(var, min, max)
+        if len(item.args.exprs) == 3:
+            var_name = item.args.exprs[0].name
+            min_val = self.extract_value(item.args.exprs[1])
+            max_val = self.extract_value(item.args.exprs[2])
+            if var_name not in [param[0] for param in self.params]:
+                print(f"Variable {var_name} not found in function parameters.")
+                return
+            self.distr[var_name] = [min_val, max_val]  # Store the distribution interval
+        else:
+            print("Invalid vdistr call:", item)
+
+    def extract_value(self, expr):
+        # This method extracts the value from the expression,
+        # whether it is a direct constant or a negated value.
+        if isinstance(expr, c_ast.Constant):
+            type = expr.type
+            value = expr.value
+            if type == "int":
+                return int(value)
+            elif type == "float" or type == "double":
+                return float(value.strip("f"))
+        elif isinstance(expr, c_ast.UnaryOp) and expr.op == "-":
+            # Handle negation
+            type = expr.expr.type
+            value = expr.expr.value
+            if type == "int":
+                return -1 * int(value)
+            elif type == "float" or type == "double":
+                return -1 * float(value.strip("f"))
+        else:
+            raise ValueError(f"Unsupported expression type for bounds: {type(expr)}")
 
 
 def fuzz_and_check(file_path, func_name, iterations, trace_equations):
@@ -750,6 +784,6 @@ if __name__ == "__main__":
         iterations,
         {
             "vtrace1": ["X + 2*X*y - 2*Y - 2*Y*x + v == 0"],
-            "vtrace2": ["2*Y*x - 2*X*y - X + 2*Y - v == 0", "X - x + 1 == 0"],
+            "vtrace2": ["2*Y*x - 2*X*y - X + 2*Y - v == 0", "X - x - 1 == 0"],
         },
     )
