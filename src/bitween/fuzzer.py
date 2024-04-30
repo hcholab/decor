@@ -1,9 +1,6 @@
 import re
-import sys
 from pycparser import c_parser, c_generator, c_ast
 import subprocess
-import ctypes
-from ctypes import CDLL
 import random
 import os
 import time
@@ -226,74 +223,71 @@ class TransformFunc(c_ast.NodeVisitor):
         return "%d"  # Default case, consider int if type not found
 
 
-def random_value(ctypes_type, distr=None):
+def create_test_driver(func_name, params, return_type):
     """
-    Generates a random value based on the ctypes type.
+    Generates a main function to test the given C function with command-line arguments.
     """
-    if ctypes_type == ctypes.c_int:
+    # String template for the main function
+    main_function = "int main(int argc, char** argv) {\n"
+    main_function += f"    if (argc != {len(params) + 1}) {{\n"
+    main_function += '        printf("Usage: %s '
+    for param_name, param_type in params:
+        main_function += f"<{param_name}:{param_type}> "
+    main_function += '\\n", argv[0]);\n        return 1;\n    }\n\n'
+    for i, (param_name, param_type) in enumerate(params, start=1):
+        conversion_function = "atoi" if param_type == "int" else "atof"
+        main_function += (
+            f"    {param_type} {param_name} = {conversion_function}(argv[{i}]);\n"
+        )
+    param_names = ", ".join([name for name, _ in params])
+    if return_type != "void":
+        main_function += f"    {return_type} result = {func_name}({param_names});\n"
+        print_statement = (
+            'printf("%d\\n", result);'
+            if return_type == "int"
+            else 'printf("%f\\n", result);'
+        )
+        main_function += f"    {print_statement}\n"
+    else:
+        main_function += f"    {func_name}({param_names});\n"
+    main_function += "    return 0;\n}\n"
+    return main_function
+
+
+def compile_code(source_file):
+    # Assuming gcc is installed and available in the path
+    executable = source_file.replace(".fuzzer.c", ".fuzzer")
+    compilation_command = ["gcc", source_file, "-o", executable]
+    try:
+        subprocess.run(compilation_command, check=True)
+        print(f"Compilation successful: {executable} created.")
+        return executable
+    except subprocess.CalledProcessError:
+        print("Compilation failed.")
+        return None
+
+
+def random_value(param_type, distr=None):
+    """
+    Generates a random value based on the parameter type.
+    """
+    if param_type == "int":
         if distr:
             return random.randint(int(distr[0]), int(distr[1]))
         return random.randint(0, 300)
-    elif ctypes_type == ctypes.c_float:
+    elif param_type == "float":
         if distr:
-            return ctypes.c_float(random.uniform(float(distr[0]), float(distr[1])))
-        return ctypes.c_float(random.uniform(-2.0, 2.0))
-    elif ctypes_type == ctypes.c_double:
+            return random.uniform(float(distr[0]), float(distr[1]))
+        return random.uniform(-2.0, 2.0)
+    elif param_type == "double":
         if distr:
-            return ctypes.c_double(random.uniform(float(distr[0]), float(distr[1])))
-        return ctypes.c_double(random.uniform(-2.0, 2.0))
+            return random.uniform(float(distr[0]), float(distr[1]))
+        return random.uniform(-2.0, 2.0)
     return 0
 
 
-def load_shared_library_func(
-    folder_path: str,
-    func_name: str,
-    return_type: str,
-    params: list[tuple[str, str]],
-    check_assertions=False,
-):
-    """
-    Loads the shared library and defines the function prototype using ctypes.
-
-    Args:
-        func_name (str): Name of the function to be loaded.
-        return_type (str): Return type of the function.
-        params (list): List of tuples containing parameter names and types.
-    """
-    # Load the shared library
-    if check_assertions:
-        lib = CDLL(f"{folder_path}/{func_name}_assertions.so")
-    else:
-        lib = CDLL(f"{folder_path}/{func_name}.so")
-
-    # Define the function prototype in ctypes
-    func = getattr(lib, func_name)
-
-    if return_type == "int":
-        func.restype = ctypes.c_int
-    elif return_type == "float":
-        func.restype = ctypes.c_float
-    elif return_type == "double":
-        func.restype = ctypes.c_double
-
-    # Convert the parameter types to ctypes
-    param_types = []
-    for param in params:
-        if param[1] == "int":
-            param_types.append(ctypes.c_int)
-        elif param[1] == "float":
-            param_types.append(ctypes.c_float)
-        elif param[1] == "double":
-            param_types.append(ctypes.c_double)
-
-    # Define the types of the parameters
-    func.argtypes = param_types
-
-    return func
-
-
 def fuzz_function_to_collect_traces(
-    func, trace_path, iterations=30, params=list[str], distr=dict[str:list]
+    executable, trace_path, iterations, params, distributions
 ):
     """
     Fuzzes the given C function by calling it with random inputs and writes the output
@@ -301,51 +295,54 @@ def fuzz_function_to_collect_traces(
     messages and errors in the console.
     """
 
-    original_stdout_fd = sys.stdout.fileno()  # usually 1 for stdout
+    # extract the file name from the path
+    file_name = os.path.basename(executable)
+    file_name = os.path.splitext(file_name)[0]
 
-    # Create a duplicate of the original stdout for restoring later
-    saved_stdout_fd = os.dup(original_stdout_fd)
-
-    try:
-        with open(trace_path, "w+") as trace_file:
-            for i in range(iterations):
-                random_args = [
-                    random_value(ptype, distr.get(params[i], None))
-                    for i, ptype in enumerate(func.argtypes)
-                ]
-
-                # Flush any library-level buffers before redirection
-                sys.stdout.flush()
-
-                # Redirect stdout to our trace file
-                os.dup2(trace_file.fileno(), original_stdout_fd)
-
-                try:
-                    # Perform the function call with stdout redirected
-                    result = func(*random_args)
-                except Exception as e:
-                    # Write errors directly to the trace file if function fails
-                    print(
-                        f"Error calling {func.__name__} with args ({', '.join(map(str, random_args))}): {str(e)}",
-                        file=trace_file,
-                    )
-                finally:
-                    # Restore stdout immediately after the function call
-                    os.dup2(saved_stdout_fd, original_stdout_fd)
-
-                # Output the call status to console
-                print(
-                    f"Called {func.__name__}({', '.join(map(str, random_args))}) -> {result}"
+    with open(trace_path, "w+") as trace_file:
+        results = []
+        for _ in range(iterations):
+            # Generate test inputs based on the specified distributions or simply random within a range
+            test_inputs = []
+            for param in params:
+                param_name = param[0]
+                param_type = param[1]
+                test_inputs.append(
+                    str(random_value(param_type, distributions[param_name]))
                 )
 
-            print(f"Trace file '{trace_path}' created.")
-    except KeyboardInterrupt:
-        print("Fuzzing interrupted by user.")
-    finally:
-        # Ensure stdout is restored even if interrupted
-        os.dup2(saved_stdout_fd, original_stdout_fd)
-        # Close the duplicated file descriptor
-        os.close(saved_stdout_fd)
+            # Convert list to command-line arguments
+            input_str = " ".join(test_inputs)
+
+            # Run the executable with the generated inputs
+            result = subprocess.run(
+                [executable] + test_inputs, capture_output=True, text=True
+            )
+
+            # Store the result along with the input data
+            results.append((input_str, result.stdout, result.stderr, result.returncode))
+
+        # Analyze the results
+        for input_data, output, error, return_code in results:
+            if return_code != 0:
+                print(
+                    f"Run Failed | Input: {input_data} | Error Message: {error.strip()}"
+                )
+            else:
+                out = ""
+                # Process each line in the output
+                for line in output.splitlines():
+                    if line.startswith("vtrace"):
+                        trace_file.write(
+                            line + "\n"
+                        )  # Write trace lines to the trace file
+                    else:
+                        out += line + "; "
+
+                # extract the trace markers from the output (starts with 'vtraceN;')
+                print(f"{file_name}({input_data}): {out}")
+
+        print(f"Trace file written to: {trace_path}")
 
 
 # Sort the trace file by trace markers
@@ -384,7 +381,7 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     # remove the .c extension from the file_path
     folder_path = os.path.dirname(file_path)
 
-    # NOTE: 0. Load the C code to be fuzzed
+    # NOTE: Load the C code to be fuzzed
     start_time = time.time()
 
     c_code = read_c_file(file_path)
@@ -393,13 +390,13 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
         print("Error reading the C file.")
         exit()
 
-    # NOTE: 1. Preprocessing part
+    # NOTE: Preprocessing part
 
     # Preprocess the C code and extract preprocessor directives
     # CParser does not handle preprocessor directives, so we need to extract and add them back later
     preprocessed_code, preprocessor_directives = preprocess_c_code(c_code)
 
-    # NOTE: 2. Parsing and instrumentation part
+    # NOTE: Parsing and instrumentation part
 
     # Parse the code using pycparser
     parser = c_parser.CParser()
@@ -410,62 +407,47 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
 
     # Generate the modified C code
     generator = c_generator.CGenerator()
-    final_code = generator.visit(ast)
+    modified_code = generator.visit(ast)
+
+    # NOTE: Instrument Test Driver
+
+    # Generate the new main function
+    params = transformer.params
+    return_type = transformer.return_type
+    main_code = create_test_driver(func_name, params, return_type)
+
+    # Combine modified code with the new main function
+    modified_code = modified_code + "\n" + main_code
 
     # Add back the preprocessor directives
-    final_c_code_with_directives = (
-        "\n".join(preprocessor_directives) + "\n" + final_code
-    )
-    print(final_c_code_with_directives)
+    final_code = "\n".join(preprocessor_directives) + "\n" + modified_code
+    print(final_code)
 
-    func_name_instrumented = f"{folder_path}/{func_name}.instrumented.c"
+    # write the final code to a file
+    test_driver_file = f"{folder_path}/{func_name}.fuzzer.c"
+    with open(test_driver_file, "w") as file:
+        file.write(final_code)
 
-    with open(func_name_instrumented, "w") as file:
-        file.write(final_c_code_with_directives)
+    # NOTE: Compilation part
 
-    # NOTE: 3. Compilation part
+    # construct the executable
+    executable = compile_code(test_driver_file)
 
-    # Compile the C file into a shared library (.so file)
-    shared_lib_name = f"{func_name}.so"
-    compile_command = (
-        f"gcc -shared -fPIC -o {folder_path}/{shared_lib_name} {func_name_instrumented}"
-    )
-
-    try:
-        # Execute the compile command
-        compilation_result = subprocess.run(
-            compile_command, shell=True, check=True, text=True, stderr=subprocess.PIPE
-        )
-        print("Compilation successful. Shared library created:", shared_lib_name)
-    except subprocess.CalledProcessError as e:
-        # Handle errors in compilation
-        print("Compilation failed:")
-        print(e.stderr)
-
-    # NOTE: 4. Fuzzing part
-
-    # Load the shared library function
-    func = load_shared_library_func(
-        folder_path, func_name, transformer.return_type, transformer.params
-    )
-
-    trace_path = f"{folder_path}/{func_name}.trace.csv"
+    # NOTE: Fuzzing part
 
     print(f"Fuzzing {func_name} function with {iterations} random inputs...")
     print(f"Params: {transformer.params}")
     if transformer.distr:
         print(f"Distributions: {transformer.distr}")
 
+    trace_path = f"{folder_path}/{func_name}.trace.csv"
+
     # Fuzz the function with random inputs
     fuzz_function_to_collect_traces(
-        func,
-        trace_path,
-        iterations,
-        [p[0] for p in transformer.params],
-        transformer.distr,
+        executable, trace_path, iterations, transformer.params, transformer.distr
     )
 
-    # NOTE: 5. Post-processing part
+    # NOTE: Post-processing part
 
     # Sort the trace file by trace markers
     sort_file_by_trace_marker(trace_path, transformer.trace_headers)

@@ -340,7 +340,7 @@ def fuzz_and_check(file_path, func_name, iterations, trace_equations):
     print(final_code)
 
     # write the final code to a file
-    test_driver_file = f"{folder_path}/{func_name}.assertions.c"
+    test_driver_file = f"{folder_path}/{func_name}.checker.c"
     with open(test_driver_file, "w") as file:
         file.write(final_code)
 
