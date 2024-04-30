@@ -239,19 +239,34 @@ def compile_code(source_file):
         return None
 
 
+def random_value(param_type, distr=None):
+    """
+    Generates a random value based on the parameter type.
+    """
+    if param_type == "int":
+        if distr:
+            return random.randint(int(distr[0]), int(distr[1]))
+        return random.randint(0, 300)
+    elif param_type == "float":
+        if distr:
+            return random.uniform(float(distr[0]), float(distr[1]))
+        return random.uniform(-2.0, 2.0)
+    elif param_type == "double":
+        if distr:
+            return random.uniform(float(distr[0]), float(distr[1]))
+        return random.uniform(-2.0, 2.0)
+    return 0
+
+
 def fuzz_function_to_check_assertions(executable, iterations, params, distributions):
     results = []
     for _ in range(iterations):
         # Generate test inputs based on the specified distributions or simply random within a range
         test_inputs = []
         for param in params:
-            if param in distributions:
-                min_val, max_val = distributions[param]
-                test_inputs.append(str(random.uniform(min_val, max_val)))
-            else:
-                test_inputs.append(
-                    str(random.randint(-100, 100))
-                )  # Default range if no distribution is provided
+            param_name = param[0]
+            param_type = param[1]
+            test_inputs.append(str(random_value(param_type, distributions[param_name])))
 
         # Convert list to command-line arguments
         input_str = " ".join(test_inputs)
@@ -340,7 +355,7 @@ def fuzz_and_check(file_path, func_name, iterations, trace_equations):
 
     # Fuzz the function with random inputs
     fuzz_function_to_check_assertions(
-        executable, iterations, [p[0] for p in transformer.params], transformer.distr
+        executable, iterations, transformer.params, transformer.distr
     )
 
 
@@ -354,7 +369,7 @@ if __name__ == "__main__":
     fuzz_and_check(
         file_path,
         func_name,
-        100,
+        5,
         {
             "vtrace1": ["X + 2*X*y - 2*Y - 2*Y*x + v == 0"],
             "vtrace2": ["2*Y*x - 2*X*y - X + 2*Y - v == 0", "X - x + 1 == 0"],
