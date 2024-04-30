@@ -1045,7 +1045,7 @@ def infer_invariants(
     return main(trace_file)
 
 
-def infer_invariants_and_verify(
+def infer_invariants_and_check_correctness(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
