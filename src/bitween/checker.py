@@ -228,7 +228,7 @@ def create_test_driver(func_name, params, return_type):
 
 def compile_code(source_file):
     # Assuming gcc is installed and available in the path
-    executable = source_file.replace(".c", "")
+    executable = source_file.replace(".checker.c", ".checker")
     compilation_command = ["gcc", source_file, "-o", executable]
     try:
         subprocess.run(compilation_command, check=True)
