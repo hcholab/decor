@@ -911,6 +911,7 @@ def main(file_path: str = None):
 
     # NOTE: Reporting--Display the inferred equalities
     print("\nInferred Equalities:")
+    assertion_dict = {}
     for loc, result in results.items():
         print(
             f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
@@ -967,6 +968,9 @@ def main(file_path: str = None):
         # equations = Symbolic.refine(good_fit)
         equations = Reducer.merge_equations(list(good_fit))
 
+        # NOTE: relate the location to the equations
+        assertion_dict[loc] = equations
+
         for eq in equations:
             print(f"{eq} = 0")
 
@@ -992,7 +996,7 @@ def main(file_path: str = None):
     # debug the total number of traces
     log.debug(f"{samples} samples is used.")
 
-    return equations
+    return assertion_dict
 
 
 def get_vars(template: list[str]):
