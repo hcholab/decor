@@ -19,7 +19,7 @@ from bitween.synthesizer import (
     generate,
 )
 from bitween.sampler import Distribution, Domain
-from bitween.verifier import latex_func, str_func
+from bitween.analyzer import latex_func, str_func
 
 
 def print_methods(methods: list[GeneratorMethod], *functions):  # noqa U100

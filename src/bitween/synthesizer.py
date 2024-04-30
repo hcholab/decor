@@ -9,7 +9,7 @@ from sympy import Expr, sympify, sqrt, Abs, Function, pi
 from bitween.milp import milp_synthesis
 from bitween.property import Property
 from bitween.refiner import refine
-from bitween.verifier import property_test, verify
+from bitween.analyzer import property_test, verify
 from bitween.terms import get_terms, get_values_terms, canonicalize
 from bitween.sampler import Distribution, Domain, sample
 

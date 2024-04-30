@@ -230,7 +230,7 @@ if __name__ == "__main__":  # noqa E123
     import csv
     from sympy import Function, Symbol, sin
     from bitween.terms import get_values_terms
-    from bitween.verifier import property_test, verify
+    from bitween.analyzer import property_test, verify
     from bitween.sampler import Distribution, Domain, sample
 
     domain = Domain.Real
