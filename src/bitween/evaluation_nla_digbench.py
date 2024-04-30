@@ -9,7 +9,10 @@ log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
-    infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
+    assertions = infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
+    print(assertions)
+    for loc, eqts in assertions.items():
+        print(f"{loc}: {eqts}")
 
 
 def cohencu():
