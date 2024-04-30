@@ -308,7 +308,7 @@ def fuzz_function_to_collect_traces(
                 param_name = param[0]
                 param_type = param[1]
                 test_inputs.append(
-                    str(random_value(param_type, distributions[param_name]))
+                    str(random_value(param_type, distributions.get(param_name, None)))
                 )
 
             # Convert list to command-line arguments
