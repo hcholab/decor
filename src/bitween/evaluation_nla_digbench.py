@@ -1,4 +1,4 @@
-from bitween.main import infer_invariants
+from bitween.main import infer_invariants, infer_invariants_and_verify
 from bitween import miscs, settings
 
 from time import time
@@ -9,13 +9,13 @@ log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
-    infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
+    infer_invariants_and_verify(file_path, func_name, max_degree=2, n=15, milp=solver)
 
 
 def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    infer_invariants(file_path, func_name, max_degree=2, n=15, milp=solver)
+    infer_invariants_and_verify(file_path, func_name, max_degree=2, n=15, milp=solver)
 
 
 def cohendiv():
