@@ -30,6 +30,7 @@ from bitween.sampler import Domain, Distribution, sample
 from bitween.utilities import pp
 from bitween.z3utils import Z3
 from bitween.fuzzer import fuzz_and_trace  # noqa F401
+from bitween.checker import fuzz_and_check  # noqa F401
 from bitween.reducer import Reducer  # noqa F401
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
@@ -996,6 +997,10 @@ def main(file_path: str = None):
     # debug the total number of traces
     log.debug(f"{samples} samples is used.")
 
+    for loc, eqs in assertion_dict.items():
+        for i, eq in enumerate(eqs):
+            assertion_dict[loc][i] = sympy.Eq(eq, 0)
+
     return assertion_dict
 
 
@@ -1038,6 +1043,44 @@ def infer_invariants(
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
     return main(trace_file)
+
+
+def infer_invariants_and_verify(
+    file_path: str,  # path to the C file
+    func_name: str,  # name of the function to infer invariants
+    max_degree: int = 2,  # maximum degree
+    n: int = 40,  # number of iterations
+    delta: float = 0.001,  # error threshold
+    milp: settings.MILPSolver = None,
+    bound: int = None,
+    method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
+):
+    """
+    Infers invariants from given C program having vtraces, vassumes, and vdistrs, and
+    verifies the inferred invariants using symoblic execution or fuzzing.
+    """
+
+    settings.DEGREE = max_degree
+    settings.DELTA = delta
+    if milp:
+        settings.MILP = True
+        settings.MILP_SOLVER = milp
+    else:
+        settings.MILP = False
+
+    if bound:
+        settings.MILP_BOUND = bound
+
+    settings.INITIAL_METHOD = method
+
+    # Load the vtrace, vassume, and vdistr data
+    trace_file = fuzz_and_trace(file_path, func_name, n)
+
+    equations = main(trace_file)
+
+    fuzz_and_check(file_path, func_name, equations, n * 10)
+
+    return equations
 
 
 def infer_property(
