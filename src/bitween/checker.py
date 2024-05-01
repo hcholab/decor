@@ -49,9 +49,15 @@ def preprocess_c_code(c_code):
     math_included = any(
         "#include <math.h>" in directive for directive in preprocessor_directives
     )
-    # Add math.h if not included
     if not math_included:
         preprocessor_directives.append("#include <math.h>")
+
+    # Add stdlib.h if not included
+    stdlib_included = any(
+        "#include <stdlib.h>" in directive for directive in preprocessor_directives
+    )
+    if not stdlib_included:
+        preprocessor_directives.append("#include <stdlib.h>")
 
     # Remove directives and vtrace function definitions from the code
     preprocessed_code = re.sub(
@@ -146,15 +152,37 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
         )
 
     def handle_assume_call(self, item):
-        # Transform assume call into an if statement that checks condition and returns if false
-        negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
-        return_statement = c_ast.Return(expr=c_ast.Constant(type="int", value="0"))
-        if_statement = c_ast.If(
-            cond=negated_condition,
-            iftrue=c_ast.Compound(block_items=[return_statement]),
-            iffalse=None,
+        # The original condition is directly used as the first argument to the assume function.
+        condition_expr = item.args.exprs[0]
+
+        # Create a call to assume(condition, "Assumption violated: condition failed.");
+        assume_call = c_ast.FuncCall(
+            name=c_ast.ID(name="assume"),
+            args=c_ast.ExprList(
+                exprs=[
+                    condition_expr,  # Use the direct condition, not the negated
+                ]
+            ),
         )
-        return if_statement
+
+        return assume_call
+
+    # def handle_assume_call(self, item):
+    #     # Transform assume call into an if statement that checks condition and aborts if false
+    #     negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
+    #     # Create a call to abort() function
+    #     abort_call = c_ast.FuncCall(
+    #         name=c_ast.ID(name="abort"), args=None  # abort does not take any arguments
+    #     )
+    #     # Use the abort call in a compound statement (i.e., a block of code)
+    #     abort_statement = c_ast.Compound(block_items=[abort_call])
+
+    #     # Create an if statement that calls abort if the negated condition is true
+    #     if_statement = c_ast.If(
+    #         cond=negated_condition, iftrue=abort_statement, iffalse=None
+    #     )
+
+    #     return if_statement
 
     def handle_vdistr_call(self, item):
         # Assuming the vdistr call looks like vdistr(var, min, max)
@@ -199,6 +227,31 @@ class RemoveMainVisitor(c_ast.NodeVisitor):
             return None
         # Continue traversing the AST
         self.generic_visit(node)
+
+
+class RemoveAssumeVisitor(c_ast.NodeVisitor):
+    """
+    A class to remove the assume function from the C code.
+    """
+
+    def visit_FuncDef(self, node):
+        # Check if the function name is 'assume' and remove it
+        if node.decl.name == "assume" or node.decl.name == "vassume":
+            # Remove the node by returning None (effectively removing it)
+            return None
+        # Continue traversing the AST
+        self.generic_visit(node)
+
+
+def generate_assume_code():
+    code = """
+void assume(int cond) {
+    if (!cond) {
+        fprintf(stderr, "Assumption violated.\\n");
+        abort();
+    }
+}"""
+    return code
 
 
 def create_test_driver(func_name, params, return_type):
@@ -287,9 +340,9 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
     # Analyze the results
     for input_data, output, error, return_code in results:
         if return_code != 0:
-            print(f"Test Failed | Input: {input_data} | Error Message: {error.strip()}")
+            print(f"Test Failed | Input: {input_data} | {error.strip()}")
         else:
-            print(f"Test Passed | Input: {input_data} | Output: {output.strip()}")
+            print(f"Test Passed | Input: {input_data} | {output.strip()}")
 
 
 def fuzz_and_check(file_path, func_name, trace_equations, iterations):
@@ -324,6 +377,10 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     main_remover = RemoveMainVisitor()
     main_remover.visit(ast)
 
+    # remove the assume function from the C code
+    assume_remover = RemoveAssumeVisitor()
+    assume_remover.visit(ast)
+
     # Visit and process the function definition
     transformer = TransformFuncForAssertions(func_name, trace_equations)
     transformer.visit(ast)
@@ -331,6 +388,9 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     # Generate the modified C code
     generator = c_generator.CGenerator()
     modified_code = generator.visit(ast)
+
+    # Add our version of assume function back to the code
+    modified_code = generate_assume_code() + "\n\n" + modified_code
 
     # NOTE: Instrument Test Driver
 
@@ -340,11 +400,11 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     main_code = create_test_driver(func_name, params, return_type)
 
     # Combine modified code with the new main function
-    modified_code = modified_code + "\n" + main_code
+    modified_code = modified_code + main_code
 
     # Add back the preprocessor directives
     final_code = "\n".join(preprocessor_directives) + "\n" + modified_code
-    print(final_code)
+    # print(final_code)
 
     # write the final code to a file
     test_driver_file = f"{folder_path}/{func_name}.checker.c"
@@ -367,6 +427,8 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     fuzz_function_to_check_assertions(
         executable, iterations, transformer.params, transformer.distr
     )
+
+    print(f"Test driver: {test_driver_file}")
 
 
 if __name__ == "__main__":

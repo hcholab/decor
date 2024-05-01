@@ -54,6 +54,13 @@ def preprocess_c_code(c_code):
     if not math_included:
         preprocessor_directives.append("#include <math.h>")
 
+    # Add stdlib.h if not included
+    stdlib_included = any(
+        "#include <stdlib.h>" in directive for directive in preprocessor_directives
+    )
+    if not stdlib_included:
+        preprocessor_directives.append("#include <stdlib.h>")
+
     # Remove directives and vtrace function definitions from the code
     preprocessed_code = re.sub(
         r"^\s*#.*$|^void vtrace[0-9]+\(.*\)\s*\{\s*\}", "", c_code, flags=re.MULTILINE
@@ -138,7 +145,7 @@ class TransformFunc(c_ast.NodeVisitor):
                         new_printf_call, fflush_call = self.handle_vtrace_call(item)
                         items_to_replace.append((item, (new_printf_call, fflush_call)))
                     elif item.name.name == "vassume" or item.name.name == "assume":
-                        new_if_statement = self.handle_vassume_call(item)
+                        new_if_statement = self.handle_assume_call(item)
                         items_to_replace.append((item, new_if_statement))
                     elif item.name.name == "vdistr":
                         self.handle_vdistr_call(item)
@@ -181,16 +188,32 @@ class TransformFunc(c_ast.NodeVisitor):
         )
         return new_printf_call, fflush_call
 
-    def handle_vassume_call(self, item):
-        # Negate the condition and create an if statement
-        negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
-        return_statement = c_ast.Return(expr=c_ast.Constant(type="int", value="0"))
-        if_statement = c_ast.If(
-            cond=negated_condition,
-            iftrue=c_ast.Compound(block_items=[return_statement]),
-            iffalse=None,
+    def handle_assume_call(self, item):
+        # The original condition is directly used as the first argument to the assume function.
+        condition_expr = item.args.exprs[0]
+
+        # Create a call to assume(condition, "Assumption violated: condition failed.");
+        assume_call = c_ast.FuncCall(
+            name=c_ast.ID(name="assume"),
+            args=c_ast.ExprList(
+                exprs=[
+                    condition_expr,  # Use the direct condition, not the negated
+                ]
+            ),
         )
-        return if_statement
+
+        return assume_call
+
+    # def handle_vassume_call(self, item):
+    #     # Negate the condition and create an if statement
+    #     negated_condition = c_ast.UnaryOp(op="!", expr=item.args.exprs[0])
+    #     return_statement = c_ast.Return(expr=c_ast.Constant(type="int", value="0"))
+    #     if_statement = c_ast.If(
+    #         cond=negated_condition,
+    #         iftrue=c_ast.Compound(block_items=[return_statement]),
+    #         iffalse=None,
+    #     )
+    #     return if_statement
 
     def handle_vdistr_call(self, item):
         # Assuming the vdistr call looks like vdistr(var, min, max)
@@ -227,6 +250,31 @@ class TransformFunc(c_ast.NodeVisitor):
         type_name = self.curr_variables.get(variable_name, "int")
         # Return the format specifier for the type name, defaulting to "%d" if type not found.
         return c_types.format_specifiers.get(type_name, "%d")
+
+
+class RemoveAssumeVisitor(c_ast.NodeVisitor):
+    """
+    A class to remove the assume function from the C code.
+    """
+
+    def visit_FuncDef(self, node):
+        # Check if the function name is 'assume' and remove it
+        if node.decl.name == "assume" or node.decl.name == "vassume":
+            # Remove the node by returning None (effectively removing it)
+            return None
+        # Continue traversing the AST
+        self.generic_visit(node)
+
+
+def generate_assume_code():
+    code = """
+void assume(int cond) {
+    if (!cond) {
+        fprintf(stderr, "Assumption violated.\\n");
+        abort();
+    }
+}"""
+    return code
 
 
 def create_test_driver(func_name, params, return_type):
@@ -328,9 +376,7 @@ def fuzz_function_to_collect_traces(
         # Analyze the results
         for input_data, output, error, return_code in results:
             if return_code != 0:
-                print(
-                    f"Run Failed | Input: {input_data} | Error Message: {error.strip()}"
-                )
+                print(f"Run Failed | Input: {input_data} | {error.strip()}")
             else:
                 out = ""
                 # Process each line in the output
@@ -343,9 +389,7 @@ def fuzz_function_to_collect_traces(
                         out += line + "; "
 
                 # extract the trace markers from the output (starts with 'vtraceN;')
-                print(f"{file_name}({input_data}): {out}")
-
-        print(f"Trace file written to: {trace_path}")
+                print(f"Run Passed | Input: {input_data} | {out.strip()}")
 
 
 # Sort the trace file by trace markers
@@ -404,6 +448,11 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     # Parse the code using pycparser
     parser = c_parser.CParser()
     ast = parser.parse(preprocessed_code.strip())
+
+    # remove the assume function from the C code
+    assume_remover = RemoveAssumeVisitor()
+    assume_remover.visit(ast)
+
     # Visit and process the function definition
     transformer = TransformFunc(func_name)
     transformer.visit(ast)
@@ -411,6 +460,9 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     # Generate the modified C code
     generator = c_generator.CGenerator()
     modified_code = generator.visit(ast)
+
+    # Add our version of assume function back to the code
+    modified_code = generate_assume_code() + "\n\n" + modified_code
 
     # NOTE: Instrument Test Driver
 
@@ -420,11 +472,11 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     main_code = create_test_driver(func_name, params, return_type)
 
     # Combine modified code with the new main function
-    modified_code = modified_code + "\n" + main_code
+    modified_code = modified_code + main_code
 
     # Add back the preprocessor directives
     final_code = "\n".join(preprocessor_directives) + "\n" + modified_code
-    print(final_code)
+    # print(final_code)
 
     # write the final code to a file
     test_driver_file = f"{folder_path}/{func_name}.fuzzer.c"
@@ -456,6 +508,9 @@ def fuzz_and_trace(file_path: str, func_name: str, iterations: int):
     sort_file_by_trace_marker(trace_path, transformer.trace_headers)
 
     print(f"Fuzzing time: {time.time() - start_time:.2f} seconds.")
+
+    print(f"Trace file written to: {trace_path}")
+    print(f"Fuzzing file written to: {test_driver_file}")
 
     return trace_path
 
