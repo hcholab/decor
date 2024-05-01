@@ -269,11 +269,11 @@ if __name__ == "__main__":
     # cohendiv() # may generates an unsound invariant and we catch it in the check_correctness
     # dijkstra()
     # divbin()
-    egcd()  # NOTE: use in demo
+    # egcd()  # NOTE: use in demo
     # egcd2()
     # egcd3()
     # fermat1()
-    # fermat2()
+    fermat2()
     # freire1_int()
     # freire1()
     # freire2()
