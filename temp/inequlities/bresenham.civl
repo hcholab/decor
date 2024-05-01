@@ -1,0 +1,35 @@
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void vtrace1(int x, int y, int X, int Y) {
+  printf("vtrace1: x = %d; y = %d; X = %d; Y = %d\n", x, y, X, Y);
+  $pathCondition();
+}
+
+int main() {
+  $input int X;
+  $input int Y;
+  $assume(X >= 0 && X <= 10);
+  $assume(Y >= 0 && Y <= 10);
+
+  int v, x, y;
+  v = 2 * Y - X;
+  y = 0;
+  x = 0;
+  while (1) {
+    assert(2 * Y * x - 2 * X * y - X + 2 * Y - v == 0);
+    if (!(x <= X)) break;
+
+    if (v < 0) {
+      v = v + 2 * Y;
+    } else {
+      v = v + 2 * (Y - X);
+      y++;
+    }
+    x++;
+  }
+  assert(2 * Y * x - 2 * x * y - X + 2 * Y - v + 2 * y == 0);
+  vtrace1(x, y, X, Y);
+  return v;
+}
