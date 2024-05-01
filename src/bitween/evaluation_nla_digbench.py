@@ -266,7 +266,7 @@ if __name__ == "__main__":
 
     # bresenham()
     # cohencu()
-    # cohendiv() # may generates an unsound invariant and we catch it in the check_correctness
+    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness
     # dijkstra()
     # divbin()
     # egcd()  # NOTE: use in demo
