@@ -264,7 +264,7 @@ if __name__ == "__main__":
 
     st = time()
 
-    bresenham()
+    # bresenham()
     # cohencu()
     # cohendiv()
     # dijkstra()
@@ -281,7 +281,7 @@ if __name__ == "__main__":
     # geo2()
     # geo3()
     # hard()
-    # knuth()
+    knuth()
     # lcm1()
     # lcm2()
     # mannadiv()
