@@ -1,7 +1,7 @@
 import random
 
 # Mapping of type names to their corresponding format specifiers.
-FORMAT_SPECIFIERS = {
+format_specifiers = {
     "double": "%lf",
     "float": "%f",
     "int": "%d",
@@ -29,7 +29,7 @@ FORMAT_SPECIFIERS = {
     "double128_t": "%Lf",  # Assuming double128_t maps to long double
 }
 
-INT_TYPES = {
+int_types = {
     "int",
     "unsigned int",
     "long",
@@ -48,7 +48,7 @@ INT_TYPES = {
     "int64_t",
 }
 
-FLOAT_TYPES = {
+float_types = {
     "float",
     "double",
     "long double",
@@ -60,7 +60,7 @@ FLOAT_TYPES = {
     "double128_t",
 }
 
-RANDOM_FUNCTIONS = {
+random_functions = {
     # 32-bit signed
     "int": (random.randint, (0, 300)),
     # IEEE 754 single-precision
@@ -103,7 +103,7 @@ RANDOM_FUNCTIONS = {
     "double128_t": (random.uniform, (-1.1e4932, 1.1e4932)),
 }
 
-RANDOM_FUNCTIONS_DEFAULT = {
+random_functions_default = {
     # 32-bit signed
     "int": (random.randint, (-2147483648, 2147483647)),
     # IEEE 754 single-precision
