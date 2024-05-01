@@ -1,12 +1,14 @@
-import random
 import re
 from pycparser import c_parser, c_generator, c_ast
 import subprocess
 import os
 import sympy
 
+from bitween import c_types
+
 """
-This module provides a function to fuzz a C function with random inputs and check assertions.
+This module provides a function to fuzz a C function with random inputs and
+check assertions.
 """
 
 
@@ -173,20 +175,16 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
         if isinstance(expr, c_ast.Constant):
             type = expr.type
             value = expr.value
-            if type == "int":
+            if type in c_types.int_types:
                 return int(value)
-            elif type == "float" or type == "double":
+            elif type in c_types.float_types:
                 return float(value.strip("f"))
         elif isinstance(expr, c_ast.UnaryOp) and expr.op == "-":
             # Handle negation
-            type = expr.expr.type
-            value = expr.expr.value
-            if type == "int":
-                return -1 * int(value)
-            elif type == "float" or type == "double":
-                return -1 * float(value.strip("f"))
+            value = self.extract_value(expr.expr)
+            return -value
         else:
-            raise ValueError(f"Unsupported expression type for bounds: {type(expr)}")
+            raise ValueError(f"Unsupported expression type for bounds: {expr}")
 
 
 class RemoveMainVisitor(c_ast.NodeVisitor):
@@ -215,7 +213,7 @@ def create_test_driver(func_name, params, return_type):
         main_function += f"<{param_name}:{param_type}> "
     main_function += '\\n", argv[0]);\n        return 1;\n    }\n\n'
     for i, (param_name, param_type) in enumerate(params, start=1):
-        conversion_function = "atoi" if param_type == "int" else "atof"
+        conversion_function = "atoi" if param_type in c_types.int_types else "atof"
         main_function += (
             f"    {param_type} {param_name} = {conversion_function}(argv[{i}]);\n"
         )
@@ -251,19 +249,16 @@ def random_value(param_type, distr=None):
     """
     Generates a random value based on the parameter type.
     """
-    if param_type == "int":
-        if distr:
-            return random.randint(int(distr[0]), int(distr[1]))
-        return random.randint(0, 300)
-    elif param_type == "float":
-        if distr:
-            return random.uniform(float(distr[0]), float(distr[1]))
-        return random.uniform(-2.0, 2.0)
-    elif param_type == "double":
-        if distr:
-            return random.uniform(float(distr[0]), float(distr[1]))
-        return random.uniform(-2.0, 2.0)
-    return 0
+    func, default_range = c_types.random_functions.get(
+        param_type, (lambda *args: 0, None)
+    )
+
+    if distr:
+        return func(float(distr[0]), float(distr[1]))
+    elif default_range:
+        return func(*default_range)
+    else:
+        return 0
 
 
 def fuzz_function_to_check_assertions(executable, iterations, params, distributions):
