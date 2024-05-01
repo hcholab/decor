@@ -244,7 +244,7 @@ def ps6():
         file_path,
         func_name,
         max_degree=6,
-        n=8,
+        n=20,
         milp=solver,
         method=settings.InitialMethod.FORWARD_SELECTION,
     )
@@ -266,10 +266,10 @@ if __name__ == "__main__":
 
     # bresenham()
     # cohencu()
-    # cohendiv()
+    # cohendiv() # may generates an unsound invariant and we catch it in the check_correctness
     # dijkstra()
     # divbin()
-    # egcd()
+    egcd()  # NOTE: use in demo
     # egcd2()
     # egcd3()
     # fermat1()
@@ -281,9 +281,9 @@ if __name__ == "__main__":
     # geo2()
     # geo3()
     # hard()
-    knuth()
+    # knuth()  # NOTE: May generate unsound invariants and we catch it in the check_correctness
     # lcm1()
-    # lcm2()
+    # lcm2()  # NOTE: use this in demo
     # mannadiv()
     # prod4br()
     # prodbin()
@@ -293,6 +293,6 @@ if __name__ == "__main__":
     # ps4()
     # ps5()
     # ps6()
-    # sqrt1()
+    # sqrt1()  # NOTE: use this in demo
 
     log.debug(f"Total Time: {time() - st:.2f}s")
