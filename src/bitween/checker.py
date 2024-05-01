@@ -298,6 +298,32 @@ def compile_code(source_file):
         return None
 
 
+def comment_out_assertions(file_path, failed_lines):
+    """
+    Comment out assertions in the C code based on the failed line numbers and append a specific comment
+    just after the assertion ends.
+    """
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Regular expression to find 'assert(' and match until the closing parenthesis
+    assert_pattern = re.compile(r"\bassert\((.*)\);")
+
+    with open(file_path, "w") as file:
+        for i, line in enumerate(lines, 1):
+            if i in failed_lines:
+                # Find and modify the assertion
+                def replace_assert(match):
+                    # Capture the entire assertion expression, adding comments after it ends
+                    full_assertion = match.group(0)  # The entire assertion statement
+                    return f"// {full_assertion} -- Not Valid!"
+
+                # Replace assertion in the line using the replace function
+                line = re.sub(assert_pattern, replace_assert, line)
+
+            file.write(line)
+
+
 def random_value(param_type, distr=None):
     """
     Generates a random value based on the parameter type.
@@ -316,6 +342,8 @@ def random_value(param_type, distr=None):
 
 def fuzz_function_to_check_assertions(executable, iterations, params, distributions):
     results = []
+    failed_lines = set()  # To store line numbers of failed assertions
+
     for _ in range(iterations):
         # Generate test inputs based on the specified distributions or simply random within a range
         test_inputs = []
@@ -341,8 +369,14 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
     for input_data, output, error, return_code in results:
         if return_code != 0:
             print(f"Test Failed | Input: {input_data} | {error.strip()}")
+            # Parse the error for line number
+            line_match = re.search(r"line (\d+)", error)
+            if line_match:
+                failed_lines.add(int(line_match.group(1)))
         else:
             print(f"Test Passed | Input: {input_data} | {output.strip()}")
+
+    return failed_lines
 
 
 def fuzz_and_check(file_path, func_name, trace_equations, iterations):
@@ -424,9 +458,13 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
         print(f"Distributions: {transformer.distr}")
 
     # Fuzz the function with random inputs
-    fuzz_function_to_check_assertions(
+    falied_line_number_of_assertions = fuzz_function_to_check_assertions(
         executable, iterations, transformer.params, transformer.distr
     )
+
+    # remove the failed assertions from the code
+    # remove_failed_assertions(test_driver_file, falied_line_number_of_assertions)
+    comment_out_assertions(test_driver_file, falied_line_number_of_assertions)
 
     print(f"Test driver: {test_driver_file}")
 
@@ -453,7 +491,7 @@ if __name__ == "__main__":
         5,
     )
 
-    print("\n\n\n")
+    print("\n\n")
 
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
