@@ -1,13 +1,13 @@
 import re
 from pycparser import c_parser, c_generator, c_ast
-import subprocess
 import os
 import sympy
 
 from bitween import c_types
 
 """
-This module provides a function to verify a C function with assertions, assumptions, and Civl.
+This module provides a function to verify a C function with civl.
+https://vsl.cis.udel.edu/trac/civl/wiki/Introduction
 """
 
 
@@ -156,7 +156,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
 
         # Create a call to assume(condition, "Assumption violated: condition failed.");
         assume_call = c_ast.FuncCall(
-            name=c_ast.ID(name="assume"),
+            name=c_ast.ID(name="$assume"),
             args=c_ast.ExprList(
                 exprs=[
                     condition_expr,  # Use the direct condition, not the negated
@@ -225,109 +225,79 @@ class RemoveAssumeVisitor(c_ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def generate_assume_code():
-    code = """
-void assume(int cond) {
-    if (!cond) {
-        fprintf(stderr, "Assumption violated.\\n");
-        abort();
-    }
-}"""
-    return code
+class FunctionRenamer(c_ast.NodeVisitor):
+    def __init__(self, func_name):
+        self.func_name = func_name
+
+    def visit_FuncDef(self, node):
+        # Change the function's name to "main"
+        node.decl.name = "main"
+        # Ensure the return type is correctly updated to int
+        if isinstance(node.decl.type, c_ast.FuncDecl):
+            if isinstance(node.decl.type.type, c_ast.TypeDecl):
+                node.decl.type.type.declname = "main"
+                node.decl.type.type.type = c_ast.IdentifierType(names=["int"])
+            # Set parameters to None (no arguments)
+            node.decl.type.args = None
 
 
-def create_test_driver(func_name, params, return_type):
-    """
-    Generates a main function to test the given C function with command-line arguments.
-    """
-    # String template for the main function
-    main_function = "int main(int argc, char** argv) {\n"
-    main_function += f"    if (argc != {len(params) + 1}) {{\n"
-    main_function += '        printf("Usage: %s '
-    for param_name, param_type in params:
-        main_function += f"<{param_name}:{param_type}> "
-    main_function += '\\n", argv[0]);\n        return 1;\n    }\n\n'
-    for i, (param_name, param_type) in enumerate(params, start=1):
-        conversion_function = "atoi" if param_type in c_types.int_types else "atof"
-        main_function += (
-            f"    {param_type} {param_name} = {conversion_function}(argv[{i}]);\n"
-        )
-    param_names = ", ".join([name for name, _ in params])
-    if return_type != "void":
-        main_function += f"    {return_type} result = {func_name}({param_names});\n"
-        print_statement = (
-            'printf("%d\\n", result);'
-            if return_type == "int"
-            else 'printf("%f\\n", result);'
-        )
-        main_function += f"    {print_statement}\n"
-    else:
-        main_function += f"    {func_name}({param_names});\n"
-    main_function += "    return 0;\n}\n"
-    return main_function
+class InputDeclarationAdder(c_ast.NodeVisitor):
+    def __init__(self, params):
+        self.params = params
+
+    def visit_FuncDef(self, node):
+        if node.decl.name == "main":
+            new_decls = []
+            for param_name, param_type in self.params:
+                decl = c_ast.Decl(
+                    name=param_name,
+                    quals=[],
+                    storage=[],
+                    funcspec=[],
+                    align=None,
+                    type=c_ast.TypeDecl(
+                        declname=param_name,
+                        quals=[],
+                        align=None,
+                        type=c_ast.IdentifierType(names=[param_type]),
+                    ),
+                    init=None,
+                    bitsize=None,
+                )
+                custom_decl = CustomDecl(decl, "$input")
+                new_decls.append(custom_decl)
+
+            if isinstance(node.body, c_ast.Compound):
+                # Wrap new declarations into the function body's block items
+                node.body.block_items = new_decls + (
+                    node.body.block_items if node.body.block_items else []
+                )
 
 
-def compile_code(source_file):
-    # Assuming gcc is installed and available in the path
-    executable = source_file.replace(".checker.c", ".checker")
-    compilation_command = ["gcc", source_file, "-o", executable]
-    try:
-        subprocess.run(compilation_command, check=True)
-        print(f"Compilation successful: {executable} created.")
-        return executable
-    except subprocess.CalledProcessError:
-        print("Compilation failed.")
-        return None
+class CustomDecl:
+    """Class to hold a custom declaration with additional attributes."""
+
+    def __init__(self, declaration, custom_attribute):
+        self.declaration = declaration
+        self.custom_attribute = custom_attribute
+
+    def children(self):
+        """Yield the child nodes, required by pycparser for visiting the AST."""
+        return [("declaration", self.declaration)]
 
 
-def random_value(param_type, distr=None):
-    """
-    Generates a random value based on the parameter type.
-    """
-    func, default_range = c_types.random_functions.get(
-        param_type, (lambda *args: 0, None)
-    )
-
-    if distr:
-        return func(float(distr[0]), float(distr[1]))
-    elif default_range:
-        return func(*default_range)
-    else:
-        return 0
+class CustomCGenerator(c_generator.CGenerator):
+    def visit_CustomDecl(self, node):
+        custom_attribute = node.custom_attribute
+        decl = super().visit_Decl(node.declaration)
+        return f"{custom_attribute} {decl};"
 
 
-def fuzz_function_to_check_assertions(executable, iterations, params, distributions):
-    results = []
-    for _ in range(iterations):
-        # Generate test inputs based on the specified distributions or simply random within a range
-        test_inputs = []
-        for param in params:
-            param_name = param[0]
-            param_type = param[1]
-            test_inputs.append(
-                str(random_value(param_type, distributions.get(param_name, None)))
-            )
-
-        # Convert list to command-line arguments
-        input_str = " ".join(test_inputs)
-
-        # Run the executable with the generated inputs
-        result = subprocess.run(
-            [executable] + test_inputs, capture_output=True, text=True
-        )
-
-        # Store the result along with the input data
-        results.append((input_str, result.stdout, result.stderr, result.returncode))
-
-    # Analyze the results
-    for input_data, output, error, return_code in results:
-        if return_code != 0:
-            print(f"Test Failed | Input: {input_data} | {error.strip()}")
-        else:
-            print(f"Test Passed | Input: {input_data} | {output.strip()}")
+def verify_w_civl(file, params, distributions):
+    pass
 
 
-def fuzz_and_verify(file_path, func_name, trace_equations, iterations):
+def fuzz_and_verify(file_path, func_name, trace_equations):
     """
     Fuzzes the given C function by calling it with random inputs and checks the assertions.
     """
@@ -367,50 +337,38 @@ def fuzz_and_verify(file_path, func_name, trace_equations, iterations):
     transformer = TransformFuncForAssertions(func_name, trace_equations)
     transformer.visit(ast)
 
+    # Rename the function to 'main'
+    renamer = FunctionRenamer(func_name)
+    renamer.visit(ast)
+
+    # Add input declarations to the main function
+    input_adder = InputDeclarationAdder(transformer.params)
+    input_adder.visit(ast)
+
     # Generate the modified C code
-    generator = c_generator.CGenerator()
+    generator = CustomCGenerator()
     modified_code = generator.visit(ast)
-
-    # Add our version of assume function back to the code
-    modified_code = generate_assume_code() + "\n\n" + modified_code
-
-    # NOTE: Instrument Test Driver
-
-    # Generate the new main function
-    params = transformer.params
-    return_type = transformer.return_type
-    main_code = create_test_driver(func_name, params, return_type)
-
-    # Combine modified code with the new main function
-    modified_code = modified_code + main_code
 
     # Add back the preprocessor directives
     final_code = "\n".join(preprocessor_directives) + "\n" + modified_code
     # print(final_code)
 
     # write the final code to a file
-    test_driver_file = f"{folder_path}/{func_name}.checker.c"
-    with open(test_driver_file, "w") as file:
+    verifier_file = f"{folder_path}/{func_name}.cvl"
+    with open(verifier_file, "w") as file:
         file.write(final_code)
 
-    # NOTE: Compilation part
+    # NOTE: Verification part
 
-    # construct the executable
-    executable = compile_code(test_driver_file)
-
-    # NOTE: Fuzzing part
-
-    print(f"Fuzzing {func_name} function with {iterations} random inputs...")
+    print(f"Verifying {func_name} function with symbolic execution...")
     print(f"Params: {transformer.params}")
     if transformer.distr:
         print(f"Distributions: {transformer.distr}")
 
     # Fuzz the function with random inputs
-    fuzz_function_to_check_assertions(
-        executable, iterations, transformer.params, transformer.distr
-    )
+    verify_w_civl(verifier_file, transformer.params, transformer.distr)
 
-    print(f"Test driver: {test_driver_file}")
+    print(f"Verifier file: {verifier_file}")
 
 
 if __name__ == "__main__":
@@ -432,10 +390,9 @@ if __name__ == "__main__":
                 sympy.parse_expr("X - x + 1 == 0", evaluate=False),
             ],
         },
-        5,
     )
 
-    print("\n\n\n")
+    print("\n\n")
 
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
@@ -454,5 +411,4 @@ if __name__ == "__main__":
                 sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
             ],
         },
-        5,
     )
