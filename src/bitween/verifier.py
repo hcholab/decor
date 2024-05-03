@@ -241,14 +241,37 @@ class FunctionRenamer(c_ast.NodeVisitor):
             node.decl.type.args = None
 
 
+class CustomDecl:
+    """Class to hold a custom declaration with additional attributes."""
+
+    def __init__(self, declaration, custom_attribute, upper_bound=None):
+        self.declaration = declaration
+        self.custom_attribute = custom_attribute
+        self.upper_bound = upper_bound
+
+    def children(self):
+        """Yield the child nodes, required by pycparser for visiting the AST."""
+        return [("declaration", self.declaration)]
+
+
 class InputDeclarationAdder(c_ast.NodeVisitor):
-    def __init__(self, params):
+    def __init__(self, params, upper_bounds=None):
         self.params = params
+        self.upper_bounds = upper_bounds or {}
 
     def visit_FuncDef(self, node):
         if node.decl.name == "main":
             new_decls = []
             for param_name, param_type in self.params:
+                # Determine the initial value from upper_bounds if available
+                interval = self.upper_bounds.get(param_name)
+                init_value = interval[1] if interval is not None else None
+                init = (
+                    c_ast.Constant(type=param_type, value=str(init_value))
+                    if init_value is not None
+                    else None
+                )
+
                 decl = c_ast.Decl(
                     name=param_name,
                     quals=[],
@@ -261,29 +284,16 @@ class InputDeclarationAdder(c_ast.NodeVisitor):
                         align=None,
                         type=c_ast.IdentifierType(names=[param_type]),
                     ),
-                    init=None,
+                    init=init,  # Set the initial value if specified
                     bitsize=None,
                 )
-                custom_decl = CustomDecl(decl, "$input")
+                custom_decl = CustomDecl(decl, "$input", init_value)
                 new_decls.append(custom_decl)
 
             if isinstance(node.body, c_ast.Compound):
-                # Wrap new declarations into the function body's block items
                 node.body.block_items = new_decls + (
                     node.body.block_items if node.body.block_items else []
                 )
-
-
-class CustomDecl:
-    """Class to hold a custom declaration with additional attributes."""
-
-    def __init__(self, declaration, custom_attribute):
-        self.declaration = declaration
-        self.custom_attribute = custom_attribute
-
-    def children(self):
-        """Yield the child nodes, required by pycparser for visiting the AST."""
-        return [("declaration", self.declaration)]
 
 
 class CustomCGenerator(c_generator.CGenerator):
@@ -342,7 +352,7 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     renamer.visit(ast)
 
     # Add input declarations to the main function
-    input_adder = InputDeclarationAdder(transformer.params)
+    input_adder = InputDeclarationAdder(transformer.params, transformer.distr)
     input_adder.visit(ast)
 
     # Generate the modified C code
@@ -409,6 +419,23 @@ if __name__ == "__main__":
                 sympy.parse_expr("6*a - z + 12 == 0", evaluate=False),
                 sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
                 sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
+            ],
+        },
+    )
+
+    file_path = "./benchmarks/bitween/dig/knuth.c"
+    func_name = "knuth"
+
+    fuzz_and_verify(
+        file_path,
+        func_name,
+        {
+            "vtrace1": [
+                sympy.parse_expr("d*k - d*t - a*k + a*t == 0", evaluate=False),
+                sympy.parse_expr("k*t == t * t", evaluate=False),
+            ],
+            "vtrace2": [
+                sympy.parse_expr("a*k*r - a*r*t - d*k*r + d*r*t == 0", evaluate=False),
             ],
         },
     )
