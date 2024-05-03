@@ -48,6 +48,8 @@ int_types = {
     "int64_t",
 }
 
+int_upper_bound_civl = 100
+
 float_types = {
     "float",
     "double",
@@ -59,6 +61,8 @@ float_types = {
     "double64_t",
     "double128_t",
 }
+
+flouat_upper_bound_civl = 100.0
 
 random_functions = {
     # 32-bit signed
