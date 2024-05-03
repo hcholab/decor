@@ -265,7 +265,14 @@ class InputDeclarationAdder(c_ast.NodeVisitor):
             for param_name, param_type in self.params:
                 # Determine the initial value from upper_bounds if available
                 interval = self.upper_bounds.get(param_name)
-                init_value = interval[1] if interval is not None else None
+                if interval is not None:
+                    # Use the upper bound as the initial value
+                    init_value = interval[1]
+                else:
+                    if param_type in c_types.int_types:
+                        init_value = c_types.int_upper_bound_civl
+                    elif param_type in c_types.float_types:
+                        init_value = c_types.float_upper_bound_civl
                 init = (
                     c_ast.Constant(type=param_type, value=str(init_value))
                     if init_value is not None
