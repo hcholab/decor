@@ -1,4 +1,5 @@
 import re
+import subprocess
 from pycparser import c_parser, c_generator, c_ast
 import os
 import sympy
@@ -310,8 +311,32 @@ class CustomCGenerator(c_generator.CGenerator):
         return f"{custom_attribute} {decl};"
 
 
-def verify_w_civl(file, params, distributions):
-    pass
+def verify_w_civl(file_path):
+    # Define the path to the CIVL JAR and the folder where it is located
+    civl_folder = "tools/civl/lib"
+    civl_jar = "civl-1.22_5854.jar"
+
+    # Construct the full path to the JAR file
+    civl_jar_path = f"{civl_folder}/{civl_jar}"
+
+    # Construct the command to run the Java process
+    command = ["java", "-jar", civl_jar_path, "verify", "-min", file_path]
+
+    try:
+        # Execute the command and capture the output and error
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        # Check if there was an error
+        if result.returncode != 0:
+            print(result.stderr)
+        else:
+            print(result.stdout)
+
+    except Exception as e:
+        # Return any exceptions raised during the execution as errors
+        return {"error": str(e)}
 
 
 def fuzz_and_verify(file_path, func_name, trace_equations):
@@ -382,10 +407,10 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     if transformer.distr:
         print(f"Distributions: {transformer.distr}")
 
-    # Fuzz the function with random inputs
-    verify_w_civl(verifier_file, transformer.params, transformer.distr)
-
     print(f"Verifier file: {verifier_file}")
+
+    # verify the C code with civl
+    verify_w_civl(verifier_file)
 
 
 if __name__ == "__main__":
