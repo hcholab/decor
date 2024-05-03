@@ -491,7 +491,7 @@ if __name__ == "__main__":
         5,
     )
 
-    print("\n\n")
+    print("\n")
 
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"

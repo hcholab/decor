@@ -402,7 +402,7 @@ if __name__ == "__main__":
         },
     )
 
-    print("\n\n")
+    print("\n")
 
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
@@ -422,6 +422,8 @@ if __name__ == "__main__":
             ],
         },
     )
+
+    print("\n")
 
     file_path = "./benchmarks/bitween/dig/knuth.c"
     func_name = "knuth"
