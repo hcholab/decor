@@ -62,7 +62,7 @@ float_types = {
     "double128_t",
 }
 
-flouat_upper_bound_civl = 100.0
+float_upper_bound_civl = 100.0
 
 random_functions = {
     # 32-bit signed
