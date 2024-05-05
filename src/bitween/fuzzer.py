@@ -95,13 +95,13 @@ class TransformFunc(c_ast.NodeVisitor):
         self.trace_headers = {}
         # Added to capture the entry function's signature
         self.params = []
-        self.return_type = None  # Added to capture the function's return type
+        self.return_type = "void"  # Added to capture the function's return type
         self.distr = {}  # Dictionary to store distribution intervals
 
     def visit_FuncDef(self, node):
         self.curr_params = []
         self.curr_variables = {}
-        self.curr_return_type = None
+        self.curr_return_type = "void"
 
         # Extract the function's return type
         self.curr_return_type = (
@@ -116,6 +116,12 @@ class TransformFunc(c_ast.NodeVisitor):
         if node.decl.type.args is not None:
             params = node.decl.type.args.params
             for param in params:
+                if isinstance(param.type, c_ast.PtrDecl):
+                    log.warn("Pointer parameters are not supported.")
+                    continue
+                elif isinstance(param.type, c_ast.ArrayDecl):
+                    log.warn("Array parameters are not supported.")
+                    continue
                 type_name = param.type.type.names[0]
                 self.curr_variables[param.name] = type_name
                 self.curr_params.append((param.name, type_name))
@@ -128,7 +134,10 @@ class TransformFunc(c_ast.NodeVisitor):
 
         # Collect local variable types from declarations
         for decl in node.body.block_items:
-            if isinstance(decl, c_ast.Decl):
+            if isinstance(decl, c_ast.Decl) and (
+                not isinstance(decl.type, c_ast.ArrayDecl)
+                and not isinstance(decl.type, c_ast.PtrDecl)
+            ):
                 self.curr_variables[decl.name] = decl.type.type.names[0]
 
         print(f"Function Name: {node.decl.name}")
