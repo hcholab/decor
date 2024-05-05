@@ -100,20 +100,20 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
                 else "int"
             )
 
-        # Collect function parameter types
-        params = node.decl.type.args.params
-        if node.decl.name == self.func_name:
-            for param in params:
-                type_name = param.type.type.names[0]
-                self.params.append((param.name, type_name))
+            # Collect function parameter types
+            params = node.decl.type.args.params
+            if node.decl.name == self.func_name:
+                for param in params:
+                    type_name = param.type.type.names[0]
+                    self.params.append((param.name, type_name))
 
-        # if block_items is None, the function is defined but not implemented
-        if node.body.block_items is None:
-            return
+            # if block_items is None, the function is defined but not implemented
+            if node.body.block_items is None:
+                return
 
-        if node.decl.name == self.func_name:
-            # Traverse and modify the function body if it matches the specified function name
-            self.replace_vtrace_calls(node.body)
+            if node.decl.name == self.func_name:
+                # Traverse and modify the function body if it matches the specified function name
+                self.replace_vtrace_calls(node.body)
 
     def replace_vtrace_calls(self, node):
         if isinstance(node, c_ast.Compound):
