@@ -4,12 +4,14 @@ import subprocess
 import os
 import time
 
-from bitween import c_types
+from bitween import c_types, miscs, settings
 
 """
 This module provides a function to fuzz a C function by replacing vtrace calls with
 printf calls and handling vassume calls.
 """
+
+log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 def read_c_file(file_path):
@@ -111,13 +113,14 @@ class TransformFunc(c_ast.NodeVisitor):
             self.return_type = self.curr_return_type
 
         # Collect function parameter types
-        params = node.decl.type.args.params
-        for param in params:
-            type_name = param.type.type.names[0]
-            self.curr_variables[param.name] = type_name
-            self.curr_params.append((param.name, type_name))
-            if node.decl.name == self.func_name:
-                self.params.append((param.name, type_name))
+        if node.decl.type.args is not None:
+            params = node.decl.type.args.params
+            for param in params:
+                type_name = param.type.type.names[0]
+                self.curr_variables[param.name] = type_name
+                self.curr_params.append((param.name, type_name))
+                if node.decl.name == self.func_name:
+                    self.params.append((param.name, type_name))
 
         # if block_items is None, the function is defined but not implemented
         if node.body.block_items is None:
@@ -314,11 +317,11 @@ def compile_code(source_file):
     compilation_command = ["gcc", source_file, "-o", executable]
     try:
         subprocess.run(compilation_command, check=True)
-        print(f"Compilation successful: {executable} created.")
+        log.debug(f"Compilation successful: {executable} created.")
         return executable
     except subprocess.CalledProcessError:
-        print("Compilation failed.")
-        return None
+        log.error("Compilation failed.")
+        raise SystemExit
 
 
 def random_value(param_type, distr=None):
@@ -570,8 +573,8 @@ if __name__ == "__main__":
     # file_path = "./benchmarks/bitween/dig/hard.c"
     # func_name = "hard"
 
-    file_path = "./benchmarks/bitween/dig/knuth.c"
-    func_name = "knuth"
+    # file_path = "./benchmarks/bitween/dig/knuth.c"
+    # func_name = "knuth"
 
     # file_path = "./benchmarks/bitween/dig/lcm1.c"
     # func_name = "lcm1"
