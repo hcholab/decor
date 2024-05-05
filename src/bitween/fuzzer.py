@@ -179,11 +179,51 @@ class TransformFunc(c_ast.NodeVisitor):
             self.replace_vtrace_calls(child)
 
     def handle_vtrace_call(self, item):
-        args_str = f"{item.name.name}; " + "; ".join(
-            self.format_specifier(arg.name) for arg in item.args.exprs
-        )
+        class FuncCallVisitor(c_ast.NodeVisitor):
+            def __init__(self):
+                self.func_call = ""
+                self.func_name = ""
+
+            def visit_FuncCall(self, node):
+                self.func_name = self.resolve_id(node.name)
+                args = self.resolve_args(node.args)
+                self.func_call = f"{self.func_name}({args})"
+
+            def resolve_id(self, node):
+                # This function resolves an ID node to a string
+                if isinstance(node, c_ast.ID):
+                    return node.name
+                else:
+                    return ""
+
+            def resolve_args(self, node):
+                # This function resolves the arguments of the function call
+                if isinstance(node, c_ast.ExprList):
+                    args = [self.resolve_id(expr) for expr in node.exprs]
+                    return ", ".join(args)
+                else:
+                    return ""
+
+        arg_names = []
+        arg_format_specifiers = []
+        for arg in item.args.exprs:
+            if isinstance(arg, c_ast.FuncCall):
+                visitor = FuncCallVisitor()
+                visitor.visit(arg)
+                arg_names.append(visitor.func_call)
+                func_name = visitor.func_name
+                return_type = c_types.math_functions.get(func_name, "double")
+                arg_format_specifiers.append(
+                    c_types.format_specifiers.get(return_type, "%lf")
+                )
+            else:
+                arg_names.append(arg.name)
+                arg_format_specifiers.append(self.format_specifier(arg.name))
+
+        args_str = f"{item.name.name}; " + "; ".join(arg_format_specifiers)
+
         self.trace_headers[f"{item.name.name}"] = f"{item.name.name}; " + "; ".join(
-            [f"I {arg.name}" for arg in item.args.exprs]
+            [f"I {name}" for name in arg_names]
         )
         new_printf_call = c_ast.FuncCall(
             name=c_ast.ID(name="printf"),
