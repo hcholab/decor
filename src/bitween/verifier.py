@@ -243,6 +243,15 @@ class FunctionRenamer(c_ast.NodeVisitor):
                 node.decl.type.args = None
 
 
+def create_extern_function_prototype(func_name, params, return_type):
+    # Create the parameter string by joining type and name for each parameter
+    param_string = ", ".join(
+        f"{param_type} {param_name}" for param_name, param_type in params
+    )
+    # Construct the full function prototype
+    return f"extern {return_type} {func_name}({param_string});"
+
+
 class CustomDecl:
     """Class to hold a custom declaration with additional attributes."""
 
@@ -321,7 +330,7 @@ def verify_w_civl(file_path):
     civl_jar_path = f"{civl_folder}/{civl_jar}"
 
     # Construct the command to run the Java process
-    command = ["java", "-jar", civl_jar_path, "verify", "-min", file_path]
+    command = ["java", "-jar", civl_jar_path, "verify", file_path]
 
     try:
         # Execute the command and capture the output and error
@@ -392,8 +401,14 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     generator = CustomCGenerator()
     modified_code = generator.visit(ast)
 
-    # Add back the preprocessor directives
-    final_code = "\n".join(preprocessor_directives) + "\n" + modified_code
+    prototype = create_extern_function_prototype(
+        func_name, transformer.params, transformer.return_type
+    )
+
+    # Add back the preprocessor directives and the function prototype
+    final_code = (
+        "\n".join(preprocessor_directives) + "\n" + prototype + "\n" + modified_code
+    )
     # print(final_code)
 
     # write the final code to a file
