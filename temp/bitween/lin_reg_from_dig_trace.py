@@ -237,7 +237,7 @@ def infer_equations(
     coeff_threshold=settings.COEFF_THRESHOLD,
     coeff_cutoff=settings.COEFF_CUTOFF,
     intercept_cutoff=settings.INTERCEPT_CUTOFF,
-    delta=settings.DELTA,
+    epsilon=settings.EPSILON,
 ):
 
     def infer_equation(pivot, model, extended_terms, extended_data, note):
@@ -289,7 +289,7 @@ def infer_equations(
 
         me = np.mean(np.abs(rhs_values - y_test))
         str += f"(error: {round(me, 2)}), ({note}), "
-        if me < delta:
+        if me < epsilon:
             str += ">>>>>>>>>>>>>> good fit <<<<<<<<<<<<<<<<\n"
         else:
             str += "\n"
@@ -380,7 +380,7 @@ if __name__ == "__main__":  # noqa E123
 
         good_fit = set()
         for r in result:
-            if r[2] < settings.DELTA:
+            if r[2] < settings.EPSILON:
                 print(f"{r[1]} = 0 (error: {round(r[2], 3)})")
                 good_fit.add(sympy.simplify(r[1]))
 

@@ -525,7 +525,7 @@ def infer_equations(  # noqa F811
     coeff_threshold=settings.COEFF_THRESHOLD,
     coeff_cutoff=settings.COEFF_CUTOFF,
     intercept_cutoff=settings.INTERCEPT_CUTOFF,
-    delta=settings.DELTA,
+    epsilon=settings.EPSILON,
     objective_threshold=settings.OBJECTIVE_THRESHOLD,
 ):
 
@@ -690,7 +690,7 @@ def infer_equations(  # noqa F811
 
         me = np.mean(np.abs(rhs_values - y_test))
         str_ += f"(err: {round(me, 2):<5.2f}): ({model_desc}); [{pivot}]"
-        if me < delta:
+        if me < epsilon:
             str_ += "***\n"
         else:
             str_ += "\n"
@@ -728,7 +728,7 @@ def infer_equations(  # noqa F811
         if equation.expr is not None:
             results.append(equation)
             milp_input.append((pivot, term, data))
-            if equation.error < delta:
+            if equation.error < epsilon:
                 continue
 
             # NOTE: start Regression Refinement
@@ -933,7 +933,7 @@ def main(file_path: str = None):
         init_d = str(len(trace_data[loc]["extended_terms"]))  # initial dimension
         max_d = len(init_d)  # dimension
         for i, eq in enumerate(result):
-            if eq.error < settings.DELTA:
+            if eq.error < settings.EPSILON:
                 eql_s = str(equations[i])
                 max_m = max(max_m, len(sanitize_source(eq.model_desc)) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
@@ -951,7 +951,7 @@ def main(file_path: str = None):
         )
         print(ruler)
         for i, eq in enumerate(result):
-            if eq.error < settings.DELTA:
+            if eq.error < settings.EPSILON:
                 s_eq = str(equations[i])
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
@@ -1018,7 +1018,7 @@ def infer_invariants(
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
     n: int = 40,  # number of iterations
-    delta: float = 0.001,  # error threshold
+    epsilon: float = 0.001,  # error threshold
     milp: settings.MILPSolver = None,
     bound: int = None,
     method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
@@ -1028,7 +1028,7 @@ def infer_invariants(
     """
 
     settings.DEGREE = max_degree
-    settings.DELTA = delta
+    settings.EPSILON = epsilon
     if milp:
         settings.MILP = True
         settings.MILP_SOLVER = milp
@@ -1051,7 +1051,7 @@ def infer_invariants_and_check_correctness(
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
     n: int = 40,  # number of iterations
-    delta: float = 0.001,  # error threshold
+    epsilon: float = 0.001,  # error threshold
     milp: settings.MILPSolver = None,
     bound: int = None,
     method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
@@ -1062,7 +1062,7 @@ def infer_invariants_and_check_correctness(
     """
 
     settings.DEGREE = max_degree
-    settings.DELTA = delta
+    settings.EPSILON = epsilon
     if milp:
         settings.MILP = True
         settings.MILP_SOLVER = milp
@@ -1089,13 +1089,13 @@ def infer_invariants_and_verify_correctness(
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
     n: int = 40,  # number of iterations
-    delta: float = 0.001,  # error threshold
+    epsilon: float = 0.001,  # error threshold
     milp: settings.MILPSolver = None,
     bound: int = None,
     method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
 ):
     settings.DEGREE = max_degree
-    settings.DELTA = delta
+    settings.EPSILON = epsilon
     if milp:
         settings.MILP = True
         settings.MILP_SOLVER = milp
@@ -1125,14 +1125,14 @@ def infer_property(
     *functions,
     max_degree: int = 2,  # maximum degree
     n: int = 30,  # number of samples
-    delta: float = 0.1,  # error threshold
+    epsilon: float = 0.1,  # error threshold
     precondition: callable = None,  # precondition for the samples
     milp: settings.MILPSolver = None,
     var_bound: int = None,
 ) -> list[sympy.Expr]:
 
     settings.DEGREE = max_degree
-    settings.DELTA = delta
+    settings.EPSILON = epsilon
     if milp:
         settings.MILP = True
         settings.MILP_SOLVER = milp
