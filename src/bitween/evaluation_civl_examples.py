@@ -33,11 +33,19 @@ def mean():
     )
 
 
-def power_simplify1():
-    file_path = "./benchmarks/bitween/civl_arithmetic_examples/power_simplify1.c"
-    func_name = "power_simplify1"
+def power_simplify():
+    file_path = "./benchmarks/bitween/civl_arithmetic_examples/power_simplify.c"
+    func_name = "power_simplify"
     infer_invariants_and_verify_correctness(
         file_path, func_name, max_degree=2, n=20, milp=glpk
+    )
+
+
+def sqrtcall():
+    file_path = "./benchmarks/bitween/civl_arithmetic_examples/sqrtcall.c"
+    func_name = "sqrtcall"
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=8, n=40, milp=glpk
     )
 
 
@@ -50,6 +58,7 @@ if __name__ == "__main__":
     # division()
     # equivalence()
     # mean()
-    power_simplify1()
+    # power_simplify()
+    sqrtcall()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
