@@ -450,42 +450,42 @@ if __name__ == "__main__":
         },
     )
 
-    # print("\n")
+    print("\n")
 
-    # file_path = "./benchmarks/bitween/dig/cohencu.c"
-    # func_name = "cohencu"
+    file_path = "./benchmarks/bitween/dig/cohencu.c"
+    func_name = "cohencu"
 
-    # fuzz_and_verify(
-    #     file_path,
-    #     func_name,
-    #     {
-    #         "vtrace1": [
-    #             sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
-    #             sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
-    #         ],
-    #         "vtrace2": [
-    #             sympy.parse_expr("6*a - z + 12 == 0", evaluate=False),
-    #             sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
-    #             sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
-    #         ],
-    #     },
-    # )
+    fuzz_and_verify(
+        file_path,
+        func_name,
+        {
+            "vtrace1": [
+                sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
+                sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
+            ],
+            "vtrace2": [
+                sympy.parse_expr("6*a - z + 12 == 0", evaluate=False),
+                sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
+                sympy.parse_expr("12*y - z**2 + 6*z - 12 == 0", evaluate=False),
+            ],
+        },
+    )
 
-    # print("\n")
+    print("\n")
 
-    # file_path = "./benchmarks/bitween/dig/knuth.c"
-    # func_name = "knuth"
+    file_path = "./benchmarks/bitween/dig/knuth.c"
+    func_name = "knuth"
 
-    # fuzz_and_verify(
-    #     file_path,
-    #     func_name,
-    #     {
-    #         "vtrace1": [
-    #             sympy.parse_expr("d*k - d*t - a*k + a*t == 0", evaluate=False),
-    #             sympy.parse_expr("k*t == t * t", evaluate=False),
-    #         ],
-    #         "vtrace2": [
-    #             sympy.parse_expr("a*k*r - a*r*t - d*k*r + d*r*t == 0", evaluate=False),
-    #         ],
-    #     },
-    # )
+    fuzz_and_verify(
+        file_path,
+        func_name,
+        {
+            "vtrace1": [
+                sympy.parse_expr("d*k - d*t - a*k + a*t == 0", evaluate=False),
+                sympy.parse_expr("k*t == t * t", evaluate=False),
+            ],
+            "vtrace2": [
+                sympy.parse_expr("a*k*r - a*r*t - d*k*r + d*r*t == 0", evaluate=False),
+            ],
+        },
+    )
