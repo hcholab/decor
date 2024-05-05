@@ -4,12 +4,14 @@ import subprocess
 import os
 import sympy
 
-from bitween import c_types
+from bitween import c_types, miscs, settings
 
 """
 This module provides a function to fuzz a C function with random inputs and
 check assertions.
 """
+
+log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 def read_c_file(file_path):
@@ -101,11 +103,12 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             )
 
         # Collect function parameter types
-        params = node.decl.type.args.params
-        if node.decl.name == self.func_name:
-            for param in params:
-                type_name = param.type.type.names[0]
-                self.params.append((param.name, type_name))
+        if node.decl.type.args is not None:
+            params = node.decl.type.args.params
+            if node.decl.name == self.func_name:
+                for param in params:
+                    type_name = param.type.type.names[0]
+                    self.params.append((param.name, type_name))
 
         # if block_items is None, the function is defined but not implemented
         if node.body.block_items is None:
@@ -291,11 +294,11 @@ def compile_code(source_file):
     compilation_command = ["gcc", source_file, "-o", executable]
     try:
         subprocess.run(compilation_command, check=True)
-        print(f"Compilation successful: {executable} created.")
+        log.debug(f"Compilation successful: {executable} created.")
         return executable
     except subprocess.CalledProcessError:
-        print("Compilation failed.")
-        return None
+        log.error("Compilation failed.")
+        raise SystemExit
 
 
 def comment_out_assertions(file_path, failed_lines):
