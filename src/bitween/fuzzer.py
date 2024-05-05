@@ -185,21 +185,28 @@ class TransformFunc(c_ast.NodeVisitor):
                 self.func_name = ""
 
             def visit_FuncCall(self, node):
-                self.func_name = self.resolve_id(node.name)
+                self.func_name = self.resolve_expr(node.name)
                 args = self.resolve_args(node.args)
                 self.func_call = f"{self.func_name}({args})"
+                print(self.func_call)  # Print or collect the formatted function call
 
-            def resolve_id(self, node):
-                # This function resolves an ID node to a string
+            def resolve_expr(self, node):
+                # This function recursively resolves any expression to a string
                 if isinstance(node, c_ast.ID):
                     return node.name
+                elif isinstance(node, c_ast.Constant):
+                    return node.value
+                elif isinstance(node, c_ast.BinaryOp):
+                    left = self.resolve_expr(node.left)
+                    right = self.resolve_expr(node.right)
+                    return f"({left} {node.op} {right})"
                 else:
                     return ""
 
             def resolve_args(self, node):
                 # This function resolves the arguments of the function call
                 if isinstance(node, c_ast.ExprList):
-                    args = [self.resolve_id(expr) for expr in node.exprs]
+                    args = [self.resolve_expr(expr) for expr in node.exprs]
                     return ", ".join(args)
                 else:
                     return ""
