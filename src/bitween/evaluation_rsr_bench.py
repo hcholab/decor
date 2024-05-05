@@ -436,7 +436,7 @@ def test_x_over_one_minus_x():
         F,
         max_degree=2,
         n=1000,
-        delta=0.001,
+        epsilon=0.001,
     )
 
     def f(x):
