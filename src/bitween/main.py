@@ -1206,7 +1206,15 @@ def infer_property(
         writer = csv.writer(file, delimiter=";")
         writer.writerows(evals)
 
-    return main("trace.csv")
+    equations = main("trace.csv")
+
+    # NOTE: verifier for equality works with the lhs of the equation.
+    exprs = []
+    for eqts in equations.values():
+        for eqt in eqts:
+            exprs.append(eqt.lhs)
+
+    return exprs
 
 
 def verify(expr: sympy.Expr, *functions) -> bool:
