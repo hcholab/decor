@@ -77,6 +77,15 @@ def sin_taylor_1():
     )
 
 
+def sinh_taylor():
+    file_path = "./benchmarks/bitween/rsr-benchs/sinh_taylor.c"
+    func_name = "sinh_taylor"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=150, milp=glpk
+    )
+
+
 if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
@@ -88,6 +97,7 @@ if __name__ == "__main__":
     # exp_taylor() # NOTE: civl gives error
     # sin() # NOTE: civl cannot verify this, therefore we use our own verify function
     # sin_taylor()  # NOTE: civl verifies this
-    sin_taylor_1()  # NOTE: civl verifies this
+    # sin_taylor_1()  # NOTE: civl verifies this
+    sinh_taylor()  # NOTE: civl verifies this
 
     log.debug(f"Total Time: {time() - st:.2f}s")
