@@ -93,6 +93,7 @@ class TransformFunc(c_ast.NodeVisitor):
     def __init__(self, func_name):
         self.func_name = func_name
         self.trace_headers = {}
+        self.func_name_to_return_type = {}
         # Added to capture the entry function's signature
         self.params = []
         self.return_type = "void"  # Added to capture the function's return type
@@ -111,6 +112,8 @@ class TransformFunc(c_ast.NodeVisitor):
         )
         if node.decl.name == self.func_name:
             self.return_type = self.curr_return_type
+        else:
+            self.func_name_to_return_type[node.decl.name] = self.curr_return_type
 
         # Collect function parameter types
         if node.decl.type.args is not None:
@@ -219,7 +222,10 @@ class TransformFunc(c_ast.NodeVisitor):
                 visitor.visit(arg)
                 arg_names.append(visitor.func_call)
                 func_name = visitor.func_name
-                return_type = c_types.math_functions.get(func_name, "double")
+                if func_name in self.func_name_to_return_type:
+                    return_type = self.func_name_to_return_type[func_name]
+                else:
+                    return_type = c_types.math_functions.get(func_name, "double")
                 arg_format_specifiers.append(
                     c_types.format_specifiers.get(return_type, "%lf")
                 )
