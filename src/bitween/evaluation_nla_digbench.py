@@ -264,12 +264,13 @@ def sqrt1():
 if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
+    gurobi = settings.MILPSolver.GUROBI
 
     st = time()
 
     # bresenham()
     # cohencu() # NOTE: use this in demo
-    cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
+    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
     # egcd()  # NOTE: use this in demo 3
@@ -296,6 +297,6 @@ if __name__ == "__main__":
     # ps4()
     # ps5()
     # ps6()
-    # sqrt1()  # NOTE: use this in demo 1
+    sqrt1()  # NOTE: use this in demo 1
 
     log.debug(f"Total Time: {time() - st:.2f}s")
