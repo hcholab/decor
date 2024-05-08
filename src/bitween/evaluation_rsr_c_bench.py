@@ -116,7 +116,7 @@ def sigmoid_taylor():
         file_path,
         func_name,
         max_degree=2,
-        n=300,
+        n=150,
         milp=glpk,
     )
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # sin_taylor_1()  # NOTE: civl verifies this
     # sinh_taylor()  # NOTE: civl verifies this
     # sigmoid()
-    # sigmoid_taylor()  # NOTE: civl cannot verify this
-    tanh_taylor()  # NOTE: civl verifies this
+    sigmoid_taylor()  # NOTE: civl cannot verify this
+    # tanh_taylor()  # NOTE: civl verifies this
 
     log.debug(f"Total Time: {time() - st:.2f}s")
