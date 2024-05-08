@@ -100,11 +100,7 @@ def sigmoid():
     func_name = "sigmoid"
 
     infer_invariants_and_verify_correctness(
-        file_path,
-        func_name,
-        max_degree=2,
-        n=200,
-        milp=glpk,
+        file_path, func_name, max_degree=2, n=200, milp=glpk
     )
 
 
@@ -113,11 +109,25 @@ def sigmoid_taylor():
     func_name = "sigmoid_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path,
-        func_name,
-        max_degree=2,
-        n=150,
-        milp=glpk,
+        file_path, func_name, max_degree=2, n=150, milp=glpk
+    )
+
+
+def exp1():
+    file_path = "./benchmarks/bitween/rsr-benchs/euler1.c"
+    func_name = "euler1"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=150, milp=glpk
+    )
+
+
+def exp1_taylor():
+    file_path = "./benchmarks/bitween/rsr-benchs/euler1_taylor.c"
+    func_name = "euler1_taylor"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=150, milp=glpk
     )
 
 
@@ -131,12 +141,14 @@ if __name__ == "__main__":
     # identity()
     # exp()
     # exp_taylor() # NOTE: civl gives error
+    # sigmoid()
+    # sigmoid_taylor()  # NOTE: civl cannot verify this
+    # exp1()
+    exp1_taylor()
     # sin() # NOTE: civl cannot verify this, therefore we use our own verify function
     # sin_taylor()  # NOTE: civl verifies this
     # sin_taylor_1()  # NOTE: civl verifies this
     # sinh_taylor()  # NOTE: civl verifies this
-    # sigmoid()
-    sigmoid_taylor()  # NOTE: civl cannot verify this
     # tanh_taylor()  # NOTE: civl verifies this
 
     log.debug(f"Total Time: {time() - st:.2f}s")
