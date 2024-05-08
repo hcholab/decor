@@ -108,12 +108,12 @@ if __name__ == "__main__":
     st = time()
 
     # identity()
-    # exp()
+    exp()
     # exp_taylor() # NOTE: civl gives error
     # sin() # NOTE: civl cannot verify this, therefore we use our own verify function
     # sin_taylor()  # NOTE: civl verifies this
     # sin_taylor_1()  # NOTE: civl verifies this
     # sinh_taylor()  # NOTE: civl verifies this
-    sigmoid_taylor()  # NOTE: civl verifies this
+    # sigmoid_taylor()  # NOTE: civl verifies this
 
     log.debug(f"Total Time: {time() - st:.2f}s")
