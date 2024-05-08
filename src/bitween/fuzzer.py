@@ -203,6 +203,9 @@ class TransformFunc(c_ast.NodeVisitor):
                     left = self.resolve_expr(node.left)
                     right = self.resolve_expr(node.right)
                     return f"({left} {node.op} {right})"
+                elif isinstance(node, c_ast.UnaryOp):
+                    expr = self.resolve_expr(node.expr)
+                    return f"{node.op}{expr}"
                 else:
                     return ""
 
