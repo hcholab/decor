@@ -597,7 +597,7 @@ def test_sigmoid():
 
 # test_identity()
 # test_exp()
-# test_sigmoid()
+test_sigmoid()
 # test_exp_minus_one()
 # test_exp_div_by_x()  # no solution
 # test_floudas()
@@ -607,7 +607,7 @@ def test_sigmoid():
 # test_tanh()
 # test_diff_x2_y2()
 # test_sqrt_add()  # no solution
-test_inverse()
+# test_inverse()
 # test_inverse_add()
 # test_inverse_cot_plus_one()
 # test_inverse_tan_plus_one()
