@@ -86,6 +86,28 @@ def sinh_taylor():
     )
 
 
+def tanh_taylor():
+    file_path = "./benchmarks/bitween/rsr-benchs/tanh_taylor.c"
+    func_name = "tanh_taylor"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=150, milp=glpk
+    )
+
+
+def sigmoid():
+    file_path = "./benchmarks/bitween/rsr-benchs/sigmoid.c"
+    func_name = "sigmoid"
+
+    infer_invariants_and_verify_correctness(
+        file_path,
+        func_name,
+        max_degree=2,
+        n=200,
+        milp=glpk,
+    )
+
+
 def sigmoid_taylor():
     file_path = "./benchmarks/bitween/rsr-benchs/sigmoid_taylor.c"
     func_name = "sigmoid_taylor"
@@ -93,10 +115,9 @@ def sigmoid_taylor():
     infer_invariants_and_verify_correctness(
         file_path,
         func_name,
-        max_degree=3,
-        n=200,
-        milp=None,
-        method=settings.InitialMethod.FORWARD_SELECTION,
+        max_degree=2,
+        n=300,
+        milp=glpk,
     )
 
 
@@ -108,12 +129,14 @@ if __name__ == "__main__":
     st = time()
 
     # identity()
-    exp()
+    # exp()
     # exp_taylor() # NOTE: civl gives error
     # sin() # NOTE: civl cannot verify this, therefore we use our own verify function
     # sin_taylor()  # NOTE: civl verifies this
     # sin_taylor_1()  # NOTE: civl verifies this
     # sinh_taylor()  # NOTE: civl verifies this
-    # sigmoid_taylor()  # NOTE: civl verifies this
+    # sigmoid()
+    # sigmoid_taylor()  # NOTE: civl cannot verify this
+    tanh_taylor()  # NOTE: civl verifies this
 
     log.debug(f"Total Time: {time() - st:.2f}s")
