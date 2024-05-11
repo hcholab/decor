@@ -246,16 +246,116 @@ class Reducer:
         for group in groups.values():
             equivalence_classes.append(min(group, key=lambda e: len(str(e))))
 
-        log.debug(f"Union Find: from {n_eqts} to {len(equivalence_classes)} ps")
-
-        # for eq in equivalence_classes:
-        #     print(f"{eq} = 0")
+        log.debug(f"Union Find: from {n_eqts} to {len(equivalence_classes)} ps:")
+        for eq in equivalence_classes:
+            print(f"{eq} = 0")
 
         eqts = cls.reduce_eqts(equivalence_classes)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
 
         return eqts
+
+    @classmethod
+    def extract_coefficients(cls, expr: sympy.Expr):
+        # Use as_ordered_terms to get the terms in a default order
+        ordered_terms = expr.as_ordered_terms()
+        # Extract just the coefficients from each term
+        return [list(term.as_coefficients_dict().keys())[0] for term in ordered_terms]
+
+    @classmethod
+    def has_same_terms(cls, expr1: sympy.Expr, expr2: sympy.Expr) -> bool:
+        """Check if two expressions have the same terms."""
+        terms1 = cls.extract_coefficients(expr1)
+        terms2 = cls.extract_coefficients(expr2)
+        return terms1 == terms2
+
+
+def is_effectively_integer(n, tol=1e-2):
+    """Check if a sympy number is close enough to an integer to be treated as one."""
+    if isinstance(n, sympy.Integer):
+        return True
+    elif isinstance(n, sympy.Float):
+        # Calculate the difference between the number and its nearest integer
+        nearest_int = round(n)
+        if abs(n - nearest_int) < tol:
+            return True
+    return False
+
+
+def is_favored_fraction(n):
+    """Check if the number is a favored multiple, including multiples of 0.5, 0.33, 0.25, and 0.2."""
+    if is_effectively_integer(n * 2):
+        return True
+    if is_effectively_integer(n * 3):
+        return True
+    if is_effectively_integer(n * 4):
+        return True
+    if is_effectively_integer(n * 5):
+        return True
+    if is_effectively_integer(n * 6):
+        return True
+    if is_effectively_integer(n * 7):
+        return True
+    return False
+
+
+def decimal_length(n):
+    """Calculate the number of significant digits after the decimal point."""
+    if is_effectively_integer(n):
+        return 0
+    else:
+        # Convert the number to a string using enough precision
+        str_n = str(n.evalf(15))  # Use evalf to convert to decimal string accurately
+        if "." in str_n:
+            decimal_part = str_n.split(".")[1]
+            # Remove trailing zeros for the purpose of counting significant digits
+            decimal_part = decimal_part.rstrip("0")
+            return len(decimal_part)
+        return 0
+
+
+def score_polynomial(coeffs):
+    # print(f"Scoring polynomial: {coeffs}")
+    score = 0
+    for coeff in coeffs:
+        s = 0
+        if is_effectively_integer(coeff):
+            s = 5  # Higher points for integer coefficients
+            # print(f"Score: {s} for `{coeff}`")
+        elif is_favored_fraction(coeff):
+            s = 3  # Additional points for favored fractions
+            # print(f"Score: {s} for `{coeff}`")
+        else:
+            a = decimal_length(coeff)
+            s = 2 - a  # Base score adjusted by decimal simplicity
+            # print(f"Score: 2 - {a} = {s} for `{coeff}`")
+        penalty = decimal_length(coeff) / 10  # Penalize based on complexity
+        # print(f"Penalty: {penalty}")
+        score += s - penalty
+        # print(f"Total score: {score}")
+    return score
+
+
+def find_best_polynomial(polynomials):
+    """
+    Find the best polynomial from a list of polynomials based on a scoring system.
+    """
+    coeff_lists = [
+        [term.as_coeff_mul()[0] for term in e.as_ordered_terms()] for e in polynomials
+    ]
+
+    best_score = float("-inf")
+    best_poly = None
+
+    for index, poly in enumerate(coeff_lists):
+        current_score = score_polynomial(poly)
+        # print(f"Score: {current_score} for {poly}")
+        if current_score > best_score:
+            best_score = current_score
+            best_poly = polynomials[index]
+
+    return best_poly
 
 
 if __name__ == "__main__":
@@ -276,10 +376,13 @@ if __name__ == "__main__":
 
     eq7 = x - y**5 / 5 - y**4 / 2 - 33 * y**3 / 100 + 3 * y / 100
     eq8 = -5 * x + y**5 + 5 * y**4 / 2 + 167 * y**3 / 100 - 17 * y / 100
+    eq9 = -30 * x + 6 * y**5 + 15 * y**4 + 10 * y**3 - y
 
-    settings.UGLY_FACTOR = 100
+    # settings.UGLY_FACTOR = 100
     # equations = Reducer.merge_equations([eq7, eq8])
     # equations = Reducer.merge_equations([eq1, eq2, eq3])
-    equations = Reducer.merge_equations([eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8])
+    # equations = Reducer.merge_equations([eq3, eq4])
+    # equations = Reducer.merge_equations([eq3, eq4, eq5, eq6, eq7, eq8, eq9])
+    equations = Reducer.merge_equations([eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8, eq9])
     for eq in equations:
         print(f"{eq} = 0")
