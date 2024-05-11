@@ -41,7 +41,8 @@ FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.traces.csv"  # NOTE: NO NEED M
 LOGGER_LEVEL = 3
 
 DEGREE = 2
-EPSILON = 0.001  # Property Test threshold
+EPSILON = 0.001  # Tolerance for squared error
+PRECISION = 3  # Precision for the floating-point numbers
 
 TYPE = "INT"  # INT or REAL
 
