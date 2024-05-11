@@ -269,7 +269,7 @@ if __name__ == "__main__":
     st = time()
 
     # bresenham()
-    # cohencu() # NOTE: use this in demo
+    # cohencu()  # NOTE: use this in demo
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
