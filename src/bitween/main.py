@@ -281,7 +281,8 @@ def find_models_w_feature_selector(
             for feature, coeff in zip(selected_features, coefficients):
                 idx = feature_list.index(feature)
                 extended_coefficients[idx] = coeff
-                coeff = round(coeff, 3)
+                # TODO be careful with rounding
+                coeff = round(coeff, settings.PRECISION)
                 if feature == "1" and coeff != 0:
                     equation += sympy.Rational(coeff)
                 elif coeff != 0:
@@ -651,7 +652,8 @@ def infer_equations(  # noqa F811
 
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
-                coeff = round(coefficient, 2)  # TODO be careful with rounding
+                # TODO be careful with rounding
+                coeff = round(coefficient, settings.PRECISION)
                 if coeff != 0:
                     rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
                     coeff_terms[terms[i]] = coefficient
@@ -659,7 +661,8 @@ def infer_equations(  # noqa F811
                     selected_terms.append(terms[i])
 
         # Add the constant term (intercept)
-        intercept = round(model["intercept"], 2)  # TODO be careful with rounding
+        # TODO be careful with rounding
+        intercept = round(model["intercept"], settings.PRECISION)
         if intercept > coeff_threshold:
             rhs += sympy.Rational(intercept)
 
