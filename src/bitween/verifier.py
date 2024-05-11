@@ -429,6 +429,8 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     # verify the C code with civl
     verify_w_civl(verifier_file)
 
+    print(f"verifier file: {verifier_file}")
+
 
 if __name__ == "__main__":
     # Example usage

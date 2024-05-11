@@ -958,7 +958,7 @@ def main(file_path: str = None):
                 print(
                     f"{sanitize_source(eq.model_desc):<{max_m}}| {eq.pivot:^{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:^{max_s}} |"
                 )
-                good_fit.add(eq.expr)
+                good_fit.add(equations[i])  # NOTE: This is very crucial
         print(ruler)
 
         # NOTE: Reductions
