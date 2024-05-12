@@ -33,6 +33,14 @@ def cos_polynomial():
     )
 
 
+def exp_loop():
+    file_path = "./benchmarks/bitween/float-benchs/_exp_loop.c"
+    func_name = "_exp_loop"
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=20, milp=glpk
+    )
+
+
 if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
@@ -41,6 +49,7 @@ if __name__ == "__main__":
 
     # addsub()
     # arctan_Pade()
-    cos_polynomial()
+    # cos_polynomial()
+    exp_loop()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
