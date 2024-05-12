@@ -144,9 +144,9 @@ if __name__ == "__main__":
     # sigmoid()
     # sigmoid_taylor()  # NOTE: civl cannot verify this
     # exp1()
-    exp1_taylor()
-    # sin() # NOTE: civl cannot verify this, therefore we use our own verify function
-    # sin_taylor()  # NOTE: civl verifies this
+    # exp1_taylor()
+    # sin()  # NOTE: civl cannot verify this, therefore we use our own verify function
+    sin_taylor()  # NOTE: civl verifies this
     # sin_taylor_1()  # NOTE: civl verifies this
     # sinh_taylor()  # NOTE: civl verifies this
     # tanh_taylor()  # NOTE: civl verifies this
