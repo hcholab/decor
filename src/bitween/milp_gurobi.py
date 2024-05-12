@@ -3,7 +3,7 @@ from gurobipy import GRB
 import gurobipy as gp
 
 import numpy as np
-from sympy import sympify, Symbol, simplify, Rational
+from sympy import Symbol, simplify, Rational
 
 from bitween.utilities import pp
 from bitween import settings, miscs
@@ -250,7 +250,7 @@ if __name__ == "__main__":  # noqa E123
     Test cases
     """
     import csv
-    from sympy import Function, Symbol, sin, sympify
+    from sympy import Function, Symbol, sin
     from bitween.terms import get_values_terms
     from bitween.analyzer import property_test, verify
     from bitween.sampler import Distribution, Domain, sample

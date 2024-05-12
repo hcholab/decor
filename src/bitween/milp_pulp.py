@@ -9,7 +9,7 @@ from pulp import (
 )
 import pulp
 import numpy as np
-from sympy import sympify, Symbol, simplify, Rational
+from sympy import Symbol, simplify, Rational
 
 from bitween.utilities import pp
 from bitween import settings, miscs
