@@ -341,6 +341,7 @@ def verify_w_civl(file_path):
 
         # Check if there was an error
         if result.returncode != 0:
+            print(result.stdout)
             print(result.stderr)
         else:
             print(result.stdout)
