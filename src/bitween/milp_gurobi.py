@@ -209,7 +209,9 @@ def milp_synthesis(  # noqa: C901
                     coeff = v.X
                     term = terms[int(v.VarName[5:])]
                     term_ = Rational(coeff) * (1 if term == "1" else Symbol(term))
-                    cost = sympify(f"{coeff}*{term}").count_ops()
+                    # TODO: fix this later. There are multiplicative terms such as f(x)*f(x)
+                    # cost = sympify(f"{coeff}*{term}").count_ops()
+                    cost = term_.count_ops()
                     term_costs[term] = cost
                     term_coefs[term] = v.X
                     cost = f"cost: {cost}"
