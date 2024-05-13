@@ -48,8 +48,8 @@ if __name__ == "__main__":
     st = time()
 
     # addsub()
-    # arctan_Pade()
+    arctan_Pade()  # NOTE: This is the function that we are interested in
     # cos_polynomial()
-    exp_loop()
+    # exp_loop()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
