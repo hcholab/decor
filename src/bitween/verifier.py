@@ -3,6 +3,8 @@ import subprocess
 from pycparser import c_parser, c_generator, c_ast
 import os
 import sympy
+from sympy.printing.c import C99CodePrinter
+from sympy.printing.precedence import precedence
 
 from bitween import c_types, settings
 
@@ -23,6 +25,23 @@ def read_c_file(file_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
+
+# https://github.com/sympy/sympy/blob/master/sympy/printing/c.py
+# https://stackoverflow.com/questions/65534432/generate-c-code-with-sympy-replace-powx-2-by-xx
+class CivlCCodePrinter(C99CodePrinter):
+    """
+    Due to some pecularities of CIVL's pow function assumption,
+    which enforces the base should be positive.
+    """
+
+    def _print_Pow(self, expr):
+        PREC = precedence(expr)
+        if expr.exp == 2:
+            # TODO: exhaustively check for all possible cases
+            return "{0}*{0}".format(self.parenthesize(expr.base, PREC))
+        else:
+            return super()._print_Pow(expr)
 
 
 def get_is_close_code():
@@ -164,7 +183,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             # remove the " == 0" part from the equation
             equation = equation.replace(" == 0", "")  # TODO: generalize this
             return c_ast.FuncCall(
-                name=c_ast.ID(name="assert"),
+                name=c_ast.ID(name="$assert"),
                 args=c_ast.ExprList(
                     exprs=[
                         c_ast.FuncCall(
@@ -304,55 +323,52 @@ class InputDeclarationAdder(c_ast.NodeVisitor):
         self.params = params
         self.upper_bounds = upper_bounds or {}
 
-    def visit_FuncDef(self, node):
-        if node.decl.name == "main":
-            new_decls = []
-            for param_name, param_type in self.params:
-                # Determine the initial value from upper_bounds if available
-                interval = self.upper_bounds.get(param_name)
-                if interval is not None:
-                    # Use the upper bound as the initial value
-                    init_value = interval[1]
-                else:
-                    if param_type in c_types.int_types:
-                        init_value = c_types.int_upper_bound_civl
-                    elif param_type in c_types.float_types:
-                        init_value = c_types.float_upper_bound_civl
-                init = (
-                    c_ast.Constant(type=param_type, value=str(init_value))
-                    if init_value is not None
-                    else None
-                )
-
-                decl = c_ast.Decl(
-                    name=param_name,
+    def visit_FileAST(self, node):
+        new_decls = []
+        for param_name, param_type in self.params:
+            # Determine the initial value from upper_bounds if available
+            interval = self.upper_bounds.get(param_name)
+            if interval is not None:
+                # Use the upper bound as the initial value
+                init_value = interval[1]
+            else:
+                if param_type in c_types.int_types:
+                    init_value = c_types.int_upper_bound_civl
+                elif param_type in c_types.float_types:
+                    init_value = c_types.float_upper_bound_civl
+            # Create constant initializer if an initial value is determined
+            init = (
+                c_ast.Constant(type=param_type, value=str(init_value))
+                if init_value is not None
+                else None
+            )
+            # Create the declaration
+            decl = c_ast.Decl(
+                name=param_name,
+                quals=[],
+                storage=[],
+                funcspec=[],
+                align=None,
+                type=c_ast.TypeDecl(
+                    declname=param_name,
                     quals=[],
-                    storage=[],
-                    funcspec=[],
                     align=None,
-                    type=c_ast.TypeDecl(
-                        declname=param_name,
-                        quals=[],
-                        align=None,
-                        type=c_ast.IdentifierType(names=[param_type]),
-                    ),
-                    init=init,  # Set the initial value if specified
-                    bitsize=None,
-                )
-                custom_decl = CustomDecl(decl, "$input", init_value)
-                new_decls.append(custom_decl)
+                    type=c_ast.IdentifierType(names=[param_type]),
+                ),
+                init=init,  # Set the initial value if specified
+                bitsize=None,
+            )
+            custom_decl = CustomDecl(decl, "$input", init_value)
+            new_decls.append(custom_decl)
 
-            if isinstance(node.body, c_ast.Compound):
-                node.body.block_items = new_decls + (
-                    node.body.block_items if node.body.block_items else []
-                )
+        node.ext = new_decls + node.ext if node.ext else new_decls
 
 
 class CustomCGenerator(c_generator.CGenerator):
     def visit_CustomDecl(self, node):
         custom_attribute = node.custom_attribute
         decl = super().visit_Decl(node.declaration)
-        return f"{custom_attribute} {decl};"
+        return f"{custom_attribute} {decl}"
 
 
 def verify_w_civl(file_path):
@@ -389,7 +405,10 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     Fuzzes the given C function by calling it with random inputs and checks the assertions.
     """
     for trace, equations in trace_equations.items():
-        trace_equations[trace] = [sympy.ccode(equation) for equation in equations]
+        # trace_equations[trace] = [sympy.ccode(equation) for equation in equations]
+        trace_equations[trace] = [
+            CivlCCodePrinter().doprint(equation) for equation in equations
+        ]
 
     # remove the .c extension from the file_path
     folder_path = os.path.dirname(file_path)
