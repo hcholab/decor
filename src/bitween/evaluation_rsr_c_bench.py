@@ -72,7 +72,7 @@ def sin_taylor():
     file_path = "./benchmarks/bitween/rsr-benchs/sine_taylor.c"
     func_name = "sine_taylor"
 
-    infer_invariants_and_check_correctness(
+    infer_invariants_and_verify_correctness(
         file_path, func_name, max_degree=2, n=150, milp=glpk
     )
 
