@@ -27,6 +27,16 @@ def read_c_file(file_path):
         return None
 
 
+def get_is_close_code():
+    return f"""
+#define EPSILON {settings.EPSILON}  // Define the precision threshold
+
+int is_close(double a, double b) {{
+    return fabs(a - b) < EPSILON;  // Use fabs to get the absolute difference
+}}
+"""
+
+
 def preprocess_c_code(c_code):
     """
     Preprocesses the C code by removing comments, vtrace function definitions, and adding stdio.h if not included.
@@ -92,6 +102,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
         self.params = []
         self.return_type = None  # Added to capture the function's return type
         self.distr = {}  # Dictionary to store distribution intervals
+        self.float_assertions = False  # assertions involve floating point numbers
 
     def visit_FuncDef(self, node):
         # Extract the function's return type
@@ -108,6 +119,8 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             if node.decl.name == self.func_name:
                 for param in params:
                     type_name = param.type.type.names[0]
+                    if type_name in c_types.float_types:
+                        self.float_assertions = True
                     self.params.append((param.name, type_name))
 
         # if block_items is None, the function is defined but not implemented
@@ -149,10 +162,30 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
 
     def create_assert_statement(self, equation):
         # Create an assert statement for the given equation
-        return c_ast.FuncCall(
-            name=c_ast.ID(name="assert"),
-            args=c_ast.ExprList(exprs=[c_ast.Constant(type="int", value=equation)]),
-        )
+        if self.float_assertions and settings.VERIFICATION_IS_CLOSE_FOR_FLOAT:
+            # remove the " == 0" part from the equation
+            equation = equation.replace(" == 0", "")  # TODO: generalize this
+            return c_ast.FuncCall(
+                name=c_ast.ID(name="assert"),
+                args=c_ast.ExprList(
+                    exprs=[
+                        c_ast.FuncCall(
+                            name=c_ast.ID(name="is_close"),
+                            args=c_ast.ExprList(
+                                exprs=[
+                                    c_ast.Constant(type="double", value=equation),
+                                    c_ast.Constant(type="double", value="0"),
+                                ]
+                            ),
+                        )
+                    ]
+                ),
+            )
+        else:  # Integer assertions
+            return c_ast.FuncCall(
+                name=c_ast.ID(name="assert"),
+                args=c_ast.ExprList(exprs=[c_ast.Constant(type="int", value=equation)]),
+            )
 
     def handle_assume_call(self, item):
         # The original condition is directly used as the first argument to the assume function.
@@ -425,6 +458,10 @@ def fuzz_and_check(file_path, func_name, trace_equations, iterations):
     # Generate the modified C code
     generator = c_generator.CGenerator()
     modified_code = generator.visit(ast)
+
+    # Add the is_close function to the code
+    if transformer.float_assertions:
+        modified_code = get_is_close_code() + "\n" + modified_code
 
     # Add our version of assume function back to the code
     modified_code = generate_assume_code() + "\n\n" + modified_code

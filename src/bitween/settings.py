@@ -135,6 +135,10 @@ CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 # NOTE: Reporting
 PROPERTY_TABLE_WIDTH = 75
 
+# NOTE: Verification
+# if True, then we use the is_close function for floating-point numbers
+VERIFICATION_IS_CLOSE_FOR_FLOAT = True
+
 if __name__ == "__main__":
     from bitween.main import main
 
