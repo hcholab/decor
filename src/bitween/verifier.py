@@ -144,9 +144,17 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             if node.body.block_items is None:
                 return
 
-            if node.decl.name == self.func_name:
-                # Traverse and modify the function body if it matches the specified function name
-                self.replace_vtrace_calls(node.body)
+            # Process and Remove vdistr calls from the function body
+            items = []
+            for item in node.body.block_items:
+                if isinstance(item, c_ast.FuncCall) and item.name.name == "vdistr":
+                    self.handle_vdistr_call(item)
+                else:
+                    items.append(item)
+            node.body.block_items = items
+
+        # Traverse and modify the function body if it matches the specified function name
+        self.replace_vtrace_calls(node.body)
 
     def replace_vtrace_calls(self, node):
         if isinstance(node, c_ast.Compound):
@@ -160,9 +168,6 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
                     for equation in self.trace_equations[item.name.name]:
                         assert_stmt = self.create_assert_statement(equation)
                         new_items.append(assert_stmt)
-                elif isinstance(item, c_ast.FuncCall) and item.name.name == "vdistr":
-                    self.handle_vdistr_call(item)
-                    continue
                 elif isinstance(item, c_ast.FuncCall) and (
                     item.name.name == "assume" or item.name.name == "vassume"
                 ):
