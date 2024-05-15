@@ -200,7 +200,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
             )
         else:  # Integer assertions
             return c_ast.FuncCall(
-                name=c_ast.ID(name="assert"),
+                name=c_ast.ID(name="$assert"),
                 args=c_ast.ExprList(exprs=[c_ast.Constant(type="int", value=equation)]),
             )
 
