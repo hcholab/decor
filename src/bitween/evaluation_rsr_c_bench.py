@@ -239,6 +239,15 @@ def tan_taylor():
     )
 
 
+def squared():
+    file_path = "./benchmarks/bitween/rsr-benchs/squared.c"
+    func_name = "squared"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=150, milp=None
+    )
+
+
 if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
@@ -256,7 +265,7 @@ if __name__ == "__main__":
     # exp1_taylor()
     # floudas()
     # mean()  # TODO: Fix this
-    tan_taylor()
+    # tan_taylor()
     # cot_taylor()
     # tanh_taylor()
     # inv()
@@ -267,7 +276,7 @@ if __name__ == "__main__":
     # inv_sub2()
     # cos_taylor()
     # cosh_taylor()
-    # squared()
+    squared()
     # sin()
     # sin_taylor()
     # sin_taylor_1()
