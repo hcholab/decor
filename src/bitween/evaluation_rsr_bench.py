@@ -595,6 +595,28 @@ def test_sigmoid():
         assert verify(eq, f)
 
 
+def test_arctan():
+    def F(x):
+        return math.atan(x)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Tiny,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=3,
+        n=200,
+        milp=MILPSolver.GLPK,
+    )
+
+    def f(x):
+        return sympy.atan(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
 # test_identity()
 # test_exp()
 test_sigmoid()
@@ -620,3 +642,4 @@ test_sigmoid()
 # test_squared()
 # test_sin()
 # test_sinh()
+# test_arctan()  # No solution
