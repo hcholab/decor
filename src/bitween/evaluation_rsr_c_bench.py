@@ -16,7 +16,7 @@ def identity():
     file_path = "./benchmarks/bitween/rsr-benchs/identity.c"
     func_name = "identity"
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=1, n=40, milp=glpk
+        file_path, func_name, max_degree=1, n=40, milp=None
     )
 
 
@@ -25,7 +25,7 @@ def exp():
     func_name = "euler"
 
     # NOTE: civl cannot verify this, therefore we use our own verify function
-    equations = infer_invariants(file_path, func_name, max_degree=2, n=200, milp=glpk)
+    equations = infer_invariants(file_path, func_name, max_degree=2, n=200, milp=None)
 
     def f(x):
         return sympy.exp(x)
@@ -40,7 +40,7 @@ def exp_math():
     func_name = "euler"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=200, milp=glpk
+        file_path, func_name, max_degree=2, n=200, milp=None
     )
 
 
@@ -49,7 +49,7 @@ def exp_taylor():
     func_name = "euler_taylor"
 
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -58,7 +58,7 @@ def sin():
     func_name = "sine"
 
     # NOTE: civl cannot verify this, therefore we use our own verify function
-    equations = infer_invariants(file_path, func_name, max_degree=2, n=200, milp=glpk)
+    equations = infer_invariants(file_path, func_name, max_degree=2, n=200, milp=None)
 
     def f(x):
         return sympy.sin(x)
@@ -73,7 +73,7 @@ def sin_taylor():
     func_name = "sine_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -82,7 +82,7 @@ def sin_taylor_1():
     func_name = "sine_taylor_1"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -91,7 +91,7 @@ def sinh_taylor():
     func_name = "sinh_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -127,7 +127,7 @@ def exp1():
     func_name = "euler1"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -136,7 +136,7 @@ def exp1_taylor():
     func_name = "euler1_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -145,7 +145,7 @@ def cot_taylor():
     func_name = "cot_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -154,7 +154,7 @@ def inv_cot_add_taylor():
     func_name = "inv_cot_add_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=3, n=150, milp=glpk
+        file_path, func_name, max_degree=3, n=150, milp=None
     )
 
 
@@ -163,7 +163,7 @@ def inv_sub():
     func_name = "inv_sub"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=3, n=150, milp=glpk
+        file_path, func_name, max_degree=3, n=150, milp=None
     )
 
 
@@ -172,7 +172,7 @@ def inv_sub2():
     func_name = "inv_sub2"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=3, n=150, milp=glpk
+        file_path, func_name, max_degree=3, n=150, milp=None
     )
 
 
@@ -181,7 +181,7 @@ def inv_tan_add_taylor():
     func_name = "inv_tan_add_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=3, n=150, milp=glpk
+        file_path, func_name, max_degree=3, n=150, milp=None
     )
 
 
@@ -190,7 +190,7 @@ def inv():
     func_name = "inv"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=3, n=150, milp=glpk
+        file_path, func_name, max_degree=3, n=150, milp=None
     )
 
 
@@ -199,7 +199,7 @@ def cosh_taylor():
     func_name = "cosh_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -208,7 +208,7 @@ def cos_taylor():
     func_name = "cos_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -217,7 +217,7 @@ def floudas():
     func_name = "floudas"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=1, n=300, milp=glpk
+        file_path, func_name, max_degree=1, n=300, milp=None
     )
 
 
@@ -235,7 +235,7 @@ def tan_taylor():
     func_name = "tan_taylor"
 
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=150, milp=glpk
+        file_path, func_name, max_degree=2, n=150, milp=None
     )
 
 
@@ -269,17 +269,16 @@ if __name__ == "__main__":
     # cot_taylor()
     # tanh_taylor()
     # inv()
-    # inv_add()
     # inv_cot_add_taylor()
     # inv_tan_add_taylor()
     # inv_sub()
     # inv_sub2()
     # cos_taylor()
     # cosh_taylor()
-    squared()
+    # squared()
     # sin()
     # sin_taylor()
     # sin_taylor_1()
-    # sinh_taylor()
+    sinh_taylor()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
