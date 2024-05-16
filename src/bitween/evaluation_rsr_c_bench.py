@@ -212,6 +212,15 @@ def cos_taylor():
     )
 
 
+def floudas():
+    file_path = "./benchmarks/bitween/rsr-benchs/floudas.c"
+    func_name = "floudas"
+
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=1, n=300, milp=glpk
+    )
+
+
 if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
@@ -227,18 +236,23 @@ if __name__ == "__main__":
     # sigmoid_taylor()
     # exp1()
     # exp1_taylor()
+    floudas()
+    # mean()
+    # tan_taylor()
+    # cot_taylor()
+    # tanh_taylor()
+    # inv()
+    # inv_add()
+    # inv_cot_add_taylor()
+    # inv_tan_add_taylor()
+    # inv_sub()
+    # inv_sub2()
+    # cos_taylor()
+    # cosh_taylor()
+    # squared()
     # sin()
     # sin_taylor()
     # sin_taylor_1()
     # sinh_taylor()
-    # tanh_taylor()
-    # cot_taylor()
-    # inv_cot_add_taylor()
-    # inv_sub()
-    # inv_sub2()
-    # inv_tan_add_taylor()
-    # inv()
-    # cosh_taylor()
-    cos_taylor()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
