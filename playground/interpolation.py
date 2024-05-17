@@ -52,7 +52,16 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from sklearn.metrics import mean_squared_error
+from kan import KAN
+import torch
 
+plt.rcParams.update({"font.size": 9})  # Set global font size to 10
+
+# Configuration to use LaTeX, set font family and include extra packages
+plt.rcParams["text.usetex"] = True
+# plt.rcParams["font.family"] = "serif"
+# plt.rcParams["font.serif"] = ["Computer Modern Roman"]
+plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 
 # plt.rcParams["axes.prop_cycle"] = plt.cycler(
 #     color=plt.cm.viridis(np.linspace(0, 1, 10))
@@ -64,7 +73,6 @@ from sklearn.metrics import mean_squared_error
 # Set Seaborn style and color palette
 # sns.set_theme(context="paper", style="ticks", palette="pastel")
 
-plt.rcParams.update({"font.size": 9})  # Set global font size to 10
 
 # We start by defining a function that we intend to approximate and prepare
 # plotting it.
@@ -99,7 +107,6 @@ X_plot_bw = np.column_stack((x_plot, np.sin(x_plot), np.cos(x_plot)))
 # Now we are ready to create polynomial features and splines, fit on the
 # training points and show how well they interpolate.
 
-# 1st. plot function
 lw = 2
 fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(14, 8))
 # Setting up the color cycle
@@ -112,7 +119,7 @@ for i in range(2):
             x_plot,
             f(x_plot),
             linewidth=lw + 0.5,
-            label="ground truth: f(x) = x * sin(x)",
+            label=r"ground truth: $f(x) = x \sin(x)$",
             color="black",
         )
         axes[i][j].scatter(x_train, y_train, label="training points", color="black")
@@ -120,6 +127,8 @@ for i in range(2):
             x=0, linestyle="--", color="gray", lw=1, label="extrapolation limits"
         )
         axes[i][j].axvline(x=10, linestyle="--", color="gray", lw=1)
+
+# 1st. plot function
 
 # polynomial features
 for degree in [1, 2, 3, 4, 5]:
@@ -149,6 +158,9 @@ y_plot = model.predict(X_plot)
 mse = mean_squared_error(y_train, model.predict(X_train))
 axes[0][0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
 
+
+# 2nd. plot function
+
 # BW's polynomial features including sin(x)
 for degree in [1, 2, 3, 4, 5]:
     model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
@@ -164,22 +176,12 @@ for degree in [1, 2, 3, 4, 5]:
     axes[0][1].plot(
         x_plot,
         y_plot,
-        label=f"degree {degree} with 1, x, sin(x), cos(x) -- MSE: {mse:.2f}",
+        label=f"Bitween: degree {degree} with"
+        + r"$1, x, \sin(x), \cos(x)$ --"
+        + f"MSE: {mse:.2f}",
     )
 
-# B-spline with 4 + 3 - 1 = 6 basis functions
-# model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
-# model.fit(X_train, y_train)
-# feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
-#     input_features=["x"]
-# )
-# print(feature_names)
-# coefficients = model.named_steps["ridge"].coef_
-# print(coefficients)
-
-# y_plot = model.predict(X_plot)
-# mse = mean_squared_error(y_train, model.predict(X_train))
-# axes[0][1].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
+# 3rd. plot function
 
 # B-spline model
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
@@ -214,8 +216,70 @@ for degree in [3, 4]:
     axes[1][0].plot(
         x_plot,
         y_plot,
-        label=f"degree {degree} with 1, x, sin(x), cos(x) -- MSE: {mse:.2f}",
+        label=f"Bitween: degree {degree} with "
+        + r"$1, x, \sin(x), \cos(x)$ --"
+        + f"MSE: {mse:.2f}",
     )
+
+
+# 4th plot function
+
+# KAN Regressor
+# Convert data to tensors for KAN
+X_train_tensor = torch.tensor(x_train[:, None], dtype=torch.float32)  # Ensuring it's 2D
+y_train_tensor = torch.tensor(y_train[:, None], dtype=torch.float32)  # 2D target tensor
+X_plot_tensor = torch.tensor(x_plot[:, None], dtype=torch.float32)
+
+# Creating hypothetical test labels (usually should be real test data)
+y_test_tensor = torch.tensor(
+    f(x_plot)[:, None], dtype=torch.float32
+)  # 2D test target tensor
+
+# Create dataset dictionary expected by KAN
+my_ds = {
+    "train_input": X_train_tensor,
+    "train_label": y_train_tensor,
+    "test_input": X_plot_tensor,
+    "test_label": y_test_tensor,  # Adding test labels
+}
+
+# Initialize and train KAN
+kan_model = KAN(width=[1, 3, 1], grid=5, k=3, seed=0)
+kan_model.train(my_ds, opt="LBFGS", steps=100, lamb=0.01, lamb_entropy=10.0)
+
+# Get predictions from KAN
+KAN_preds = kan_model(my_ds["test_input"]).detach().numpy()
+# Calculate MSE for KAN
+kan_mse = mean_squared_error(my_ds["test_label"].detach().numpy(), KAN_preds)
+# Plotting KAN results
+axes[1][1].plot(
+    x_plot,
+    KAN_preds,
+    color="purple",
+    label="KAN [1,3,1]; LBFGS; with " + r"$x, \sin(x)$ --" + f"MSE: {mse:.2f}",
+)
+
+
+# BW's polynomial features including sin(x)
+for degree in [3, 4]:
+    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    model.fit(X_train_bw, y_train)
+    feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
+        input_features=["x", "sin(x)", "cos(x)"]
+    )
+    print(feature_names)
+    coefficients = model.named_steps["linearregression"].coef_
+    print(coefficients)
+    y_plot = model.predict(X_plot_bw)
+    mse = mean_squared_error(y_train, model.predict(X_train_bw))
+    axes[1][1].plot(
+        x_plot,
+        y_plot,
+        label=f"Bitween: degree {degree} with "
+        + r"$1, x, \sin(x), \cos(x)$ --"
+        + f"MSE: {mse:.2f}",
+    )
+
 
 # Set legends and labels
 for i in range(2):
@@ -224,8 +288,21 @@ for i in range(2):
         axes[i][j].set_ylim(-20, 10)
 
 plt.tight_layout()
+# Save the figure
+plt.savefig("./figures/regression_methods.pdf")  # Saves as PNG file
 plt.show()
 
+
+kan_model.plot()
+kan_model = kan_model.prune()
+kan_model.train(my_ds, opt="LBFGS", steps=50)
+kan_model.plot()
+lib = ["x", "x^2", "x^3", "sin"]  # Note that "cos" is not defined
+kan_model.auto_symbolic(lib=lib)
+kan_model.train(my_ds, opt="LBFGS", steps=50)
+print(kan_model.symbolic_formula()[0][0])
+kan_model.plot()
+plt.show()
 
 exit()
 # This shows nicely that higher degree polynomials can fit the data better. But
