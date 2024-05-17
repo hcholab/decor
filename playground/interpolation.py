@@ -48,6 +48,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
+from sklearn.metrics import mean_squared_error
+
 
 # We start by defining a function that we intend to approximate and prepare
 # plotting it.
@@ -104,7 +106,8 @@ for degree in [1, 2, 3, 4, 5]:
     coefficients = model.named_steps["ridge"].coef_
     print(coefficients)
     y_plot = model.predict(X_plot)
-    axes[0].plot(x_plot, y_plot, label=f"degree {degree} with 1 and x")
+    mse = mean_squared_error(y_train, model.predict(X_train))
+    axes[0].plot(x_plot, y_plot, label=f"degree {degree} -- MSE: {mse:.2f}")
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
@@ -117,7 +120,8 @@ coefficients = model.named_steps["ridge"].coef_
 print(coefficients)
 
 y_plot = model.predict(X_plot)
-axes[0].plot(x_plot, y_plot, label="B-spline")
+mse = mean_squared_error(y_train, model.predict(X_train))
+axes[0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
 axes[0].legend(loc="lower center")
 axes[0].set_ylim(-20, 10)
 
@@ -142,7 +146,8 @@ coefficients = model.named_steps["ridge"].coef_
 print(coefficients)
 
 y_plot = model.predict(X_plot)
-axes[1].plot(x_plot, y_plot, label="B-spline")
+mse = mean_squared_error(y_train, model.predict(X_train))
+axes[1].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
 
 # BW's polynomial features including sin(x)
 for degree in [1, 2, 3, 4, 5]:
@@ -155,7 +160,12 @@ for degree in [1, 2, 3, 4, 5]:
     coefficients = model.named_steps["linearregression"].coef_
     print(coefficients)
     y_plot = model.predict(X_plot_bw)
-    axes[1].plot(x_plot, y_plot, label=f"degree {degree} with 1, x, sin(x), cos(x)")
+    mse = mean_squared_error(y_train, model.predict(X_train_bw))
+    axes[1].plot(
+        x_plot,
+        y_plot,
+        label=f"degree {degree} with 1, x, sin(x), cos(x) -- MSE: {mse:.2f}",
+    )
 
 
 axes[1].legend(loc="lower center")
