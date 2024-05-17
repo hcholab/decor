@@ -293,15 +293,15 @@ plt.savefig("./figures/regression_methods.pdf")  # Saves as PNG file
 plt.show()
 
 
-kan_model.plot()
+# kan_model.plot()
 kan_model = kan_model.prune()
 kan_model.train(my_ds, opt="LBFGS", steps=50)
-kan_model.plot()
+# kan_model.plot()
 lib = ["x", "x^2", "x^3", "sin"]  # Note that "cos" is not defined
 kan_model.auto_symbolic(lib=lib)
 kan_model.train(my_ds, opt="LBFGS", steps=50)
 print(kan_model.symbolic_formula()[0][0])
-kan_model.plot()
+# kan_model.plot()
 plt.show()
 
 exit()
