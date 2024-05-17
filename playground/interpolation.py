@@ -48,9 +48,11 @@ import numpy as np
 # import seaborn as sns
 
 from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 from sklearn.metrics import mean_squared_error
+
 
 # plt.rcParams["axes.prop_cycle"] = plt.cycler(
 #     color=plt.cm.viridis(np.linspace(0, 1, 10))
@@ -61,6 +63,8 @@ from sklearn.metrics import mean_squared_error
 
 # Set Seaborn style and color palette
 # sns.set_theme(context="paper", style="ticks", palette="pastel")
+
+plt.rcParams.update({"font.size": 9})  # Set global font size to 10
 
 # We start by defining a function that we intend to approximate and prepare
 # plotting it.
@@ -97,21 +101,25 @@ X_plot_bw = np.column_stack((x_plot, np.sin(x_plot), np.cos(x_plot)))
 
 # 1st. plot function
 lw = 2
-fig, axes = plt.subplots(ncols=2, figsize=(16, 5))
-axes[0].set_prop_cycle(
-    color=["black", "teal", "yellowgreen", "gold", "darkorange", "tomato", "skyblue"]
-)
-axes[0].plot(
-    x_plot, f(x_plot), linewidth=lw + 0.5, label="ground truth: f(x) = x * sin(x)"
-)
-# put vertical dashed line at x=10 and x=0
-axes[0].axvline(
-    x=0, linestyle="--", color="gray", lw=1, label="extrapolation beyond 0 and 10"
-)
-axes[0].axvline(x=10, linestyle="--", lw=1, color="gray")
+fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(14, 8))
+# Setting up the color cycle
+colors = ["black", "teal", "yellowgreen", "gold", "darkorange", "tomato", "skyblue"]
 
-# plot training points
-axes[0].scatter(x_train, y_train, label="training points")
+# Ground truth and training points
+for i in range(2):
+    for j in range(2):
+        axes[i][j].plot(
+            x_plot,
+            f(x_plot),
+            linewidth=lw + 0.5,
+            label="ground truth: f(x) = x * sin(x)",
+            color="black",
+        )
+        axes[i][j].scatter(x_train, y_train, label="training points", color="black")
+        axes[i][j].axvline(
+            x=0, linestyle="--", color="gray", lw=1, label="extrapolation limits"
+        )
+        axes[i][j].axvline(x=10, linestyle="--", color="gray", lw=1)
 
 # polynomial features
 for degree in [1, 2, 3, 4, 5]:
@@ -125,7 +133,7 @@ for degree in [1, 2, 3, 4, 5]:
     print(coefficients)
     y_plot = model.predict(X_plot)
     mse = mean_squared_error(y_train, model.predict(X_train))
-    axes[0].plot(x_plot, y_plot, label=f"degree {degree} -- MSE: {mse:.2f}")
+    axes[0][0].plot(x_plot, y_plot, label=f"degree {degree} -- MSE: {mse:.2f}")
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
@@ -139,27 +147,7 @@ print(coefficients)
 
 y_plot = model.predict(X_plot)
 mse = mean_squared_error(y_train, model.predict(X_train))
-axes[0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
-axes[0].legend(loc="lower center")
-axes[0].set_ylim(-20, 10)
-
-
-# 2nd plot function
-axes[1].set_prop_cycle(
-    color=["black", "teal", "yellowgreen", "gold", "darkorange", "tomato", "skyblue"]
-)
-axes[1].plot(
-    x_plot, f(x_plot), linewidth=lw + 0.5, label="ground truth: f(x) = x * sin(x)"
-)
-
-# put vertical dashed line at x=10 and x=0
-axes[1].axvline(
-    x=0, linestyle="--", color="gray", lw=1, label="extrapolation beyond 0 and 10"
-)
-axes[1].axvline(x=10, linestyle="--", lw=1, color="gray")
-
-# plot training points
-axes[1].scatter(x_train, y_train, label="training points")
+axes[0][0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
 
 # BW's polynomial features including sin(x)
 for degree in [1, 2, 3, 4, 5]:
@@ -173,28 +161,68 @@ for degree in [1, 2, 3, 4, 5]:
     print(coefficients)
     y_plot = model.predict(X_plot_bw)
     mse = mean_squared_error(y_train, model.predict(X_train_bw))
-    axes[1].plot(
+    axes[0][1].plot(
         x_plot,
         y_plot,
         label=f"degree {degree} with 1, x, sin(x), cos(x) -- MSE: {mse:.2f}",
     )
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
+# model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
+# model.fit(X_train, y_train)
+# feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
+#     input_features=["x"]
+# )
+# print(feature_names)
+# coefficients = model.named_steps["ridge"].coef_
+# print(coefficients)
+
+# y_plot = model.predict(X_plot)
+# mse = mean_squared_error(y_train, model.predict(X_train))
+# axes[0][1].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
+
+# B-spline model
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
 model.fit(X_train, y_train)
-feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
-    input_features=["x"]
-)
-print(feature_names)
-coefficients = model.named_steps["ridge"].coef_
-print(coefficients)
-
 y_plot = model.predict(X_plot)
 mse = mean_squared_error(y_train, model.predict(X_train))
-axes[1].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
+axes[1][0].plot(
+    x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}", color="yellowgreen"
+)
 
-axes[1].legend(loc="lower center")
-axes[1].set_ylim(-20, 10)
+# MLP Regressor
+mlp_regressor = MLPRegressor(random_state=1, max_iter=10000, activation="tanh")
+mlp_regressor.fit(X_train, y_train)
+y_mlp = mlp_regressor.predict(X_plot)
+mlp_mse = mean_squared_error(y_train, mlp_regressor.predict(X_train))
+axes[1][0].plot(
+    x_plot, y_mlp, label=f"MLP Regressor (tanh) -- MSE: {mlp_mse:.2f}", color="blue"
+)
+
+# BW's polynomial features including sin(x)
+for degree in [3, 4]:
+    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    model.fit(X_train_bw, y_train)
+    feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
+        input_features=["x", "sin(x)", "cos(x)"]
+    )
+    print(feature_names)
+    coefficients = model.named_steps["linearregression"].coef_
+    print(coefficients)
+    y_plot = model.predict(X_plot_bw)
+    mse = mean_squared_error(y_train, model.predict(X_train_bw))
+    axes[1][0].plot(
+        x_plot,
+        y_plot,
+        label=f"degree {degree} with 1, x, sin(x), cos(x) -- MSE: {mse:.2f}",
+    )
+
+# Set legends and labels
+for i in range(2):
+    for j in range(2):
+        axes[i][j].legend(loc="lower center")
+        axes[i][j].set_ylim(-20, 10)
+
 plt.tight_layout()
 plt.show()
 
