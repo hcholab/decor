@@ -45,7 +45,7 @@ infinite) dimensional feature spaces.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
 
@@ -68,26 +68,33 @@ rng = np.random.RandomState(0)
 x_train = np.sort(rng.choice(x_train, size=20, replace=False))
 y_train = f(x_train)
 
+sin_x = np.sin(x_train)
+cos_x = np.cos(x_train)
+x_train_bw = np.column_stack((x_train, sin_x, cos_x))
+
 # create 2D-array versions of these arrays to feed to transformers
 X_train = x_train[:, np.newaxis]
 X_plot = x_plot[:, np.newaxis]
 
+X_train_bw = x_train_bw
+X_plot_bw = np.column_stack((x_plot, np.sin(x_plot), np.cos(x_plot)))
+
 # Now we are ready to create polynomial features and splines, fit on the
 # training points and show how well they interpolate.
 
-# plot function
+# 1st. plot function
 lw = 2
-fig, ax = plt.subplots()
-ax.set_prop_cycle(
+fig, axes = plt.subplots(ncols=2, figsize=(16, 5))
+axes[0].set_prop_cycle(
     color=["black", "teal", "yellowgreen", "gold", "darkorange", "tomato"]
 )
-ax.plot(x_plot, f(x_plot), linewidth=lw, label="ground truth")
+axes[0].plot(x_plot, f(x_plot), linewidth=lw, label="ground truth: f(x) = x * sin(x)")
 
 # plot training points
-ax.scatter(x_train, y_train, label="training points")
+axes[0].scatter(x_train, y_train, label="training points")
 
 # polynomial features
-for degree in [3, 4, 5]:
+for degree in [1, 2, 3, 4, 5]:
     model = make_pipeline(PolynomialFeatures(degree), Ridge(alpha=1e-3))
     model.fit(X_train, y_train)
     feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
@@ -97,7 +104,7 @@ for degree in [3, 4, 5]:
     coefficients = model.named_steps["ridge"].coef_
     print(coefficients)
     y_plot = model.predict(X_plot)
-    ax.plot(x_plot, y_plot, label=f"degree {degree}")
+    axes[0].plot(x_plot, y_plot, label=f"degree {degree} with 1 and x")
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
@@ -110,11 +117,54 @@ coefficients = model.named_steps["ridge"].coef_
 print(coefficients)
 
 y_plot = model.predict(X_plot)
-ax.plot(x_plot, y_plot, label="B-spline")
-ax.legend(loc="lower center")
-ax.set_ylim(-20, 10)
+axes[0].plot(x_plot, y_plot, label="B-spline")
+axes[0].legend(loc="lower center")
+axes[0].set_ylim(-20, 10)
+
+
+# 2nd plot function
+axes[1].set_prop_cycle(
+    color=["black", "teal", "yellowgreen", "gold", "darkorange", "tomato"]
+)
+axes[1].plot(x_plot, f(x_plot), linewidth=lw, label="ground truth: f(x) = x * sin(x)")
+
+# plot training points
+axes[1].scatter(x_train, y_train, label="training points")
+
+# B-spline with 4 + 3 - 1 = 6 basis functions
+model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
+model.fit(X_train, y_train)
+feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
+    input_features=["x"]
+)
+print(feature_names)
+coefficients = model.named_steps["ridge"].coef_
+print(coefficients)
+
+y_plot = model.predict(X_plot)
+axes[1].plot(x_plot, y_plot, label="B-spline")
+
+# BW's polynomial features including sin(x)
+for degree in [1, 2, 3, 4, 5]:
+    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    model.fit(X_train_bw, y_train)
+    feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
+        input_features=["x", "sin(x)", "cos(x)"]
+    )
+    print(feature_names)
+    coefficients = model.named_steps["linearregression"].coef_
+    print(coefficients)
+    y_plot = model.predict(X_plot_bw)
+    axes[1].plot(x_plot, y_plot, label=f"degree {degree} with 1, x, sin(x), cos(x)")
+
+
+axes[1].legend(loc="lower center")
+axes[1].set_ylim(-20, 10)
+plt.tight_layout()
 plt.show()
 
+
+exit()
 # This shows nicely that higher degree polynomials can fit the data better. But
 # at the same time, too high powers can show unwanted oscillatory behaviour
 # and are particularly dangerous for extrapolation beyond the range of fitted
@@ -153,7 +203,6 @@ plt.show()
 # range. This extrapolating behaviour could be changed by the argument
 # ``extrapolation``.
 
-exit()
 # Periodic Splines
 # ----------------
 # In the previous example we saw the limitations of polynomials and splines for
