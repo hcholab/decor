@@ -51,7 +51,7 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from kan import KAN
 import torch
 
@@ -93,6 +93,10 @@ rng = np.random.RandomState(0)
 x_train = np.sort(rng.choice(x_train, size=20, replace=False))
 y_train = f(x_train)
 
+# Add 5 test points
+x_test = np.linspace(0, 10, 5)
+y_test = f(x_test)
+
 sin_x = np.sin(x_train)
 cos_x = np.cos(x_train)
 x_train_bw = np.column_stack((x_train, sin_x, cos_x))
@@ -100,9 +104,12 @@ x_train_bw = np.column_stack((x_train, sin_x, cos_x))
 # create 2D-array versions of these arrays to feed to transformers
 X_train = x_train[:, np.newaxis]
 X_plot = x_plot[:, np.newaxis]
+X_test = x_test[:, np.newaxis]
 
 X_train_bw = x_train_bw
 X_plot_bw = np.column_stack((x_plot, np.sin(x_plot), np.cos(x_plot)))
+X_test_bw = np.column_stack((x_test, np.sin(x_test), np.cos(x_test)))
+
 
 # Now we are ready to create polynomial features and splines, fit on the
 # training points and show how well they interpolate.
@@ -123,6 +130,14 @@ for i in range(2):
             color="black",
         )
         axes[i][j].scatter(x_train, y_train, label="training points", color="black")
+        axes[i][j].scatter(
+            x_test,
+            y_test,
+            label="test points",
+            edgecolors="red",
+            facecolors="none",
+            linewidth=1.5,
+        )
         axes[i][j].axvline(
             x=0, linestyle="--", color="gray", lw=1, label="extrapolation limits"
         )
@@ -141,7 +156,11 @@ for degree in [1, 2, 3, 4, 5]:
     coefficients = model.named_steps["ridge"].coef_
     print(coefficients)
     y_plot = model.predict(X_plot)
-    mse = mean_squared_error(y_train, model.predict(X_train))
+    # mse = mean_squared_error(y_train, model.predict(X_train))
+    mse = mean_squared_error(
+        np.hstack([y_train, y_test]),
+        np.hstack([model.predict(X_train), model.predict(X_test)]),
+    )
     axes[0][0].plot(
         x_plot,
         y_plot,
@@ -149,6 +168,8 @@ for degree in [1, 2, 3, 4, 5]:
         + r"$1, x$ -- "
         + f"MSE: {mse:.2f}",
     )
+
+axes[0][0].set_title("Polynomial Interpolation")
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
 # model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
@@ -178,7 +199,11 @@ for degree in [1, 2, 3, 4, 5]:
     coefficients = model.named_steps["linearregression"].coef_
     print(coefficients)
     y_plot = model.predict(X_plot_bw)
-    mse = mean_squared_error(y_train, model.predict(X_train_bw))
+    # mse = mean_squared_error(y_train, model.predict(X_train_bw))
+    mse = mean_squared_error(
+        np.hstack([y_train, y_test]),
+        np.hstack([model.predict(X_train_bw), model.predict(X_test_bw)]),
+    )
     axes[0][1].plot(
         x_plot,
         y_plot,
@@ -187,17 +212,23 @@ for degree in [1, 2, 3, 4, 5]:
         + f"MSE: {mse:.2f}",
     )
 
+axes[0][1].set_title("Bitween's Inference")
+
 # 3rd. plot function
 
 # B-spline model
 model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
 model.fit(X_train, y_train)
 y_plot = model.predict(X_plot)
-mse = mean_squared_error(y_train, model.predict(X_train))
+# mse = mean_squared_error(y_train, model.predict(X_train))
+mse = mean_squared_error(
+    np.hstack([y_train, y_test]),
+    np.hstack([model.predict(X_train), model.predict(X_test)]),
+)
 axes[1][0].plot(
     x_plot,
     y_plot,
-    label=f"B-spline Interpolation -- MSE: {mse:.2f}",
+    label=f"B-spline Interpolation with Ridge regressor -- MSE: {mse:.2f}",
     color="yellowgreen",
 )
 
@@ -207,7 +238,11 @@ mlp_regressor = MLPRegressor(
 )
 mlp_regressor.fit(X_train, y_train)
 y_mlp = mlp_regressor.predict(X_plot)
-mlp_mse = mean_squared_error(y_train, mlp_regressor.predict(X_train))
+# mlp_mse = mean_squared_error(y_train, mlp_regressor.predict(X_train))
+mlp_mse = mean_squared_error(
+    np.hstack([y_train, y_test]),
+    np.hstack([mlp_regressor.predict(X_train), mlp_regressor.predict(X_test)]),
+)
 axes[1][0].plot(
     x_plot,
     y_mlp,
@@ -216,7 +251,7 @@ axes[1][0].plot(
 )
 
 # BW's polynomial features including sin(x)
-for degree in [3, 4]:
+for degree in [2, 3, 4]:
     model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
     model.fit(X_train_bw, y_train)
     feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
@@ -235,6 +270,7 @@ for degree in [3, 4]:
         + f"MSE: {mse:.2f}",
     )
 
+axes[1][0].set_title("Spline Interpolation and MLP Regressor vs. Bitween's Inference")
 
 # 4th plot function
 
@@ -244,16 +280,21 @@ X_train_tensor = torch.tensor(x_train[:, None], dtype=torch.float32)  # Ensuring
 y_train_tensor = torch.tensor(y_train[:, None], dtype=torch.float32)  # 2D target tensor
 X_plot_tensor = torch.tensor(x_plot[:, None], dtype=torch.float32)
 
+X_test_tensor = torch.tensor(np.hstack([x_train, x_test])[:, None], dtype=torch.float32)
+y_test_tensor = torch.tensor(
+    f(np.hstack([x_train, x_test]))[:, None], dtype=torch.float32
+)
+
 # Creating hypothetical test labels (usually should be real test data)
 y_test_tensor = torch.tensor(
-    f(x_plot)[:, None], dtype=torch.float32
-)  # 2D test target tensor
+    f(np.hstack([x_train, x_test]))[:, None], dtype=torch.float32
+)
 
 # Create dataset dictionary expected by KAN
 my_ds = {
     "train_input": X_train_tensor,
     "train_label": y_train_tensor,
-    "test_input": X_plot_tensor,
+    "test_input": X_test_tensor,
     "test_label": y_test_tensor,  # Adding test labels
 }
 
@@ -262,20 +303,28 @@ kan_model = KAN(width=[1, 5, 1], grid=5, k=3, seed=0)
 kan_model.train(my_ds, opt="LBFGS", steps=100, lamb=0.01, lamb_entropy=10.0)
 
 # Get predictions from KAN
-KAN_preds = kan_model(my_ds["test_input"]).detach().numpy()
+KAN_preds = kan_model(X_plot_tensor).detach().numpy()
 # Calculate MSE for KAN
-kan_mse = mean_squared_error(my_ds["test_label"].detach().numpy(), KAN_preds)
+kan_mse = mean_squared_error(
+    y_test_tensor.detach().numpy(), kan_model(X_test_tensor).detach().numpy()
+)
+print(f"KAN MSE: {kan_mse:.2f}")
+kan_r2 = r2_score(
+    y_test_tensor.detach().numpy(), kan_model(X_test_tensor).detach().numpy()
+)
 # Plotting KAN results
 axes[1][1].plot(
     x_plot,
     KAN_preds,
     color="purple",
-    label="KAN [1,5,1]; LBFGS; with " + r"$x, \sin(x)$ -- " + f"MSE: {mse:.2f}",
+    label="KAN [1,5,1]; LBFGS; -- with symbolic library "
+    + r"$\{x, \sin(x)\}$ -- "
+    + f"MSE: {kan_mse:.2f}",
 )
 
 
 # BW's polynomial features including sin(x)
-for degree in [3, 4]:
+for degree in [2, 3, 4]:
     model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
     model.fit(X_train_bw, y_train)
     feature_names = model.named_steps["polynomialfeatures"].get_feature_names_out(
@@ -294,6 +343,7 @@ for degree in [3, 4]:
         + f"MSE: {mse:.2f}",
     )
 
+axes[1][1].set_title("KAN Regressor vs. Bitween's Inference")
 
 # Set legends and labels
 for i in range(2):
