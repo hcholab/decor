@@ -156,3 +156,5 @@ temp/bitween/lin_reg_intercept_from_dig_trace.py
 .csv
 
 tools/civl*
+*.csv.bkup
+*.pkl
