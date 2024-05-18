@@ -145,9 +145,9 @@ for degree in [1, 2, 3, 4, 5]:
     axes[0][0].plot(
         x_plot,
         y_plot,
-        label=f"Polynomial Interpolation: degree {degree} with "
+        label=f"Polynomial Interpolation -- degree {degree} with "
         + r"$1, x$ -- "
-        + f"-- MSE: {mse:.2f}",
+        + f"MSE: {mse:.2f}",
     )
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
@@ -258,7 +258,7 @@ my_ds = {
 }
 
 # Initialize and train KAN
-kan_model = KAN(width=[1, 3, 1], grid=5, k=3, seed=0)
+kan_model = KAN(width=[1, 5, 1], grid=5, k=3, seed=0)
 kan_model.train(my_ds, opt="LBFGS", steps=100, lamb=0.01, lamb_entropy=10.0)
 
 # Get predictions from KAN
@@ -270,7 +270,7 @@ axes[1][1].plot(
     x_plot,
     KAN_preds,
     color="purple",
-    label="KAN [1,3,1]; LBFGS; with " + r"$x, \sin(x)$ -- " + f"MSE: {mse:.2f}",
+    label="KAN [1,5,1]; LBFGS; with " + r"$x, \sin(x)$ -- " + f"MSE: {mse:.2f}",
 )
 
 
@@ -306,15 +306,15 @@ plt.tight_layout()
 plt.savefig("./figures/regression_methods.pdf")  # Saves as PNG file
 
 
-# kan_model.plot()
-kan_model = kan_model.prune()
-kan_model.train(my_ds, opt="LBFGS", steps=50)
-# kan_model.plot()
-lib = ["x", "x^2", "x^3", "sin"]  # Note that "cos" is not defined
-kan_model.auto_symbolic(lib=lib)
-kan_model.train(my_ds, opt="LBFGS", steps=50)
-print(kan_model.symbolic_formula()[0][0])
-# kan_model.plot()
+# # kan_model.plot()
+# kan_model = kan_model.prune()
+# kan_model.train(my_ds, opt="LBFGS", steps=50)
+# # kan_model.plot()
+# lib = ["x", "x^2", "x^3", "sin"]  # Note that "cos" is not defined
+# kan_model.auto_symbolic(lib=lib)
+# kan_model.train(my_ds, opt="LBFGS", steps=50)
+# print(kan_model.symbolic_formula()[0][0])
+# # kan_model.plot()
 plt.show()
 
 exit()
