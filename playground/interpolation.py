@@ -94,7 +94,7 @@ x_train = np.sort(rng.choice(x_train, size=20, replace=False))
 y_train = f(x_train)
 
 # Add 5 test points
-x_test = np.linspace(0, 10, 5)
+x_test = np.linspace(-1, 11, 5)
 y_test = f(x_test)
 
 sin_x = np.sin(x_train)
@@ -228,7 +228,7 @@ mse = mean_squared_error(
 axes[1][0].plot(
     x_plot,
     y_plot,
-    label=f"B-spline Interpolation with Ridge regressor -- MSE: {mse:.2f}",
+    label=f"B-spline (knots:4, degree:3) with Ridge regressor -- MSE: {mse:.2f}",
     color="yellowgreen",
 )
 
@@ -353,7 +353,8 @@ for i in range(2):
 
 plt.tight_layout()
 # Save the figure
-plt.savefig("./figures/regression_methods.pdf")  # Saves as PNG file
+plt.savefig("./figures/regression_methods.pdf")  # Saves as PDF
+plt.savefig("./figures/regression_methods.png")  # Saves as PNG
 
 
 # # kan_model.plot()
