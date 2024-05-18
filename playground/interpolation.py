@@ -317,8 +317,8 @@ axes[1][1].plot(
     x_plot,
     KAN_preds,
     color="purple",
-    label="KAN [1,5,1]; LBFGS; -- with symbolic library "
-    + r"$\{x, \sin(x)\}$ -- "
+    label="KAN [1,5,1], LBFGS -- with symbolic library: "
+    + r"$x, \sin(x)$ -- "
     + f"MSE: {kan_mse:.2f}",
 )
 
