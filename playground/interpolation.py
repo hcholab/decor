@@ -142,21 +142,27 @@ for degree in [1, 2, 3, 4, 5]:
     print(coefficients)
     y_plot = model.predict(X_plot)
     mse = mean_squared_error(y_train, model.predict(X_train))
-    axes[0][0].plot(x_plot, y_plot, label=f"degree {degree} -- MSE: {mse:.2f}")
+    axes[0][0].plot(
+        x_plot,
+        y_plot,
+        label=f"Polynomial Interpolation: degree {degree} with "
+        + r"$1, x$ -- "
+        + f"-- MSE: {mse:.2f}",
+    )
 
 # B-spline with 4 + 3 - 1 = 6 basis functions
-model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
-model.fit(X_train, y_train)
-feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
-    input_features=["x"]
-)
-print(feature_names)
-coefficients = model.named_steps["ridge"].coef_
-print(coefficients)
+# model = make_pipeline(SplineTransformer(n_knots=4, degree=3), Ridge(alpha=1e-3))
+# model.fit(X_train, y_train)
+# feature_names = model.named_steps["splinetransformer"].get_feature_names_out(
+#     input_features=["x"]
+# )
+# print(feature_names)
+# coefficients = model.named_steps["ridge"].coef_
+# print(coefficients)
 
-y_plot = model.predict(X_plot)
-mse = mean_squared_error(y_train, model.predict(X_train))
-axes[0][0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
+# y_plot = model.predict(X_plot)
+# mse = mean_squared_error(y_train, model.predict(X_train))
+# axes[0][0].plot(x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}")
 
 
 # 2nd. plot function
@@ -176,8 +182,8 @@ for degree in [1, 2, 3, 4, 5]:
     axes[0][1].plot(
         x_plot,
         y_plot,
-        label=f"Bitween: degree {degree} with"
-        + r"$1, x, \sin(x), \cos(x)$ --"
+        label=f"Bitween's Inference -- degree {degree} with "
+        + r"$1, x, \sin(x), \cos(x)$ -- "
         + f"MSE: {mse:.2f}",
     )
 
@@ -189,16 +195,24 @@ model.fit(X_train, y_train)
 y_plot = model.predict(X_plot)
 mse = mean_squared_error(y_train, model.predict(X_train))
 axes[1][0].plot(
-    x_plot, y_plot, label=f"B-spline -- MSE: {mse:.2f}", color="yellowgreen"
+    x_plot,
+    y_plot,
+    label=f"B-spline Interpolation -- MSE: {mse:.2f}",
+    color="yellowgreen",
 )
 
 # MLP Regressor
-mlp_regressor = MLPRegressor(random_state=1, max_iter=10000, activation="tanh")
+mlp_regressor = MLPRegressor(
+    random_state=1, max_iter=10000, activation="tanh", solver="adam"
+)
 mlp_regressor.fit(X_train, y_train)
 y_mlp = mlp_regressor.predict(X_plot)
 mlp_mse = mean_squared_error(y_train, mlp_regressor.predict(X_train))
 axes[1][0].plot(
-    x_plot, y_mlp, label=f"MLP Regressor (tanh) -- MSE: {mlp_mse:.2f}", color="blue"
+    x_plot,
+    y_mlp,
+    label=f"Multi-layer Perceptron regressor (Neural Network) -- MSE: {mlp_mse:.2f}",
+    color="blue",
 )
 
 # BW's polynomial features including sin(x)
@@ -216,8 +230,8 @@ for degree in [3, 4]:
     axes[1][0].plot(
         x_plot,
         y_plot,
-        label=f"Bitween: degree {degree} with "
-        + r"$1, x, \sin(x), \cos(x)$ --"
+        label=f"Bitween's Inference -- degree {degree} with "
+        + r"$1, x, \sin(x), \cos(x)$ -- "
         + f"MSE: {mse:.2f}",
     )
 
@@ -256,7 +270,7 @@ axes[1][1].plot(
     x_plot,
     KAN_preds,
     color="purple",
-    label="KAN [1,3,1]; LBFGS; with " + r"$x, \sin(x)$ --" + f"MSE: {mse:.2f}",
+    label="KAN [1,3,1]; LBFGS; with " + r"$x, \sin(x)$ -- " + f"MSE: {mse:.2f}",
 )
 
 
@@ -275,8 +289,8 @@ for degree in [3, 4]:
     axes[1][1].plot(
         x_plot,
         y_plot,
-        label=f"Bitween: degree {degree} with "
-        + r"$1, x, \sin(x), \cos(x)$ --"
+        label=f"Bitween's Inference -- degree {degree} with "
+        + r"$1, x, \sin(x), \cos(x)$ -- "
         + f"MSE: {mse:.2f}",
     )
 
@@ -290,7 +304,6 @@ for i in range(2):
 plt.tight_layout()
 # Save the figure
 plt.savefig("./figures/regression_methods.pdf")  # Saves as PNG file
-plt.show()
 
 
 # kan_model.plot()
