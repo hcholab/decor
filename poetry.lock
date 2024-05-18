@@ -893,6 +893,21 @@ ssh = ["paramiko"]
 tqdm = ["tqdm"]
 
 [[package]]
+name = "gplearn"
+version = "0.4.2"
+description = "Genetic Programming in Python, with a scikit-learn inspired API"
+optional = false
+python-versions = "*"
+files = [
+    {file = "gplearn-0.4.2-py3-none-any.whl", hash = "sha256:4c7204c48ca0a8d8590d085bb2b7b0446245c3796f8d85ee477464de07d27a4d"},
+    {file = "gplearn-0.4.2.tar.gz", hash = "sha256:31b6d04562e639689c44f5bd1475d87201084e7689a986f1784f10a1175b7814"},
+]
+
+[package.dependencies]
+joblib = ">=1.0.0"
+scikit-learn = ">=1.0.2"
+
+[[package]]
 name = "gurobipy"
 version = "10.0.3"
 description = "Python interface to Gurobi"
@@ -3908,4 +3923,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.5,<3.13"
-content-hash = "b9a41a2301040d4c9b21c820700937bf6b963d566b15218808c6a924d72165e8"
+content-hash = "ecd80516cb7ca9c13724ee64959257453057189dad90fac4662258bafed57c19"

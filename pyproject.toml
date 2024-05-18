@@ -23,6 +23,7 @@ z3-solver = "^4.13.0.0"
 pulp = "^2.8.0"
 pycparser = "^2.22"
 pykan = "^0.0.5"
+gplearn = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 
