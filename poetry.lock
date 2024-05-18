@@ -1247,6 +1247,34 @@ files = [
 referencing = ">=0.31.0"
 
 [[package]]
+name = "juliacall"
+version = "0.9.20"
+description = "Julia and Python in seamless harmony"
+optional = false
+python-versions = "~=3.8"
+files = [
+    {file = "juliacall-0.9.20-py3-none-any.whl", hash = "sha256:1debce8c332ed4973b1a5e1b456d7561735965b64e8964fdd8f9d274a24bc395"},
+    {file = "juliacall-0.9.20.tar.gz", hash = "sha256:d67e399777c368858051f600c39fd8ed5d79d601a11d6336f103a9748ed69ded"},
+]
+
+[package.dependencies]
+juliapkg = ">=0.1.8,<0.2.0"
+
+[[package]]
+name = "juliapkg"
+version = "0.1.13"
+description = "Julia version manager and package manager"
+optional = false
+python-versions = "~=3.8"
+files = [
+    {file = "juliapkg-0.1.13-py3-none-any.whl", hash = "sha256:2a629fe393bccdf024c675380c98271c42998dcd3601101bc6dc997f10595ac9"},
+    {file = "juliapkg-0.1.13.tar.gz", hash = "sha256:4273ac66ef4b4d6832b995af2c7a80d5e8a1c22567cba1846d61bf23dd9335c3"},
+]
+
+[package.dependencies]
+semver = ">=3.0,<4.0"
+
+[[package]]
 name = "jupyter"
 version = "1.0.0"
 description = "Jupyter metapackage. Install all the Jupyter components in one go."
@@ -2688,6 +2716,26 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
+name = "pysr"
+version = "0.18.4"
+description = "Simple and efficient symbolic regression"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pysr-0.18.4-py3-none-any.whl", hash = "sha256:8035f69393214a8eb0c8bdc9493c8f89012a3602d3d7f75fc2e211ecc74f73e1"},
+    {file = "pysr-0.18.4.tar.gz", hash = "sha256:9faff929d4b4ba0c0af2aee3565bb340e1371cb756d81e457d5c18e4be411268"},
+]
+
+[package.dependencies]
+click = ">=7.0.0,<9.0.0"
+juliacall = "0.9.20"
+numpy = ">=1.13.0,<2.0.0"
+pandas = ">=0.21.0,<3.0.0"
+scikit-learn = ">=1.0.0,<2.0.0"
+setuptools = ">=50.0.0"
+sympy = ">=1.0.0,<2.0.0"
+
+[[package]]
 name = "pytest"
 version = "7.4.4"
 description = "pytest: simple powerful testing with Python"
@@ -3280,6 +3328,17 @@ docs = ["ipykernel", "nbconvert", "numpydoc", "pydata_sphinx_theme (==0.10.0rc2)
 stats = ["scipy (>=1.7)", "statsmodels (>=0.12)"]
 
 [[package]]
+name = "semver"
+version = "3.0.2"
+description = "Python helper for Semantic Versioning (https://semver.org)"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "semver-3.0.2-py3-none-any.whl", hash = "sha256:b1ea4686fe70b981f85359eda33199d60c53964284e0cfb4977d243e37cf4bf4"},
+    {file = "semver-3.0.2.tar.gz", hash = "sha256:6253adb39c70f6e51afed2fa7152bcd414c411286088fb4b9effb133885ab4cc"},
+]
+
+[[package]]
 name = "send2trash"
 version = "1.8.2"
 description = "Send file to trash natively under Mac OS X, Windows and Linux"
@@ -3294,6 +3353,22 @@ files = [
 nativelib = ["pyobjc-framework-Cocoa", "pywin32"]
 objc = ["pyobjc-framework-Cocoa"]
 win32 = ["pywin32"]
+
+[[package]]
+name = "setuptools"
+version = "69.5.1"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "setuptools-69.5.1-py3-none-any.whl", hash = "sha256:c636ac361bc47580504644275c9ad802c50415c7522212252c033bd15f301f32"},
+    {file = "setuptools-69.5.1.tar.gz", hash = "sha256:6c1fccdac05a97e598fb0ae3bbed5904ccb317337a51139dcd51453611bbb987"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.2)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
 name = "six"
@@ -3923,4 +3998,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.5,<3.13"
-content-hash = "ecd80516cb7ca9c13724ee64959257453057189dad90fac4662258bafed57c19"
+content-hash = "c4870c98cb9944260f1e4e7ec12139ee79d4d1d7612436245f5f95722436b68b"
