@@ -168,6 +168,44 @@ for degree in [1, 2, 3, 4, 5]:
         + r"$1, x$ -- "
         + f"MSE: {mse:.2f}",
     )
+    # Annotate the plot with the degree
+    d = rf"$d_{degree}$"
+    if degree == 1:
+        axes[0][0].annotate(
+            d,
+            xy=(x_plot[-3], y_plot[-3]),
+            xytext=(1.02 * x_plot[-3], 1.2 * y_plot[-3]),
+            weight="bold",
+            fontsize=10,
+        )
+    if degree == 2:
+        axes[0][0].annotate(
+            d,
+            xy=(x_plot[-3], y_plot[-3]),
+            xytext=(1.02 * x_plot[-3], 1.2 * y_plot[-3]),
+            weight="bold",
+            fontsize=10,
+        )
+    if degree == 3:
+        axes[0][0].annotate(
+            d,
+            xy=(x_plot[-3], y_plot[-3]),
+            xytext=(1.02 * x_plot[-3], y_plot[-3]),
+            weight="bold",
+            fontsize=10,
+        )
+    if degree == 4:
+        axes[0][0].annotate(
+            d,
+            xy=(x_plot[-7], y_plot[-7]),
+            xytext=(1.02 * x_plot[-7], y_plot[-7]),
+            weight="bold",
+            fontsize=10,
+        )
+    if degree == 5:
+        axes[0][0].annotate(
+            d, xy=(9.5, -17), xytext=(9.5, -17), weight="bold", fontsize=10
+        )
 
 axes[0][0].set_title("Polynomial Interpolation")
 
@@ -211,6 +249,23 @@ for degree in [1, 2, 3, 4, 5]:
         + r"$1, x, \sin(x), \cos(x)$ -- "
         + f"MSE: {mse:.2f}",
     )
+    d = rf"$d_{degree}$"
+    if degree == 1:
+        axes[0][1].annotate(
+            d,
+            xy=(x_plot[-2], y_plot[-2]),
+            xytext=(1.02 * x_plot[-2], 1.2 * y_plot[-2]),
+            weight="bold",
+            fontsize=10,
+        )
+    if degree == 5:
+        axes[0][1].annotate(
+            d,
+            xy=(x_plot[-2], y_plot[-2]),
+            xytext=(1.02 * x_plot[-2], 1.2 * y_plot[-2]),
+            weight="bold",
+            fontsize=10,
+        )
 
 axes[0][1].set_title("Bitween's Inference")
 
