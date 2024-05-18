@@ -39,6 +39,7 @@ est_gp = SymbolicRegressor(
     verbose=1,
     parsimony_coefficient=0.01,
     random_state=0,
+    feature_names=["x0", "x1"],
 )
 est_gp.fit(X_train, y_train)
 

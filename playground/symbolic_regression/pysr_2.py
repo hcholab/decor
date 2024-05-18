@@ -1,6 +1,8 @@
+# https://astroautomata.com/PySR/
 import numpy as np  # noqa F401
 from pysr import PySRRegressor
 from sklearn.dummy import check_random_state
+from sympy import simplify
 
 
 rng = check_random_state(0)
@@ -10,7 +12,7 @@ y_train = X_train[:, 0] ** 2 - X_train[:, 1] ** 2 + X_train[:, 1] - 1
 
 model = PySRRegressor(
     niterations=40,  # < Increase me for better results
-    binary_operators=["+", "*"],
+    binary_operators=["+", "*", "-"],
     # unary_operators=[
     #     "cos",
     #     "exp",
@@ -22,10 +24,12 @@ model = PySRRegressor(
     # ^ Define operator for SymPy as well
     elementwise_loss="loss(prediction, target) = (prediction - target)^2",
     # ^ Custom loss function (julia syntax)
+    # select_k_features=10,
+    # ^ Train on only the 4 most important features
 )
 
 model.fit(X_train, y_train)
 
 print(model)
 
-print(model.sympy())
+print(simplify(model.sympy().expand()))
