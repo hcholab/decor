@@ -80,10 +80,14 @@ for i, (y, score, title) in enumerate(
     ax = fig.add_subplot(2, 2, i + 1, projection="3d")
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)
-    surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, color="green", alpha=0.5)
+    surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="viridis", alpha=0.6)
+    # surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="plasma", alpha=0.5)
     points = ax.scatter(X_train[:, 0], X_train[:, 1], y_train)
+    ax.view_init(elev=11, azim=-48)
     if score is not None:
-        score = ax.text(-0.7, 1, 0.2, "$R^2 =\/ %.6f$" % score, "x", fontsize=14)
+        score = ax.text(-0.7, 1, 0.2, "$R^2 =\\/ %.6f$" % score, "x", fontsize=10)
+    elif i == 0:
+        ax.text(-0.7, 1, 0.2, r"$f(x_0, x_1) = x_0^2 - x_1^2 + x_1 - 1$", fontsize=10)
     plt.title(title)
 
 plt.tight_layout()
