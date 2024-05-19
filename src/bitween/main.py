@@ -925,7 +925,7 @@ def main(file_path: str = None):
         # NOTE: a dirty hack to simplify the equation for display
         # based on given function calls and variables
         equations = [eq.expr.evalf() for eq in result]
-        equations = Symbolic.find_and_substitute_terms(equations)
+        # NOTE: simplify equations
         equations = [sympy.nsimplify(eq) for eq in equations]
         good_fit = set()
         max_p = 4  # pivot
@@ -954,7 +954,11 @@ def main(file_path: str = None):
         )
         print(ruler)
         for i, eq in enumerate(result):
-            if eq.error < settings.EPSILON:
+            # NOTE: add the equation to the good_fit set as long as the error is less
+            # than epsilon and the equation is not zero
+            if eq.error < settings.EPSILON and not isinstance(
+                equations[i], sympy.core.numbers.Zero
+            ):
                 s_eq = str(equations[i])
                 if len(s_eq) > p_width:
                     s_eq = s_eq[: (p_width - 3)] + "..."
