@@ -60,7 +60,7 @@ INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
 SELECTOR_INITIAL_RATE = 0.8
 SELECTOR_DECAY_RATE = 0.3
 SELECTOR_PARALLEL = True
-SELECTOR_MAX_FEATURES = 9 if 3 <= DEGREE <= 6 else (8 if DEGREE <= 2 else 11)
+SELECTOR_MAX_FEATURES = 10 if DEGREE > 3 else 6
 
 
 # NOTE: Multiple Regression Method
@@ -135,9 +135,19 @@ CONSISTENCY_CHECK = False  # if True, then we use the consistency check method
 # NOTE: Reporting
 PROPERTY_TABLE_WIDTH = 75
 
+# NOTE: Fuzzing
+FUZZ_TIMEOUT = 2  # in seconds
+
 # NOTE: Verification
 # if True, then we use the is_close function for floating-point numbers
 VERIFICATION_IS_CLOSE_FOR_FLOAT = True
+
+# This is for accidentially running the main function with very high degree;
+# running with high degrees may freeze the system
+LIMIT_DEGREE = 10  # if the degree is larger than this value, then we use this value
+
+if DEGREE > LIMIT_DEGREE:
+    DEGREE = LIMIT_DEGREE
 
 if __name__ == "__main__":
     from bitween.main import main

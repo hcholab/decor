@@ -432,14 +432,20 @@ def fuzz_function_to_collect_traces(
 
             # Convert list to command-line arguments
             input_str = " ".join(test_inputs)
+            timeout = settings.FUZZ_TIMEOUT
+            try:
+                # Run the executable with the generated inputs and a timeout
+                res = subprocess.run(
+                    [executable] + test_inputs,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
 
-            # Run the executable with the generated inputs
-            result = subprocess.run(
-                [executable] + test_inputs, capture_output=True, text=True
-            )
-
-            # Store the result along with the input data
-            results.append((input_str, result.stdout, result.stderr, result.returncode))
+                # Store the result along with the input data
+                results.append((input_str, res.stdout, res.stderr, res.returncode))
+            except subprocess.TimeoutExpired as e:
+                results.append((input_str, "", f"Timeout after {timeout} seconds", -1))
 
         # Analyze the results
         for input_data, output, error, return_code in results:
