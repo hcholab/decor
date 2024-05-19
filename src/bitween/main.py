@@ -179,7 +179,7 @@ def find_model(pivot, terms, data, test_size=0.2):
     }
 
 
-def find_models_w_feature_selector(
+def find_models_with_feature_selector(
     extended_terms, extended_data, degree=2, test_size=0.2
 ):
 
@@ -879,7 +879,7 @@ def main(file_path: str = None):
                 models = find_models(extended_terms, extended_data)
             elif settings.INITIAL_METHOD == settings.InitialMethod.FORWARD_SELECTION:
                 # (Option 3) use forward selection to find a model for each term
-                models = find_models_w_feature_selector(
+                models = find_models_with_feature_selector(
                     extended_terms, extended_data, degree
                 )
             elif settings.INITIAL_METHOD == settings.InitialMethod.EAGER_MILP:
