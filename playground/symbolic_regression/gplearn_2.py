@@ -7,8 +7,17 @@ import matplotlib.pyplot as plt
 from sklearn.dummy import check_random_state
 from gplearn.genetic import SymbolicRegressor
 
-x0 = np.arange(-1, 1, 1 / 10.0)
-x1 = np.arange(-1, 1, 1 / 10.0)
+
+plt.rcParams.update({"font.size": 9})  # Set global font size to 10
+
+# Configuration to use LaTeX, set font family and include extra packages
+plt.rcParams["text.usetex"] = True
+# plt.rcParams["font.family"] = "serif"
+# plt.rcParams["font.serif"] = ["Computer Modern Roman"]
+plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+
+x0 = np.arange(-5, 5, 1 / 10.0)
+x1 = np.arange(-5, 5, 1 / 10.0)
 x0, x1 = np.meshgrid(x0, x1)
 y_truth = x0**2 - x1**2 + x1 - 1
 
@@ -16,11 +25,11 @@ y_truth = x0**2 - x1**2 + x1 - 1
 rng = check_random_state(0)
 
 # Training samples
-X_train = rng.uniform(-1, 1, 100).reshape(50, 2)
+X_train = rng.uniform(-5, 5, 100).reshape(50, 2)
 y_train = X_train[:, 0] ** 2 - X_train[:, 1] ** 2 + X_train[:, 1] - 1
 
 # Testing samples
-X_test = rng.uniform(-1, 1, 100).reshape(50, 2)
+X_test = rng.uniform(-5, 5, 100).reshape(50, 2)
 y_test = X_test[:, 0] ** 2 - X_test[:, 1] ** 2 + X_test[:, 1] - 1
 
 est_gp = SymbolicRegressor(
@@ -66,29 +75,51 @@ score_tree = est_tree.score(X_test, y_test)
 y_rf = est_rf.predict(np.c_[x0.ravel(), x1.ravel()]).reshape(x0.shape)
 score_rf = est_rf.score(X_test, y_test)
 
-fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(14, 8))
+fig, axes = plt.subplots(
+    ncols=2,
+    nrows=2,
+    figsize=(12, 8),
+    tight_layout=True,
+    subplot_kw={"projection": "3d"},
+)
 
 for i, (y, score, title) in enumerate(
     [
         (y_truth, None, "Ground Truth"),
-        (y_gp, score_gp, "SymbolicRegressor"),
-        (y_tree, score_tree, "DecisionTreeRegressor"),
-        (y_rf, score_rf, "RandomForestRegressor"),
+        (y_gp, score_gp, "Symbolic Regressor"),
+        (y_tree, score_tree, "Decision Tree Regressor"),
+        (y_rf, score_rf, "Random Forest Regressor"),
     ]
 ):
-
-    ax = fig.add_subplot(2, 2, i + 1, projection="3d")
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1, 1)
-    surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="viridis", alpha=0.6)
-    # surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="plasma", alpha=0.5)
-    points = ax.scatter(X_train[:, 0], X_train[:, 1], y_train)
-    ax.view_init(elev=11, azim=-48)
+    ax = axes[i // 2, i % 2]
     if score is not None:
-        score = ax.text(-0.7, 1, 0.2, "$R^2 =\\/ %.6f$" % score, "x", fontsize=10)
-    elif i == 0:
-        ax.text(-0.7, 1, 0.2, r"$f(x_0, x_1) = x_0^2 - x_1^2 + x_1 - 1$", fontsize=10)
-    plt.title(title)
+        label = f"{title} ($R^2 = {score:.6f}$)"
+    else:
+        label = r"$f(x_0, x_1) = x_0^2 - x_1^2 + x_1 - 1$"
+    ax.plot_surface(
+        x0, x1, y, cmap="viridis", alpha=0.6, label=label, rstride=1, cstride=1
+    )
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
+    ax.set_xlabel(r"$x_0$")
+    ax.set_ylabel(r"$x_1$")
+    ax.set_zlabel(r"$f(x_0, x_1)$")
+    # surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="viridis", alpha=0.6)
+    # surf = ax.plot_surface(x0, x1, y, rstride=1, cstride=1, cmap="plasma", alpha=0.5)
+
+    # Reduce the number of ticks
+    ax.set_xticks(np.linspace(-5, 5, 5))  # Reduce number of x-ticks
+    ax.set_yticks(np.linspace(-5, 5, 5))  # Reduce number of y-ticks
+    ax.set_zticks(np.linspace(y.min(), y.max(), 5))  # Reduce number of z-ticks
+
+    points = ax.scatter(X_train[:, 0], X_train[:, 1], y_train, label="Training Points")
+    ax.view_init(elev=11, azim=-48)
+    # if score is not None:
+    #     score = ax.text(-1.2, 5.2, 0.2, "$R^2 =\\/ %.6f$" % score, "x", fontsize=10)
+    # elif i == 0:
+    #     ax.text(-1.2, 5.2, 0.2, r"$f(x_0, x_1) = x_0^2 - x_1^2 + x_1 - 1$", fontsize=10)
+    # ax.set_title(title)
+    ax.legend()
 
 plt.tight_layout()
 plt.show()

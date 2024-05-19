@@ -2,6 +2,7 @@
 import numpy as np  # noqa F401
 from pysr import PySRRegressor
 from sklearn.dummy import check_random_state
+from sklearn.metrics import mean_squared_error
 from sympy import simplify
 from multiprocessing import cpu_count
 
@@ -10,6 +11,9 @@ rng = check_random_state(0)
 # Training samples
 X_train = rng.uniform(-1, 1, 100).reshape(50, 2)
 y_train = X_train[:, 0] ** 2 - X_train[:, 1] ** 2 + X_train[:, 1] - 1
+
+X_test = rng.uniform(-1, 1, 100).reshape(50, 2)
+y_test = X_test[:, 0] ** 2 - X_test[:, 1] ** 2 + X_test[:, 1] - 1
 
 model = PySRRegressor(
     niterations=100,  # < Increase me for better results
@@ -88,3 +92,5 @@ model.fit(X_train, y_train)
 print(model)
 
 print(simplify(model.sympy().expand()))
+print(model.feature_names_in_)
+mse = mean_squared_error(y_test, model.predict(X_test))
