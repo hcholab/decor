@@ -964,6 +964,7 @@ def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
             function_set=("add", "sub", "mul"),
             n_jobs=-1,
         )
+        print("-" * 80)
         model.fit(X_train, y_train)
         print("gplearn:", model._program)
         rhs = sympy.sympify(str(model._program), locals=locals).expand()
