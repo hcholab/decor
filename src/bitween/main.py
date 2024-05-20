@@ -984,6 +984,7 @@ def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
         feature_size = X_train.shape[1]
         sample_size = X_train.shape[0]
         mse = mean_squared_error(y_test, model.predict(X_test))
+        print(f"MSE: {mse}")
         return Equation(equation, mse, pivot, sample_size, model_name, feature_size, "")
 
     # Create a model for each term in extended_terms, excluding the constant '1'
