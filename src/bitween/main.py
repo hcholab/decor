@@ -10,6 +10,7 @@ import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
 from pysr import PySRRegressor
+from gplearn.genetic import SymbolicRegressor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.metrics import mean_squared_error, mean_absolute_error  # noqa F401
@@ -905,7 +906,89 @@ def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
     # Create a model for each term in extended_terms, excluding the constant '1'
     for i in range(len(extended_terms) - 1):
         equation = symbolic_regression(i)
-        if equation.expr is not None:
+        if equation is None or equation.expr is not None:
+            results.append(equation)
+
+    return results
+
+
+def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
+    settings.PRECISION = 2  # NOTE: Force the precision to 2 for GPlearn
+
+    X = extended_data[:, :-1]  # Exclude the constant term
+    results = []
+
+    locals = {
+        "add": lambda x, y: x + y,
+        "sub": lambda x, y: x - y,
+        "mul": lambda x, y: x * y,
+        "div": lambda x, y: x / y,
+        "sqrt": lambda x: sympy.sqrt(x),
+        "log": lambda x: sympy.log(x),
+        "abs": lambda x: sympy.Abs(x),
+        "neg": lambda x: -x,
+        "inv": lambda x: 1 / x,
+        "max": lambda x, y: sympy.Max(x, y),
+        "min": lambda x, y: sympy.Min(x, y),
+        "sin": lambda x: sympy.sin(x),
+        "cos": lambda x: sympy.cos(x),
+        "tan": lambda x: sympy.tan(x),
+        "pow": lambda x, y: x**y,
+    }
+
+    def symbolic_regression(target_idx):
+        pivot = extended_terms[target_idx]
+        terms = [term for term in extended_terms if term != pivot]
+        gplearn_vars_map = []
+        for i, term in enumerate(terms):
+            gplearn_vars_map.append((sympy.Symbol(f"X{i}"), sympy.Symbol(term)))
+        y = extended_data[:, target_idx]
+        # Exclude the target variable from the features
+        X_train, X_test, y_train, y_test = train_test_split(
+            np.delete(X, target_idx, axis=1), y, test_size=test_size, random_state=42
+        )
+        iterations = 50
+        model_name = f"gplearn(iter={iterations})"
+        model = SymbolicRegressor(
+            population_size=1000,
+            generations=20,
+            stopping_criteria=0.01,
+            p_crossover=0.7,
+            p_subtree_mutation=0.1,
+            p_hoist_mutation=0.05,
+            p_point_mutation=0.1,
+            max_samples=0.9,
+            verbose=1,
+            parsimony_coefficient=0.01,
+            # random_state=0,
+            function_set=("add", "sub", "mul"),
+            n_jobs=-1,
+        )
+        model.fit(X_train, y_train)
+        print("gplearn:", model._program)
+        rhs = sympy.sympify(str(model._program), locals=locals).expand()
+        rhs = rhs.subs(gplearn_vars_map)
+        print("gplearn:", pivot, "=", rhs)
+        rhs = round_coefficients(rhs, settings.PRECISION)
+        print(pivot, "=", rhs)
+        equation = sympy.simplify(sympy.Symbol(pivot) - rhs)
+        s_eq = str(equation)
+        print(s_eq + " = 0")
+        if equation == 0:
+            log.warn(f"SR found a zero equation for {pivot}")
+            return None
+        if len(s_eq) > 100:
+            log.warn(f"SR expression too long: {s_eq[:100]} ...")
+            return None
+        feature_size = X_train.shape[1]
+        sample_size = X_train.shape[0]
+        mse = mean_squared_error(y_test, model.predict(X_test))
+        return Equation(equation, mse, pivot, sample_size, model_name, feature_size, "")
+
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    for i in range(len(extended_terms) - 1):
+        equation = symbolic_regression(i)
+        if equation is None or equation.expr is not None:
             results.append(equation)
 
     return results
@@ -960,6 +1043,10 @@ def main(file_path: str = None):
                 models = find_models(extended_terms, extended_data)
             elif settings.INITIAL_METHOD == settings.InitialMethod.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
+                results[loc].extend(result)
+                continue
+            elif settings.INITIAL_METHOD == settings.InitialMethod.GPLEARN:
+                result = find_models_with_gplearn(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
             else:

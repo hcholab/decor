@@ -1,5 +1,6 @@
 # https://gplearn.readthedocs.io/en/stable/examples.html#example
 import numpy as np
+from sklearn.metrics import mean_squared_error
 import sympy
 from sympy import sympify, simplify
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ y_train = X_train[:, 0] ** 2 - X_train[:, 1] ** 2 + X_train[:, 1] - 1
 X_test = rng.uniform(-1, 1, 100).reshape(50, 2)
 y_test = X_test[:, 0] ** 2 - X_test[:, 1] ** 2 + X_test[:, 1] - 1
 
-est_gp = SymbolicRegressor(
+model = SymbolicRegressor(
     population_size=5000,
     generations=20,
     stopping_criteria=0.01,
@@ -43,9 +44,9 @@ est_gp = SymbolicRegressor(
     function_set=("add", "sub", "mul", "div"),
     n_jobs=-1,
 )
-est_gp.fit(X_train, y_train)
+model.fit(X_train, y_train)
 
-print(est_gp._program)
+print(model._program)
 
 # 'add' : addition, arity=2.
 # 'sub' : subtraction, arity=2.
@@ -78,5 +79,9 @@ locals = {
     "tan": lambda x: sympy.tan(x),
     "pow": lambda x, y: x**y,
 }
+print(model)
 
-print(simplify(sympify(str(est_gp._program), locals=locals).expand()))
+print(simplify(sympify(str(model._program), locals=locals).expand()))
+
+mse = mean_squared_error(y_test, model.predict(X_test))
+print("MSE:", mse)
