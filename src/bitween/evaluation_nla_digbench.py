@@ -257,7 +257,7 @@ def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=10, milp=glpk
+        file_path, func_name, max_degree=2, n=10, milp=None
     )
 
 
