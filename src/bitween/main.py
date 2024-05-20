@@ -1,5 +1,6 @@
 import collections
 import math
+from multiprocessing import cpu_count
 from tempfile import mkdtemp  # noqa F401
 from time import time
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ import itertools
 import warnings
 from joblib import Parallel, delayed  # noqa F401
 import numpy as np
+from pysr import PySRRegressor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.metrics import mean_squared_error, mean_absolute_error  # noqa F401
@@ -838,6 +840,77 @@ def infer_equations(  # noqa F811
     ], term_frequencies
 
 
+# Function to round the coefficients of an expression
+def round_coefficients(expr, decimals):
+    return expr.xreplace({n: round(n, decimals) for n in expr.atoms(sympy.Number)})
+
+
+def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
+    settings.PRECISION = 2  # NOTE: Force the precision to 2 for PySR
+
+    X = extended_data[:, :-1]  # Exclude the constant term
+    results = []
+
+    def symbolic_regression(target_idx):
+        pivot = extended_terms[target_idx]
+        terms = [term for term in extended_terms if term != pivot]
+        pysr_vars_map = []
+        for i, term in enumerate(terms):
+            pysr_vars_map.append((sympy.Symbol(f"x{i}"), sympy.Symbol(term)))
+        y = extended_data[:, target_idx]
+        # Exclude the target variable from the features
+        X_train, X_test, y_train, y_test = train_test_split(
+            np.delete(X, target_idx, axis=1), y, test_size=test_size, random_state=42
+        )
+        iterations = 50
+        model_name = f"PySR(iter={iterations})"
+        model = PySRRegressor(
+            niterations=iterations,  # < Increase me for better results
+            binary_operators=["+", "*"],
+            # unary_operators=[
+            #     "cos",
+            #     "exp",
+            #     "sin",
+            #     "sqrt",
+            #     "inv(x) = 1/x",
+            #     # ^ Custom operator (julia syntax)
+            # ],
+            populations=max(15, cpu_count() * 2),
+            timeout_in_seconds=2 * 60,
+            # extra_sympy_mappings={"inv": lambda x: 1 / x},
+            # ^ Define operator for SymPy as well
+            # elementwise_loss="loss(prediction, target) = (prediction - target)^2",
+            # ^ Custom loss function (julia syntax)
+            select_k_features=settings.SELECTOR_MAX_FEATURES,  # NOTE: this is important
+            # ^ Train on only the 4 most important features
+            progress=False,
+            print_precision=3,
+        )
+        model.fit(X_train, y_train)
+        print(model)
+        rhs = model.sympy().subs(pysr_vars_map)
+        print("pysr:", pivot, "=", rhs)
+        rhs = round_coefficients(sympy.simplify(rhs.expand()), settings.PRECISION)
+        print(pivot, "=", rhs)
+        equation = sympy.simplify(sympy.Symbol(pivot) - rhs)
+        print(str(equation) + " = 0")
+        if equation == 0:
+            log.warn(f"SR found a zero equation for {pivot}")
+            return None
+        feature_size = X_train.shape[1]
+        sample_size = X_train.shape[0]
+        mse = mean_squared_error(y_test, model.predict(X_test))
+        return Equation(equation, mse, pivot, sample_size, model_name, feature_size, "")
+
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    for i in range(len(extended_terms) - 1):
+        equation = symbolic_regression(i)
+        if equation.expr is not None:
+            results.append(equation)
+
+    return results
+
+
 def main(file_path: str = None):
 
     if file_path is None:
@@ -885,6 +958,10 @@ def main(file_path: str = None):
             elif settings.INITIAL_METHOD == settings.InitialMethod.EAGER_MILP:
                 # (Option 4) for ablation study
                 models = find_models(extended_terms, extended_data)
+            elif settings.INITIAL_METHOD == settings.InitialMethod.PYSR:
+                result = find_models_with_pysr(extended_terms, extended_data)
+                results[loc].extend(result)
+                continue
             else:
                 raise ValueError("Invalid initial method")
 

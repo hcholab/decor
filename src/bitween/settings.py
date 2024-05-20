@@ -52,6 +52,8 @@ class InitialMethod(Enum):
     SIMPLE_REGRESSION = 1
     FORWARD_SELECTION = 2
     EAGER_MILP = 3  # don't use this, it is for the ablation study
+    PYSR = 4  # PySR is a symbolic regression library in Python
+    GPLEARN = 5  # gplearn is a symbolic regression library in Python
 
 
 INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
@@ -60,7 +62,7 @@ INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
 SELECTOR_INITIAL_RATE = 0.8
 SELECTOR_DECAY_RATE = 0.3
 SELECTOR_PARALLEL = True
-SELECTOR_MAX_FEATURES = 10 if DEGREE > 3 else 6
+SELECTOR_MAX_FEATURES = 10 if DEGREE > 2 else 7
 
 
 # NOTE: Multiple Regression Method
