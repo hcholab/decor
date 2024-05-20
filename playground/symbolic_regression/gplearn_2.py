@@ -122,4 +122,7 @@ for i, (y, score, title) in enumerate(
     ax.legend()
 
 plt.tight_layout()
+# Save the figure
+plt.savefig("./figures/symbolic_regression.pdf")  # Saves as PDF
+plt.savefig("./figures/symbolic_regression.png")  # Saves as PNG
 plt.show()
