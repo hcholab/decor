@@ -40,20 +40,43 @@ est_gp = SymbolicRegressor(
     parsimony_coefficient=0.01,
     random_state=0,
     feature_names=["x0", "x1"],
+    function_set=("add", "sub", "mul", "div"),
+    n_jobs=-1,
 )
 est_gp.fit(X_train, y_train)
 
 print(est_gp._program)
 
+# 'add' : addition, arity=2.
+# 'sub' : subtraction, arity=2.
+# 'mul' : multiplication, arity=2.
+# 'div' : protected division where a denominator near-zero returns 1., arity=2.
+# 'sqrt' : protected square root where the absolute value of the argument is used, arity=1.
+# 'log' : protected log where the absolute value of the argument is used and a near-zero argument returns 0., arity=1.
+# 'abs' : absolute value, arity=1.
+# 'neg' : negative, arity=1.
+# 'inv' : protected inverse where a near-zero argument returns 0., arity=1.
+# 'max' : maximum, arity=2.
+# 'min' : minimum, arity=2.
+# 'sin' : sine (radians), arity=1.
+# 'cos' : cosine (radians), arity=1.
+# 'tan' : tangent (radians), arity=1.
 locals = {
-    "sub": lambda x, y: x - y,
-    "div": lambda x, y: x / y,
-    "mul": lambda x, y: x * y,
     "add": lambda x, y: x + y,
+    "sub": lambda x, y: x - y,
+    "mul": lambda x, y: x * y,
+    "div": lambda x, y: x / y,
+    "sqrt": lambda x: sympy.sqrt(x),
+    "log": lambda x: sympy.log(x),
+    "abs": lambda x: sympy.Abs(x),
     "neg": lambda x: -x,
-    "pow": lambda x, y: x**y,
-    "cos": lambda x: sympy.cos(x),
+    "inv": lambda x: 1 / x,
+    "max": lambda x, y: sympy.Max(x, y),
+    "min": lambda x, y: sympy.Min(x, y),
     "sin": lambda x: sympy.sin(x),
+    "cos": lambda x: sympy.cos(x),
+    "tan": lambda x: sympy.tan(x),
+    "pow": lambda x, y: x**y,
 }
 
 print(simplify(sympify(str(est_gp._program), locals=locals).expand()))
