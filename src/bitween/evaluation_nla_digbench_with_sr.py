@@ -13,7 +13,7 @@ def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, method=pysr
+        file_path, func_name, max_degree=2, n=20, method=gplearn
     )
 
 
@@ -21,7 +21,7 @@ def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, method=pysr
+        file_path, func_name, max_degree=2, n=20, method=gplearn
     )
 
 
@@ -247,7 +247,7 @@ def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=20, method=pysr
+        file_path, func_name, max_degree=2, n=20, method=gplearn
     )
 
 
@@ -258,7 +258,7 @@ if __name__ == "__main__":
 
     st = time()
 
-    # bresenham() # NOTE: Total Time: 344.54s | Missing results, some correct invariants, check `bresenham.checker_pysr.c``
+    # bresenham()  # NOTE: Total Time: 344.54s | Missing results, some correct invariants, check `bresenham.checker_pysr.c``
     # cohencu()  # NOTE: Total Time: 375.52s | Missing and inaccurete results, some correct invariants, check `cohencu.checker_pysr.c`
     # cohendiv()  #
     # dijkstra() #
