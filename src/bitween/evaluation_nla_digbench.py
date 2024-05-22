@@ -13,7 +13,7 @@ def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=glpk
+        file_path, func_name, max_degree=2, n=20, milp=None
     )
 
 
@@ -21,7 +21,7 @@ def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, milp=glpk
+        file_path, func_name, max_degree=2, n=20, milp=None
     )
 
 
