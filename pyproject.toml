@@ -25,6 +25,7 @@ pycparser = "^2.22"
 pykan = "^0.0.5"
 gplearn = "^0.4.2"
 pysr = "^0.18.4"
+configparser = "^7.0.0"
 
 [tool.poetry.dev-dependencies]
 

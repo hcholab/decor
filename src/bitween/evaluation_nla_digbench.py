@@ -265,6 +265,7 @@ if __name__ == "__main__":
 
     glpk = settings.MILPSolver.GLPK
     gurobi = settings.MILPSolver.GUROBI
+    pulp = settings.MILPSolver.PULP
 
     st = time()
 
