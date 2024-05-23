@@ -69,6 +69,7 @@ class Config:
             cls._instance._config.read(cls._instance._config_file)
         return cls._instance
 
+    # NOTE: General settings
     @property
     def degree(self):
         """Get the degree."""
@@ -123,6 +124,7 @@ class Config:
     def invariant_type(self, value):
         self._config.set("general", "invariant_type", value)
 
+    # NOTE: Initial Method
     @property
     def initial_method(self):
         """Get the initial method."""
@@ -135,9 +137,10 @@ class Config:
     def initial_method(self, value):
         self._config.set("initial_method", "method", value.name)
 
+    # NOTE: Forward Selection Method
     @property
     def selector_initial_rate(self):
-        """Get the selector initial rate."""
+        """Get the selector initial rate for forward selection."""
         return self._config.getfloat(
             "forward_selection", "selector_initial_rate", fallback=0.8
         )
@@ -148,7 +151,7 @@ class Config:
 
     @property
     def selector_decay_rate(self):
-        """Get the selector decay rate."""
+        """Get the selector decay rate for forward selection"""
         return self._config.getfloat(
             "forward_selection", "selector_decay_rate", fallback=0.3
         )
@@ -159,7 +162,7 @@ class Config:
 
     @property
     def selector_parallel(self):
-        """Get whether the selector is parallel."""
+        """Get whether the selector is parallel for forward selection."""
         return self._config.getboolean(
             "forward_selection", "selector_parallel", fallback=True
         )
@@ -170,18 +173,21 @@ class Config:
 
     @property
     def selector_max_features(self):
-        """Get the maximum number of selector features."""
+        """Get the maximum number of selector features for forward selection."""
         return self._config.getint(
-            "forward_selection", "selector_max_features", fallback=7
+            "forward_selection",
+            "selector_max_features",
+            fallback=10 if self.degree > 2 else 7,
         )
 
     @selector_max_features.setter
     def selector_max_features(self, value):
         self._config.set("forward_selection", "selector_max_features", str(value))
 
+    # NOTE: Multiple Regression Method
     @property
     def cross_validation(self):
-        """Get the number of cross validations."""
+        """Get the number of cross validations for multiple regression."""
         return self._config.getint(
             "multiple_regression", "cross_validation", fallback=3
         )
@@ -192,7 +198,7 @@ class Config:
 
     @property
     def regression_score(self):
-        """Get the regression score."""
+        """Get the regression score for multiple regression."""
         value = self._config.get(
             "multiple_regression", "regression_score", fallback="r2"
         )
@@ -202,6 +208,7 @@ class Config:
     def regression_score(self, value):
         self._config.set("multiple_regression", "regression_score", value.value)
 
+    # NOTE: Regression Refinement Method
     @property
     def regression_refinement(self):
         """Get whether regression refinement is enabled."""
@@ -213,27 +220,10 @@ class Config:
     def regression_refinement(self, value):
         self._config.set("regression_refinement", "regression_refinement", str(value))
 
-    @property
-    def sample_rate(self):
-        """Get the sample rate."""
-        return self._config.getint("regression_sample", "sample_rate", fallback=10)
-
-    @sample_rate.setter
-    def sample_rate(self, value):
-        self._config.set("regression_sample", "sample_rate", str(value))
-
-    @property
-    def sample_threshold(self):
-        """Get the sample threshold."""
-        return self._config.getint("regression_sample", "sample_threshold", fallback=50)
-
-    @sample_threshold.setter
-    def sample_threshold(self, value):
-        self._config.set("regression_sample", "sample_threshold", str(value))
-
+    # NOTE: Regression Sample Size Limit (for Regression-based Methods)
     @property
     def use_sample_rate(self):
-        """Get whether to use sample rate."""
+        """Get whether to use sample rate for regression."""
         return self._config.getboolean(
             "regression_sample", "use_sample_rate", fallback=True
         )
@@ -243,8 +233,27 @@ class Config:
         self._config.set("regression_sample", "use_sample_rate", str(value))
 
     @property
+    def sample_rate(self):
+        """Get the sample rate for regression."""
+        return self._config.getint("regression_sample", "sample_rate", fallback=10)
+
+    @sample_rate.setter
+    def sample_rate(self, value):
+        self._config.set("regression_sample", "sample_rate", str(value))
+
+    @property
+    def sample_threshold(self):
+        """Get the sample threshold for regression."""
+        return self._config.getint("regression_sample", "sample_threshold", fallback=50)
+
+    @sample_threshold.setter
+    def sample_threshold(self, value):
+        self._config.set("regression_sample", "sample_threshold", str(value))
+
+    # NOTE: Equation inference parameters for Regression-based Methods
+    @property
     def coeff_threshold(self):
-        """Get the coefficient threshold."""
+        """Get the coefficient threshold for regression."""
         return self._config.getfloat(
             "equation_inference", "coeff_threshold", fallback=0.01
         )
@@ -255,7 +264,7 @@ class Config:
 
     @property
     def use_cutoff(self):
-        """Get whether to use cutoff."""
+        """Get whether to use cutoff for regression."""
         return self._config.getboolean(
             "equation_inference", "use_cutoff", fallback=True
         )
@@ -266,7 +275,7 @@ class Config:
 
     @property
     def coeff_cutoff(self):
-        """Get the coefficient cutoff value."""
+        """Get the coefficient cutoff value for regression."""
         return self._config.getint("equation_inference", "coeff_cutoff", fallback=30)
 
     @coeff_cutoff.setter
@@ -275,7 +284,7 @@ class Config:
 
     @property
     def intercept_cutoff(self):
-        """Get the intercept cutoff value."""
+        """Get the intercept cutoff value for regression."""
         return self._config.getint(
             "equation_inference", "intercept_cutoff", fallback=50
         )
@@ -284,6 +293,7 @@ class Config:
     def intercept_cutoff(self, value):
         self._config.set("equation_inference", "intercept_cutoff", str(value))
 
+    # NOTE: MILP Method parameters
     @property
     def milp_enabled(self):
         """Get whether MILP is enabled."""
@@ -331,23 +341,24 @@ class Config:
         self._config.set("milp", "timeout", str(value))
 
     @property
-    def parallel(self):
+    def milp_parallel(self):
         """Get whether MILP is parallel."""
         return self._config.getboolean("milp", "parallel", fallback=True)
 
-    @parallel.setter
-    def parallel(self, value):
+    @milp_parallel.setter
+    def milp_parallel(self, value):
         self._config.set("milp", "parallel", str(value))
 
     @property
-    def warnings(self):
+    def milp_warnings(self):
         """Get whether MILP warnings are enabled."""
         return self._config.getboolean("milp", "warnings", fallback=False)
 
-    @warnings.setter
-    def warnings(self, value):
+    @milp_warnings.setter
+    def milp_warnings(self, value):
         self._config.set("milp", "warnings", str(value))
 
+    # NOTE: MILP Sample Size Limit
     @property
     def sample_rate_milp(self):
         """Get the MILP sample rate."""
@@ -375,9 +386,14 @@ class Config:
     def use_sample_rate_milp(self, value):
         self._config.set("milp_sample", "use_sample_rate", str(value))
 
+    # NOTE: Eager MILP
     @property
     def full_milp_strategy(self):
-        """Get the full MILP strategy."""
+        """
+        Get the full MILP strategy. If ALWAYS, then use MILP from all data points
+        for each pivot, if AUTO, then we use MILP from all data points for each pivot
+        if the number of data points is less than SAMPLE_THRESHOLD
+        """
         value = self._config.get("full_milp", "strategy", fallback="AUTO")
         return FullMILP[value]
 
@@ -394,15 +410,17 @@ class Config:
     def full_milp_threshold(self, value):
         self._config.set("full_milp", "threshold", str(value))
 
+    # NOTE: Construct a model from the Regression models based on frequency,
     @property
     def milp_freq_refine_enabled(self):
-        """Get whether MILP frequency refinement is enabled."""
+        """Get whether MILP frequency refinement model is enabled."""
         return self._config.getboolean("milp_freq_refine", "enabled", fallback=False)
 
     @milp_freq_refine_enabled.setter
     def milp_freq_refine_enabled(self, value):
         self._config.set("milp_freq_refine", "enabled", str(value))
 
+    # NOTE: Sympy Linear Solver
     @property
     def linear_solver_enabled(self):
         """Get whether the linear solver is enabled."""
@@ -412,6 +430,7 @@ class Config:
     def linear_solver_enabled(self, value):
         self._config.set("linear_solver", "enabled", str(value))
 
+    # NOTE: Reductions
     @property
     def ugly_factor(self):
         """Get the ugly factor."""
@@ -421,6 +440,7 @@ class Config:
     def ugly_factor(self, value):
         self._config.set("reductions", "ugly_factor", str(value))
 
+    # NOTE: Z3 SMT Solver
     @property
     def z3_timeout(self):
         """Get the Z3 SMT solver timeout."""
@@ -448,6 +468,7 @@ class Config:
     def consistency_check(self, value):
         self._config.set("z3", "consistency_check", str(value))
 
+    # NOTE: Reporting
     @property
     def property_table_width(self):
         """Get the property table width."""
@@ -457,6 +478,7 @@ class Config:
     def property_table_width(self, value):
         self._config.set("reporting", "property_table_width", str(value))
 
+    # NOTE: Fuzzing
     @property
     def fuzz_timeout(self):
         """Get the fuzzing timeout."""
@@ -466,6 +488,7 @@ class Config:
     def fuzz_timeout(self, value):
         self._config.set("fuzzing", "timeout", str(value))
 
+    # NOTE: Verification
     @property
     def is_close_for_float(self):
         """Get whether is_close_for_float is enabled."""
@@ -477,6 +500,7 @@ class Config:
     def is_close_for_float(self, value):
         self._config.set("verification", "is_close_for_float", str(value))
 
+    # NOTE: Limit Degree
     @property
     def limit_degree(self):
         """Get the limit degree."""
