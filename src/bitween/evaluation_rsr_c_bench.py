@@ -5,11 +5,13 @@ from bitween.main import (  # noqa F401
     infer_invariants,
     verify,
 )
-from bitween import miscs, settings
+from bitween import miscs
+from bitween.config import Config, MILPSolver
 
 from time import time
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def identity():
@@ -250,8 +252,8 @@ def squared():
 
 if __name__ == "__main__":
 
-    glpk = settings.MILPSolver.GLPK
-    gurobi = settings.MILPSolver.GUROBI
+    glpk = MILPSolver.GLPK
+    gurobi = MILPSolver.GUROBI
 
     st = time()
 

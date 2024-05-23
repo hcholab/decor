@@ -1,7 +1,11 @@
 from bitween.main import infer_invariants
-from bitween import settings
+from bitween import miscs
+from bitween.config import Config, MILPSolver
 
-import time
+from time import time
+
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def odometry():
@@ -18,7 +22,7 @@ def pid():
 
 if __name__ == "__main__":
 
-    solver = settings.MILPSolver.GUROBI
+    solver = MILPSolver.GUROBI
 
     start = time.time()
 

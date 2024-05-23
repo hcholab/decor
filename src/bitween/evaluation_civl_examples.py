@@ -2,11 +2,13 @@ from bitween.main import (  # noqa F401
     infer_invariants_and_check_correctness,
     infer_invariants_and_verify_correctness,
 )
-from bitween import miscs, settings
+from bitween import miscs
+from bitween.config import Config, MILPSolver
 
 from time import time
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def division():
@@ -51,7 +53,7 @@ def sqrtcall():
 
 if __name__ == "__main__":
 
-    glpk = settings.MILPSolver.GLPK
+    glpk = MILPSolver.GLPK
 
     st = time()
 

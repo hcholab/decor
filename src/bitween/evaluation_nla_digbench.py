@@ -2,11 +2,13 @@ from bitween.main import (  # noqa F401
     infer_invariants_and_check_correctness,
     infer_invariants_and_verify_correctness,
 )
-from bitween import miscs, settings
+from bitween import miscs
+from bitween.config import Config, InitialMethod, MILPSolver
 
 from time import time
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def bresenham():
@@ -167,7 +169,7 @@ def lcm2():
     file_path = "./benchmarks/bitween/dig/lcm2.c"
     func_name = "lcm2"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=glpk
+        file_path, func_name, max_degree=2, n=20, milp=gurobi
     )
 
 
@@ -236,7 +238,7 @@ def ps5():
         max_degree=5,
         n=10,
         milp=None,
-        method=settings.InitialMethod.FORWARD_SELECTION,
+        method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -249,23 +251,23 @@ def ps6():
         max_degree=6,
         n=20,
         milp=glpk,
-        method=settings.InitialMethod.FORWARD_SELECTION,
+        method=InitialMethod.FORWARD_SELECTION,
     )
 
 
 def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
-    infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=10, milp=None
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=15, milp=None
     )
 
 
 if __name__ == "__main__":
 
-    glpk = settings.MILPSolver.GLPK
-    gurobi = settings.MILPSolver.GUROBI
-    pulp = settings.MILPSolver.PULP
+    glpk = MILPSolver.GLPK
+    gurobi = MILPSolver.GUROBI
+    pulp = MILPSolver.PULP
 
     st = time()
 

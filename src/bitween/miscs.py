@@ -10,7 +10,7 @@ import itertools
 import logging
 from typing import Callable, Iterable, Any
 
-from bitween import settings
+from bitween.config import Config
 
 
 def getLogger(name: str, level: int) -> logging.Logger:
@@ -39,7 +39,8 @@ def getLogLevel(level: int) -> int:
         return logging.DEBUG
 
 
-log = getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = getLogger(__name__, config.logger_level)
 
 
 class Symbolic:
@@ -125,8 +126,8 @@ class Symbolic:
     def linear_solve(cls, pivot, terms, data):
 
         sample_size = data.shape[0]
-        if settings.MILP_USE_SAMPLE_RATE and settings.MILP_SAMPLE_RATE > 1:
-            sample_size = int(len(terms) * settings.MILP_SAMPLE_RATE)
+        if config.use_sample_rate_milp and config.sample_rate_milp > 1:
+            sample_size = int(len(terms) * config.sample_rate_milp)
             threshold = 20
             if sample_size < threshold:
                 if data.shape[0] > threshold:
@@ -378,11 +379,11 @@ class Symbolic:
 
         @functools.cache
         def is_nice_coef(c: int | float) -> bool:
-            return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
+            return abs(c) <= config.ugly_factor or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
         def is_nice_eqt(eqt: sympy.Expr | sympy.Rel) -> bool:
-            return len(eqt.args) <= settings.UGLY_FACTOR and all(
+            return len(eqt.args) <= config.ugly_factor and all(
                 is_nice_coef(c) for c in cls.get_coefs(eqt)
             )
 

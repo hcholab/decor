@@ -71,6 +71,15 @@ class Config:
 
     # NOTE: General settings
     @property
+    def file_path(self):
+        """Get the file path."""
+        return self._config.get("general", "file_path", fallback="")
+
+    @file_path.setter
+    def file_path(self, value):
+        self._config.set("general", "file_path", value)
+
+    @property
     def degree(self):
         """Get the degree."""
         return self._config.getint("general", "degree", fallback=2)
@@ -118,11 +127,12 @@ class Config:
     @property
     def invariant_type(self):
         """Get the invariant type (INT, REAL, or MIXED)."""
-        return self._config.get("general", "invariant_type", fallback="INT")
+        value = self._config.get("general", "invariant_type", fallback="MIXED")
+        return InvariantType[value]
 
     @invariant_type.setter
     def invariant_type(self, value):
-        self._config.set("general", "invariant_type", value)
+        self._config.set("general", "invariant_type", value.name)
 
     # NOTE: Initial Method
     @property
@@ -222,32 +232,32 @@ class Config:
 
     # NOTE: Regression Sample Size Limit (for Regression-based Methods)
     @property
-    def use_sample_rate(self):
+    def use_sample_rate_regression(self):
         """Get whether to use sample rate for regression."""
         return self._config.getboolean(
             "regression_sample", "use_sample_rate", fallback=True
         )
 
-    @use_sample_rate.setter
-    def use_sample_rate(self, value):
+    @use_sample_rate_regression.setter
+    def use_sample_rate_regression(self, value):
         self._config.set("regression_sample", "use_sample_rate", str(value))
 
     @property
-    def sample_rate(self):
+    def sample_rate_regression(self):
         """Get the sample rate for regression."""
         return self._config.getint("regression_sample", "sample_rate", fallback=10)
 
-    @sample_rate.setter
-    def sample_rate(self, value):
+    @sample_rate_regression.setter
+    def sample_rate_regression(self, value):
         self._config.set("regression_sample", "sample_rate", str(value))
 
     @property
-    def sample_threshold(self):
+    def sample_threshold_regression(self):
         """Get the sample threshold for regression."""
         return self._config.getint("regression_sample", "sample_threshold", fallback=50)
 
-    @sample_threshold.setter
-    def sample_threshold(self, value):
+    @sample_threshold_regression.setter
+    def sample_threshold_regression(self, value):
         self._config.set("regression_sample", "sample_threshold", str(value))
 
     # NOTE: Equation inference parameters for Regression-based Methods
@@ -472,7 +482,7 @@ class Config:
     @property
     def property_table_width(self):
         """Get the property table width."""
-        return self._config.getint("reporting", "property_table_width", fallback=75)
+        return self._config.getint("reporting", "property_table_width", fallback=70)
 
     @property_table_width.setter
     def property_table_width(self, value):
@@ -529,10 +539,15 @@ if __name__ == "__main__":
         print(f"Logger Level: {config.logger_level}")
 
         config.logger_level = 5
-        print(f"Updated Logger Level: {config.logger_level}")
+        print(f"Updated Logger Level: {Config().logger_level}")
 
         config.initial_method = InitialMethod.MULTIPLE_REGRESSION
         print(f"Initial Method: {config.initial_method}")
         assert config.initial_method == InitialMethod.MULTIPLE_REGRESSION
+
+        config.invariant_type = InvariantType.INT
+        print(f"Invariant Type: {config.invariant_type}")
+        assert config.invariant_type == InvariantType.INT
+
     except FileNotFoundError as e:
         print(e)

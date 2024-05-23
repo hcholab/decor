@@ -6,7 +6,11 @@ import sympy
 from sympy.printing.c import C99CodePrinter
 from sympy.printing.precedence import precedence
 
-from bitween import c_types, settings
+from bitween import c_types, miscs
+from bitween.config import Config
+
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 """
 This module provides a function to verify a C function with civl.
@@ -46,7 +50,7 @@ class CivlCCodePrinter(C99CodePrinter):
 
 def get_is_close_code():
     return f"""
-#define EPSILON {settings.EPSILON}  // Define the precision threshold
+#define EPSILON {config.epsilon}  // Define the precision threshold
 
 int is_close(double a, double b) {{
     return fabs(a - b) < EPSILON;  // Use fabs to get the absolute difference
@@ -184,7 +188,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
 
     def create_assert_statement(self, equation):
         # Create an assert statement for the given equation
-        if self.float_assertions and settings.VERIFICATION_IS_CLOSE_FOR_FLOAT:
+        if self.float_assertions and config.is_close_for_float:
             # remove the " == 0" part from the equation
             equation = equation.replace(" == 0", "")  # TODO: generalize this
             return c_ast.FuncCall(

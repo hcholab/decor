@@ -1,4 +1,3 @@
-# import math
 from gurobipy import GRB
 import gurobipy as gp
 
@@ -6,10 +5,12 @@ import numpy as np
 from sympy import Symbol, simplify, Rational
 
 from bitween.utilities import pp
-from bitween import settings, miscs
+from bitween import miscs
+from bitween.utilities import pp
+from bitween.config import Config, MILPSolver
 
-
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 INTEGRALITY_FOCUS = 1
 # MIPFOCUS = 2
@@ -27,9 +28,10 @@ def milp_synthesis(  # noqa: C901
     terms: list[str],
     pivot: str,  # pivot term
     blocked: str = None,  # blocked term
-    bound=2,
-    timeout=10,  # 10 seconds
+    bound=config.bound,
+    timeout=config.milp_timeout,
     scale=1,
+    solver=MILPSolver.GUROBI,
 ) -> tuple[int, str | None, float | None, list[str]]:
     """
     Parameters
@@ -62,11 +64,14 @@ def milp_synthesis(  # noqa: C901
         global str_
         str_ += s + "\n"
 
+    if solver != MILPSolver.GUROBI:
+        log.error("Gurobi is the only supported MILP solver")
+        raise NotImplementedError
     p("------------------------------------------")
-    p(f"Pivot: {pivot} | Blocked: {blocked}")
+    p(f"Pivot: {pivot} | Blocked: {blocked} | Solver: {solver}")
 
     with gp.Env(empty=True) as env:
-        if not settings.MILP_WARNINGS:
+        if not config.milp_warnings:
             env.setParam("OutputFlag", 0)
         env.start()
         m = gp.Model(f"{pivot}", env=env)
@@ -228,7 +233,7 @@ def milp_synthesis(  # noqa: C901
 
         expr = simplify(expr)  # NOTE is simplifying the expression necessary?
         p("------------------------------------------")
-        p(f"Time: {round(m.runTime, 2)}s")
+        p(f"Time: {round(m.runTime, 3)}s")
         p("Optimal objective: %g" % m.ObjVal)
         m.printStats()
         m.printQuality()

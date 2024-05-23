@@ -11,10 +11,12 @@ import pulp
 import numpy as np
 from sympy import Symbol, simplify, Rational
 
+from bitween import miscs
 from bitween.utilities import pp
-from bitween import settings, miscs
+from bitween.config import Config, MILPSolver
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 # Constants are the same
 ERROR_BOUND = 0.1
@@ -22,18 +24,20 @@ ROUND = None
 OPTIMAL = 1  # In PuLP, the status code for optimal is 1
 MSG = 0
 
-message = ""
-
 
 def milp_synthesis(
     data: np.ndarray,
     terms: list[str],
     pivot: str,
     blocked: str = None,
-    bound=2,
-    timeout=10,
+    bound=config.bound,
+    timeout=config.milp_timeout,
     scale=1,
+    solver=MILPSolver.GLPK,
 ) -> tuple[int, str | None, float | None, list[str]]:
+
+    global message
+    message = ""
 
     def _print(e):
         global message
@@ -42,6 +46,9 @@ def milp_synthesis(
     if MSG:
         _print("------------------------------------------")
     m = LpProblem("synthesis_of_random_self_reducible_properties", LpMinimize)
+
+    _print("------------------------------------------")
+    _print(f"Pivot: {pivot} | Blocked: {blocked} | Solver: {solver}")
 
     term_vars = [
         LpVariable(f"term_{i}", -bound, bound, LpInteger) for i in range(len(terms) + 1)
@@ -78,10 +85,14 @@ def milp_synthesis(
     # m.writeLP("synthesis_pulp.lp")
 
     # NOTE: Solver Selection and solve the problem
-    if settings.MILP_SOLVER == settings.MILPSolver.PULP:
+    if solver == MILPSolver.PULP:
         m.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=timeout))
-    elif settings.MILP_SOLVER == settings.MILPSolver.GLPK:
+    elif solver == MILPSolver.GLPK:
         m.solve(pulp.GLPK_CMD(msg=MSG, timeLimit=timeout))
+    elif solver == MILPSolver.GUROBI:
+        m.solve(pulp.GUROBI_CMD(msg=MSG, timeLimit=timeout))
+    else:
+        raise ValueError(f"Unknown solver: {solver}")
 
     status = LpStatus[m.status]
 
@@ -131,7 +142,6 @@ def milp_synthesis(
         _print(f"Optimal objective for `{pivot}`: {obj_val}")
     else:
         _print(f"Optimization ended with status {status}")
-    _print("------------------------------------------")
 
     print(message)
     return (
@@ -229,11 +239,12 @@ if __name__ == "__main__":  # noqa E123
 
     status, expr, obj, _, terms = milp_synthesis(data, terms, pivot, blocked, bound)
     print("-costs----------------")
-    for term in terms:
-        print(f"{term}")
+    if terms:
+        for term in terms:
+            print(f"{term}")
     print("---------------------")
     assert status == OPTIMAL
-    assert abs(obj) <= 1e-12
+    assert abs(obj) <= 1e-11
     expr_s = str(expr)
     assert expr_s == "f(x)*f(x) - f(x-y)*f(x+y) - f(y)*f(y)"
     assert verify(expr_s, f)

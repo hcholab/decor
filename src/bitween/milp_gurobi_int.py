@@ -5,11 +5,12 @@ import gurobipy as gp
 import numpy as np
 from sympy import sympify, Symbol, simplify, Rational
 
+from bitween import miscs
 from bitween.utilities import pp
-from bitween import settings, miscs
+from bitween.config import Config
 
-
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 INTEGRALITY_FOCUS = 1
 # MIPFOCUS = 2
@@ -66,7 +67,7 @@ def milp_synthesis(  # noqa: C901
     p(f"Pivot: {pivot} | Blocked: {blocked}")
 
     with gp.Env(empty=True) as env:
-        if not settings.MILP_WARNINGS:
+        if not config.milp_warnings:
             env.setParam("OutputFlag", 0)
         env.start()
         m = gp.Model(f"{pivot}: {terms}", env=env)

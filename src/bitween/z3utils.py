@@ -9,16 +9,18 @@ import z3
 import sympy
 from time import time
 
-from bitween import settings, miscs
+from bitween import miscs
 from bitween.miscs import Symbolic
+from bitween.config import Config, InvariantType
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
-    TIMEOUT = settings.SOLVER_TIMEOUT * 1000
+    TIMEOUT = config.z3_timeout * 1000
 
     @classmethod
     def _process_fs(
@@ -304,12 +306,15 @@ class Z3:
             return op(left, right)
 
         elif isinstance(node, ast.Name):
-            if settings.TYPE == "INT":
+            if config.invariant_type == InvariantType.INT:
                 return z3.Int(str(node.id))
-            elif settings.TYPE == "REAL":
+            elif (
+                config.invariant_type == InvariantType.REAL
+                or config.invariant_type == InvariantType.MIXED
+            ):
                 return z3.Real(str(node.id))
             else:
-                raise NotImplementedError(settings.TYPE)
+                raise NotImplementedError(config.invariant_type)
         elif isinstance(node, ast.Num):
             return z3.IntVal(str(node.n))
         elif isinstance(node, ast.Add):
@@ -349,7 +354,7 @@ class Z3:
     def simplify(f: z3.ExprRef) -> z3.ExprRef:
         assert z3.is_expr(f), f
         simpl = z3.Tactic("ctx-solver-simplify")
-        simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
+        simpl = z3.TryFor(simpl, config.z3_timeout)
         try:
             f = simpl(f).as_expr()
         except z3.Z3Exception:
@@ -405,7 +410,7 @@ class Z3:
         # Create a Solver instance
         solver = z3.Solver()
         solver.set(unsat_core=True)
-        solver.set(timeout=settings.SOLVER_TIMEOUT * 1000)
+        solver.set(timeout=config.z3_timeout * 1000)
 
         counter = 0
         equations = {}

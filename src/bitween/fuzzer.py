@@ -4,14 +4,16 @@ import subprocess
 import os
 import time
 
-from bitween import c_types, miscs, settings
+from bitween import miscs, c_types
+from bitween.config import Config
 
 """
 This module provides a function to fuzz a C function by replacing vtrace calls with
 printf calls and handling vassume calls.
 """
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def read_c_file(file_path):
@@ -432,7 +434,7 @@ def fuzz_function_to_collect_traces(
 
             # Convert list to command-line arguments
             input_str = " ".join(test_inputs)
-            timeout = settings.FUZZ_TIMEOUT
+            timeout = config.fuzz_timeout
             try:
                 # Run the executable with the generated inputs and a timeout
                 res = subprocess.run(

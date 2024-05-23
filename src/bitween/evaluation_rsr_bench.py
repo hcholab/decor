@@ -3,7 +3,14 @@ import sympy
 
 from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
-from bitween.settings import MILPSolver
+
+from bitween import miscs
+from bitween.config import Config, MILPSolver
+
+from time import time
+
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def test_sin():
@@ -617,29 +624,34 @@ def test_arctan():
         assert verify(eq, f)
 
 
-# test_identity()
-# test_exp()
-test_sigmoid()
-# test_exp_minus_one()
-# test_exp_div_by_x()  # no solution
-# test_floudas()
-# test_mean()
-# test_tan()
-# test_cot()
-# test_tanh()
-# test_diff_x2_y2()
-# test_sqrt_add()  # no solution
-# test_inverse()
-# test_inverse_add()
-# test_inverse_cot_plus_one()
-# test_inverse_tan_plus_one()
-# test_x_over_one_minus_x()
-# test_minus_x_over_one_minus_x()
-# test_sin_over_sin() # TODO fails
-# test_sinh_over_sinh() # TODO fails
-# test_cos()
-# test_cosh()
-# test_squared()
-# test_sin()
-# test_sinh()
-# test_arctan()  # No solution
+if __name__ == "__main__":
+    st = time()
+
+    # test_identity()
+    test_exp()
+    # test_sigmoid()
+    # test_exp_minus_one()
+    # test_exp_div_by_x()  # no solution
+    # test_floudas()
+    # test_mean()
+    # test_tan()
+    # test_cot()
+    # test_tanh()
+    # test_diff_x2_y2()
+    # test_sqrt_add()  # no solution
+    # test_inverse()
+    # test_inverse_add()
+    # test_inverse_cot_plus_one()
+    # test_inverse_tan_plus_one()
+    # test_x_over_one_minus_x()
+    # test_minus_x_over_one_minus_x()
+    # test_sin_over_sin() # TODO fails
+    # test_sinh_over_sinh() # TODO fails
+    # test_cos()
+    # test_cosh()
+    # test_squared()
+    # test_sin()
+    # test_sinh()
+    # test_arctan()  # No solution
+
+    log.debug(f"Total Time: {time() - st:.2f}s")

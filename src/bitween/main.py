@@ -26,7 +26,7 @@ from sklearn.linear_model import (  # noqa F401
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
 
-from bitween import settings, miscs
+from bitween import miscs
 from bitween import milp_gurobi, milp_pulp
 from bitween.miscs import Symbolic
 from bitween.sampler import Domain, Distribution, sample
@@ -36,12 +36,14 @@ from bitween.fuzzer import fuzz_and_trace  # noqa F401
 from bitween.checker import fuzz_and_check  # noqa F401
 from bitween.verifier import fuzz_and_verify  # noqa F401
 from bitween.reducer import Reducer  # noqa F401
+from bitween.config import Config, FullMILP, InitialMethod, MILPSolver
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
-TABLE_WIDTH = 70
+TABLE_WIDTH = config.property_table_width
 
 
 @dataclass(frozen=True)
@@ -150,6 +152,24 @@ def property_test(term_coefs: dict[str, float], extended_terms, extended_data) -
 
 
 def find_model(pivot, terms, data, test_size=0.2):
+    sample_size = data.shape[0]
+
+    if config.use_sample_rate_regression and config.sample_rate_regression > 1:
+        # select a random subset of the data based on the number of terms * sample rate
+        sample_size = int(len(terms) * config.sample_rate_regression)
+        threshold = config.sample_threshold_regression
+        if sample_size < threshold:
+            if data.shape[0] > threshold:
+                sample_size = threshold
+            else:  # use all data
+                sample_size = data.shape[0]
+
+        if sample_size < data.shape[0]:
+            sample_indices = np.random.choice(data.shape[0], sample_size, replace=False)
+            data = data[sample_indices]
+        else:
+            sample_size = data.shape[0]
+
     X = data
     y = data[:, terms.index(pivot)]
 
@@ -188,8 +208,8 @@ def find_models_with_feature_selector(
 
     def get_rate(
         degree=degree,
-        initial_rate=settings.SELECTOR_INITIAL_RATE,
-        decay_rate=settings.SELECTOR_DECAY_RATE,
+        initial_rate=config.selector_initial_rate,
+        decay_rate=config.selector_decay_rate,
     ):
         """
         Calculate the rate for a given degree using an exponential decay formula.
@@ -206,10 +226,10 @@ def find_models_with_feature_selector(
 
     sample_size = extended_data.shape[0]
 
-    if settings.REGRESSION_USE_SAMPLE_RATE and settings.REGRESSION_SAMPLE_RATE > 1:
+    if config.use_sample_rate_regression and config.sample_rate_regression > 1:
         # select a random subset of the extended_data based on the number of terms * sample rate
-        sample_size = int(len(extended_terms) * settings.REGRESSION_SAMPLE_RATE)
-        threshold = settings.REGRESSION_SAMPLE_THRESHOLD
+        sample_size = int(len(extended_terms) * config.sample_rate_regression)
+        threshold = config.sample_threshold_regression
         if sample_size < threshold:
             if extended_data.shape[0] > threshold:
                 sample_size = threshold
@@ -244,7 +264,7 @@ def find_models_with_feature_selector(
 
         # TODO observe this hyperparameter
         # max_features = int(X_train.shape[1] * get_rate())
-        max_features = settings.SELECTOR_MAX_FEATURES
+        max_features = config.selector_max_features
         # Define the range of features to select
         last_mse = np.inf
         # n_features = max_features
@@ -285,7 +305,7 @@ def find_models_with_feature_selector(
                 idx = feature_list.index(feature)
                 extended_coefficients[idx] = coeff
                 # TODO be careful with rounding
-                coeff = round(coeff, settings.PRECISION)
+                coeff = round(coeff, config.precision)
                 if feature == "1" and coeff != 0:
                     equation += sympy.Rational(coeff)
                 elif coeff != 0:
@@ -339,7 +359,7 @@ def find_models_with_feature_selector(
         }
 
     # Create a model for each term in extended_terms, excluding the constant '1'
-    results = Parallel(n_jobs=-1 if settings.SELECTOR_PARALLEL else 1)(
+    results = Parallel(n_jobs=-1 if config.selector_parallel else 1)(
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
@@ -437,10 +457,10 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
 
     sample_size = extended_data.shape[0]
 
-    if settings.REGRESSION_USE_SAMPLE_RATE and settings.REGRESSION_SAMPLE_RATE > 1:
+    if config.use_sample_rate_regression and config.sample_rate_regression > 1:
         # select a random subset of the extended_data based on the number of terms * sample rate
-        sample_size = int(len(extended_terms) * settings.REGRESSION_SAMPLE_RATE)
-        threshold = settings.REGRESSION_SAMPLE_THRESHOLD
+        sample_size = int(len(extended_terms) * config.sample_rate_regression)
+        threshold = config.sample_threshold_regression
         if sample_size < threshold:
             if extended_data.shape[0] > threshold:
                 sample_size = threshold
@@ -469,14 +489,11 @@ def find_best_model(extended_terms, extended_data, test_size=0.2):
         best_params = {}
         best_intercept = None
         best_coefficients = None
-        cv = settings.CROSS_VALIDATION
+        cv = config.cross_validation
+        scoring = str(config.regression_score)
         for model_name, mp in model_params.items():
             clf = GridSearchCV(
-                mp["model"],
-                mp["params"],
-                cv=cv,
-                scoring=settings.REGRESSION_SCORE,
-                n_jobs=-1,
+                mp["model"], mp["params"], cv=cv, scoring=scoring, n_jobs=-1
             )
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -526,11 +543,11 @@ def infer_equations(  # noqa F811
     models,
     extended_terms,
     extended_data,
-    coeff_threshold=settings.COEFF_THRESHOLD,
-    coeff_cutoff=settings.COEFF_CUTOFF,
-    intercept_cutoff=settings.INTERCEPT_CUTOFF,
-    epsilon=settings.EPSILON,
-    objective_threshold=settings.OBJECTIVE_THRESHOLD,
+    coeff_threshold=config.coeff_threshold,
+    coeff_cutoff=config.coeff_cutoff,
+    intercept_cutoff=config.intercept_cutoff,
+    epsilon=config.epsilon,
+    objective_threshold=config.objective_threshold,
 ):
 
     # NOTE: MILP-based Synthesis
@@ -540,16 +557,16 @@ def infer_equations(  # noqa F811
         selected_data: np.ndarray,
         model_desc: str,
         blocked: str,
-        bound: int = settings.MILP_BOUND,
+        bound: int = config.bound,
     ):
         str_ = ""
         optimal = None
 
         dims = len(selected_terms)
         sample_size = selected_data.shape[0]
-        if settings.MILP_USE_SAMPLE_RATE and settings.MILP_SAMPLE_RATE > 1:
-            sample_size = int(len(selected_terms) * settings.MILP_SAMPLE_RATE)
-            threshold = settings.MILP_SAMPLE_THRESHOLD
+        if config.use_sample_rate_milp and config.sample_rate_milp > 1:
+            sample_size = int(len(selected_terms) * config.sample_rate_milp)
+            threshold = config.sample_threshold_milp
             if sample_size < threshold:
                 if selected_data.shape[0] > threshold:
                     sample_size = threshold
@@ -564,15 +581,16 @@ def infer_equations(  # noqa F811
             else:
                 sample_size = selected_data.shape[0]
 
-        if settings.MILP_SOLVER == settings.MILPSolver.GUROBI:
+        if config.milp_solver == MILPSolver.GUROBI:
             optimal = milp_gurobi.OPTIMAL
             status, expr, obj, term_coefs, _ = milp_gurobi.milp_synthesis(
                 selected_data,
                 selected_terms,
                 pivot,
                 bound=bound,
-                timeout=settings.MILP_TIME_LIMIT,
+                timeout=config.milp_timeout,
                 blocked=blocked,
+                solver=config.milp_solver,
             )
         else:
             optimal = milp_pulp.OPTIMAL
@@ -581,8 +599,9 @@ def infer_equations(  # noqa F811
                 selected_terms,
                 pivot,
                 bound=bound,
-                timeout=settings.MILP_TIME_LIMIT,
+                timeout=config.milp_timeout,
                 blocked=blocked,
+                solver=config.milp_solver,
             )
 
         if status == optimal:
@@ -631,7 +650,7 @@ def infer_equations(  # noqa F811
         dims = len(extended_terms)
 
         # NOTE: preparing an equation from the regression model
-        if settings.USE_CUTOFF and np.abs(model["intercept"]) >= intercept_cutoff:
+        if config.use_cutoff and np.abs(model["intercept"]) >= intercept_cutoff:
             # str += f"Model for {pivot}: Intercept = {model['intercept']}!\n"
             return (
                 Equation(None, None, pivot, sample_size, model_desc, dims, str_),
@@ -645,7 +664,7 @@ def infer_equations(  # noqa F811
         terms = [item for item in extended_terms if item != pivot]
 
         # check all coefficients and if it is greater than 100, then skip it
-        if settings.USE_CUTOFF and np.any(np.abs(model["coefficients"]) > coeff_cutoff):
+        if config.use_cutoff and np.any(np.abs(model["coefficients"]) > coeff_cutoff):
             # str += f"Model for {pivot}: Large Coefficient!\n"
             return (
                 Equation(None, None, pivot, sample_size, model_desc, dims, str_),
@@ -656,7 +675,7 @@ def infer_equations(  # noqa F811
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
                 # TODO be careful with rounding
-                coeff = round(coefficient, settings.PRECISION)
+                coeff = round(coefficient, config.precision)
                 if coeff != 0:
                     rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
                     coeff_terms[terms[i]] = coefficient
@@ -665,7 +684,7 @@ def infer_equations(  # noqa F811
 
         # Add the constant term (intercept)
         # TODO be careful with rounding
-        intercept = round(model["intercept"], settings.PRECISION)
+        intercept = round(model["intercept"], config.precision)
         if intercept > coeff_threshold:
             rhs += sympy.Rational(intercept)
 
@@ -701,7 +720,7 @@ def infer_equations(  # noqa F811
         else:
             str_ += "\n"
 
-        if settings.MILP is not True and settings.REGRESSION_REFINEMENT is not True:
+        if config.milp_enabled is not True and config.regression_refinement is not True:
             return (
                 Equation(equation, me, pivot, sample_size, model_desc, dims, str_),
                 None,
@@ -727,9 +746,9 @@ def infer_equations(  # noqa F811
     milp_input = []
     term_frequencies = collections.Counter()
     for pivot, model in models.items():
-        model_desc = f"{model['model_type']}({model['params']})"
+        model_dsc = f"{model['model_type']}({model['params']})"
         equation, term, data = infer_equation(
-            pivot, model, extended_terms, extended_data, model_desc
+            pivot, model, extended_terms, extended_data, model_dsc
         )
         if equation.expr is not None:
             results.append(equation)
@@ -752,11 +771,11 @@ def infer_equations(  # noqa F811
     print(f"Term Frequencies: {term_frequencies}\n")
 
     # NOTE: MILP Synthesis based on the regression model
-    if settings.MILP:
+    if config.milp_enabled:
         # NOTE: Parallel MILP Synthesis based on the regression model
-        solver = settings.MILP_SOLVER.name.lower()
+        solver = str(config.milp_solver)
         blocked = None  # NOTE: No blocked term for now
-        if settings.PARALLEL_MILP:
+        if config.milp_parallel:
             model_desc = f"Milp({solver})"
             milp_results = Parallel(n_jobs=-1)(
                 delayed(milp_synthesis_wrapper)(*mi, model_desc, blocked)
@@ -774,7 +793,11 @@ def infer_equations(  # noqa F811
                 results.append(equation)
 
     # NOTE: Run a milp over the most frequent terms, pivot all terms
-    if settings.MILP and settings.MILP_FREQ_REFINE and len(term_frequencies) > 5:
+    if (
+        config.milp_enabled
+        and config.milp_freq_refine_enabled
+        and len(term_frequencies) > 5
+    ):
         terms = []  # there is no "1" in term_frequencies
         # keep the relative order of the terms
         for term in extended_terms:
@@ -782,7 +805,7 @@ def infer_equations(  # noqa F811
                 terms.append(term)
         selected_indices = [extended_terms.index(term) for term in terms]
         selected_data = extended_data[:, selected_indices]
-        model_desc = f"Milp({settings.MILP_SOLVER.name.lower()})+Freqs"
+        model_desc = f"Milp({config.milp_solver})+Freqs"
         inputs = []
         for pivot in terms:
             inputs.append((pivot, terms, selected_data, model_desc))
@@ -795,11 +818,11 @@ def infer_equations(  # noqa F811
             results.append(equation)
 
     # NOTE: EAGER MILP over Full Model that includes all terms
-    if settings.MILP and settings.FULL_MILP != settings.FullMILP.NEVER:
+    if config.milp_enabled and config.full_milp_strategy != FullMILP.NEVER:
         if (
-            settings.FULL_MILP == settings.FullMILP.AUTO
-            and extended_data.shape[0] < settings.FULL_MILP_THRESHOLD
-        ) or settings.FULL_MILP == settings.FullMILP.ALWAYS:
+            config.full_milp_strategy == FullMILP.AUTO
+            and extended_data.shape[0] < config.full_milp_threshold
+        ) or config.full_milp_strategy == FullMILP.ALWAYS:
             model_desc = f"Milp({solver})+Full"
 
             milp_input = []
@@ -817,7 +840,7 @@ def infer_equations(  # noqa F811
                 results.append(equation)
 
     # NOTE: Linear Equation Solver based on the regression model
-    if settings.USE_LINSOLVE:
+    if config.linear_solver_enabled:
         # NOTE: Linear Solver
 
         milp_input = []
@@ -847,7 +870,7 @@ def round_coefficients(expr, decimals):
 
 
 def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
-    settings.PRECISION = 2  # NOTE: Force the precision to 2 for PySR
+    config.precision = 2  # NOTE: Force the precision to 2 for PySR
 
     X = extended_data[:, :-1]  # Exclude the constant term
     results = []
@@ -882,7 +905,7 @@ def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
             # ^ Define operator for SymPy as well
             # elementwise_loss="loss(prediction, target) = (prediction - target)^2",
             # ^ Custom loss function (julia syntax)
-            select_k_features=settings.SELECTOR_MAX_FEATURES,  # NOTE: this is important
+            select_k_features=config.selector_max_features,  # NOTE: this is important
             # ^ Train on only the 4 most important features
             progress=False,
             print_precision=3,
@@ -891,7 +914,7 @@ def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
         print(model)
         rhs = model.sympy().subs(pysr_vars_map)
         print("pysr:", pivot, "=", rhs)
-        rhs = round_coefficients(sympy.simplify(rhs.expand()), settings.PRECISION)
+        rhs = round_coefficients(sympy.simplify(rhs.expand()), config.precision)
         print(pivot, "=", rhs)
         equation = sympy.simplify(sympy.Symbol(pivot) - rhs)
         print(str(equation) + " = 0")
@@ -913,7 +936,7 @@ def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
 
 
 def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
-    settings.PRECISION = 2  # NOTE: Force the precision to 2 for GPlearn
+    config.precision = 2  # NOTE: Force the precision to 2 for GPlearn
 
     X = extended_data[:, :-1]  # Exclude the constant term
     results = []
@@ -967,19 +990,21 @@ def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
         print("-" * 80)
         model.fit(X_train, y_train)
         print("gplearn:", model._program)
+        s_eq = str(model._program)
+        if len(s_eq) > 400:
+            print()
+            log.warn(f"SR expression too long: {s_eq[:400]} ...")
+            return None
         rhs = sympy.sympify(str(model._program), locals=locals).expand()
         rhs = rhs.subs(gplearn_vars_map)
         print("gplearn:", pivot, "=", rhs)
-        rhs = round_coefficients(rhs, settings.PRECISION)
+        rhs = round_coefficients(rhs, config.precision)
         print(pivot, "=", rhs)
         equation = sympy.simplify(sympy.Symbol(pivot) - rhs)
         s_eq = str(equation)
         print(s_eq + " = 0")
         if equation == 0:
             log.warn(f"SR found a zero equation for {pivot}")
-            return None
-        if len(s_eq) > 100:
-            log.warn(f"SR expression too long: {s_eq[:100]} ...")
             return None
         feature_size = X_train.shape[1]
         sample_size = X_train.shape[0]
@@ -990,16 +1015,18 @@ def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
     # Create a model for each term in extended_terms, excluding the constant '1'
     for i in range(len(extended_terms) - 1):
         equation = symbolic_regression(i)
-        if equation is None or equation.expr is not None:
+        if equation is not None and equation.expr is not None:
             results.append(equation)
 
     return results
 
 
-def main(file_path: str = None):
+def main(file_path: str = None):  # noqa F811
 
     if file_path is None:
-        file_path = settings.FILE_PATH
+        file_path = config.file_path
+        if file_path is None:
+            raise ValueError("No file path provided")
 
     st = time()
     samples = 0
@@ -1019,35 +1046,35 @@ def main(file_path: str = None):
         _str += f"Shape: {data.shape}\n"
 
         initial_degree = 1
-        if settings.InitialMethod.FORWARD_SELECTION:
-            initial_degree = settings.DEGREE
+        if config.initial_method == InitialMethod.FORWARD_SELECTION:
+            initial_degree = config.degree
 
-        for degree in range(initial_degree, settings.DEGREE + 1):
+        for degree in range(initial_degree, config.degree + 1):
             _str += f"\nDegree: {degree}\n"
             extended_terms, extended_data = process_trace(terms, data, degree)
             trace_data[loc]["extended_terms"] = extended_terms
 
             _str += f"{extended_terms}; size: {len(extended_terms)}\n"
 
-            if settings.INITIAL_METHOD == settings.InitialMethod.MULTIPLE_REGRESSION:
+            if config.initial_method == InitialMethod.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
                 models = find_best_model(extended_terms, extended_data)
-            elif settings.INITIAL_METHOD == settings.InitialMethod.SIMPLE_REGRESSION:
+            elif config.initial_method == InitialMethod.SIMPLE_REGRESSION:
                 # (Option 2) use simple linear regression to find a model for each term
                 models = find_models(extended_terms, extended_data)
-            elif settings.INITIAL_METHOD == settings.InitialMethod.FORWARD_SELECTION:
+            elif config.initial_method == InitialMethod.FORWARD_SELECTION:
                 # (Option 3) use forward selection to find a model for each term
                 models = find_models_with_feature_selector(
                     extended_terms, extended_data, degree
                 )
-            elif settings.INITIAL_METHOD == settings.InitialMethod.EAGER_MILP:
+            elif config.initial_method == InitialMethod.EAGER_MILP:
                 # (Option 4) for ablation study
                 models = find_models(extended_terms, extended_data)
-            elif settings.INITIAL_METHOD == settings.InitialMethod.PYSR:
+            elif config.initial_method == InitialMethod.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
-            elif settings.INITIAL_METHOD == settings.InitialMethod.GPLEARN:
+            elif config.initial_method == InitialMethod.GPLEARN:
                 result = find_models_with_gplearn(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
@@ -1087,7 +1114,7 @@ def main(file_path: str = None):
         print(
             f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
         )
-        p_width = settings.PROPERTY_TABLE_WIDTH
+        p_width = config.property_table_width
         # NOTE: a dirty hack to simplify the equation for display
         # based on given function calls and variables
         equations = [eq.expr.evalf() for eq in result]
@@ -1102,7 +1129,7 @@ def main(file_path: str = None):
         init_d = str(len(trace_data[loc]["extended_terms"]))  # initial dimension
         max_d = len(init_d)  # dimension
         for i, eq in enumerate(result):
-            if eq.error < settings.EPSILON:
+            if eq.error < config.epsilon:
                 eql_s = str(equations[i])
                 max_m = max(max_m, len(sanitize_source(eq.model_desc)) + 1)
                 max_e = max(max_e, len(eql_s) + 4)
@@ -1122,7 +1149,7 @@ def main(file_path: str = None):
         for i, eq in enumerate(result):
             # NOTE: add the equation to the good_fit set as long as the error is less
             # than epsilon and the equation is not zero
-            if eq.error < settings.EPSILON and not isinstance(
+            if eq.error < config.epsilon and not isinstance(
                 equations[i], sympy.core.numbers.Zero
             ):
                 s_eq = str(equations[i])
@@ -1151,12 +1178,12 @@ def main(file_path: str = None):
 
         log.debug(f"Analysis Time: {time() - st:.2f}s")
 
-        if settings.SLOW_SIMPLIFY:
+        if config.slow_simplify:
             equations = Z3._simplify_slow(equations, [], loc)
             for eq in equations:
                 print(f"{eq} = 0")
 
-        if settings.CONSISTENCY_CHECK:
+        if config.consistency_check:
             print("\nChecking Consistency of Equations:")
 
             try:
@@ -1192,26 +1219,26 @@ def infer_invariants(
     max_degree: int = 2,  # maximum degree
     n: int = 40,  # number of iterations
     epsilon: float = 0.001,  # error threshold
-    milp: settings.MILPSolver = None,
+    milp: MILPSolver = None,
     bound: int = None,
-    method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
+    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
 ):
     """
     Infers invariants from given C program having vtraces, vassumes, and vdistrs.
     """
 
-    settings.DEGREE = max_degree
-    settings.EPSILON = epsilon
+    config.degree = max_degree
+    config.epsilon = epsilon
     if milp:
-        settings.MILP = True
-        settings.MILP_SOLVER = milp
+        config.milp_enabled = True
+        config.milp_solver = milp
     else:
-        settings.MILP = False
+        config.milp_enabled = False
 
     if bound:
-        settings.MILP_BOUND = bound
+        config.bound = bound
 
-    settings.INITIAL_METHOD = method
+    config.initial_method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
@@ -1223,29 +1250,29 @@ def infer_invariants_and_check_correctness(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
-    n: int = 40,  # number of iterations
+    n: int = 30,  # number of iterations
     epsilon: float = 0.001,  # error threshold
-    milp: settings.MILPSolver = None,
+    milp: MILPSolver = None,
     bound: int = None,
-    method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
+    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
 ):
     """
     Infers invariants from given C program having vtraces, vassumes, and vdistrs, and
     verifies the inferred invariants using symoblic execution or fuzzing.
     """
 
-    settings.DEGREE = max_degree
-    settings.EPSILON = epsilon
+    config.degree = max_degree
+    config.epsilon = epsilon
     if milp:
-        settings.MILP = True
-        settings.MILP_SOLVER = milp
+        config.milp_enabled = True
+        config.milp_solver = milp
     else:
-        settings.MILP = False
+        config.milp_enabled = False
 
     if bound:
-        settings.MILP_BOUND = bound
+        config.bound = bound
 
-    settings.INITIAL_METHOD = method
+    config.initial_method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
@@ -1263,22 +1290,22 @@ def infer_invariants_and_verify_correctness(
     max_degree: int = 2,  # maximum degree
     n: int = 40,  # number of iterations
     epsilon: float = 0.001,  # error threshold
-    milp: settings.MILPSolver = None,
+    milp: MILPSolver = None,
     bound: int = None,
-    method: settings.InitialMethod = settings.InitialMethod.MULTIPLE_REGRESSION,
+    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
 ):
-    settings.DEGREE = max_degree
-    settings.EPSILON = epsilon
+    config.degree = max_degree
+    config.epsilon = epsilon
     if milp:
-        settings.MILP = True
-        settings.MILP_SOLVER = milp
+        config.milp_enabled = True
+        config.milp_solver = milp
     else:
-        settings.MILP = False
+        config.milp_enabled = False
 
     if bound:
-        settings.MILP_BOUND = bound
+        config.bound = bound
 
-    settings.INITIAL_METHOD = method
+    config.initial_method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
@@ -1300,20 +1327,20 @@ def infer_property(
     n: int = 30,  # number of samples
     epsilon: float = 0.1,  # error threshold
     precondition: callable = None,  # precondition for the samples
-    milp: settings.MILPSolver = None,
+    milp: MILPSolver = None,
     var_bound: int = None,
 ) -> list[sympy.Expr]:
 
-    settings.DEGREE = max_degree
-    settings.EPSILON = epsilon
+    config.degree = max_degree
+    config.epsilon = epsilon
     if milp:
-        settings.MILP = True
-        settings.MILP_SOLVER = milp
+        config.milp_enabled = True
+        config.milp_solver = milp
     else:
-        settings.MILP = False
+        config.milp_enabled = False
 
     if var_bound:
-        settings.MILP_BOUND = var_bound
+        config.bound = var_bound
 
     # get a dictionary of functions
     functions = {func.__name__: func for func in functions}
@@ -1451,4 +1478,4 @@ def verify(expr: sympy.Expr, *functions) -> bool:
 
 
 if __name__ == "__main__":  # noqa E123
-    main()
+    main("benchmarks/bitween/dig/bresenham.dig.traces.csv")

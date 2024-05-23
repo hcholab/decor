@@ -4,14 +4,16 @@ import subprocess
 import os
 import sympy
 
-from bitween import c_types, miscs, settings
+from bitween import c_types, miscs
+from bitween.config import Config
 
 """
 This module provides a function to fuzz a C function with random inputs and
 check assertions.
 """
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def read_c_file(file_path):
@@ -29,7 +31,7 @@ def read_c_file(file_path):
 
 def get_is_close_code():
     return f"""
-#define EPSILON {settings.EPSILON}  // Define the precision threshold
+#define EPSILON {config.epsilon}  // Define the precision threshold
 
 int is_close(double a, double b) {{
     return fabs(a - b) < EPSILON;  // Use fabs to get the absolute difference
@@ -162,7 +164,7 @@ class TransformFuncForAssertions(c_ast.NodeVisitor):
 
     def create_assert_statement(self, equation):
         # Create an assert statement for the given equation
-        if self.float_assertions and settings.VERIFICATION_IS_CLOSE_FOR_FLOAT:
+        if self.float_assertions and config.is_close_for_float:
             # remove the " == 0" part from the equation
             equation = equation.replace(" == 0", "")  # TODO: generalize this
             return c_ast.FuncCall(
@@ -392,7 +394,7 @@ def fuzz_function_to_check_assertions(executable, iterations, params, distributi
 
         # Convert list to command-line arguments
         input_str = " ".join(test_inputs)
-        timeout = settings.FUZZ_TIMEOUT
+        timeout = config.fuzz_timeout
         try:
             # Run the executable with the generated inputs and a timeout
             res = subprocess.run(

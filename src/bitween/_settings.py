@@ -41,7 +41,7 @@ FILE_PATH = "benchmarks/bitween/dig/bresenham.dig.traces.csv"  # NOTE: NO NEED M
 LOGGER_LEVEL = 3
 
 DEGREE = 2
-EPSILON = 0.001  # Tolerance for squared error
+EPSILON = 0.001
 PRECISION = 3  # Precision for the floating-point numbers
 
 TYPE = "INT"  # INT or REAL
@@ -54,6 +54,7 @@ class InitialMethod(Enum):
     EAGER_MILP = 3  # don't use this, it is for the ablation study
     PYSR = 4  # PySR is a symbolic regression library in Python
     GPLEARN = 5  # gplearn is a symbolic regression library in Python
+    KAN = 6  # KAN: Kolmogorov–Arnold Networks
 
 
 INITIAL_METHOD: InitialMethod = InitialMethod.MULTIPLE_REGRESSION
@@ -89,13 +90,16 @@ class MILPSolver(Enum):
     GUROBI = 1
     GLPK = 2
 
+    def __str__(self):
+        return self.name
+
 
 # NOTE: MILP Method parameters
 MILP = True  # if True, then we use the MILP solver after the regression-based methods
 MILP_SOLVER: MILPSolver = MILPSolver.GUROBI  # PULP or GUROBI or GLPK
 OBJECTIVE_THRESHOLD = 1e-9
 MILP_BOUND = 20
-MILP_TIME_LIMIT = 3  # in seconds
+MILP_TIME_LIMIT = 1  # in seconds
 PARALLEL_MILP = True  # if True, then we use the parallel MILP solver
 MILP_WARNINGS = False  # if True, then we show the MILP warnings
 
@@ -110,7 +114,7 @@ class FullMILP(Enum):
 
 
 FULL_MILP = FullMILP.AUTO
-FULL_MILP_THRESHOLD = 15  # if the number of data points is less than this value, then we use MILP from all data points for each pivot
+FULL_MILP_THRESHOLD = 9  # if the number of data points is less than this value, then we use MILP from all data points for each pivot
 
 # NOTE: Construct a model from the Regression models based on frequency, and then refine the model using MILP
 MILP_FREQ_REFINE = False

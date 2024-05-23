@@ -1,9 +1,11 @@
 import functools
 import sympy
-from bitween import settings, miscs
+from bitween import miscs
+from bitween.config import Config
 from typing import Iterable
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 class UnionFind:
@@ -62,7 +64,11 @@ class Reducer:
     def find_and_substitute_terms(cls, ps: list[sympy.Expr]):
         """
         Extract terms from the given list of expressions, and replace them with symbols
+        Break complex terms here such that f(x)*(y) is a term, not a product,
+        make f(x) and f(y) as terms.
         """
+
+        # TODO: remove "&" from the expression in C e.g. `frexp(a, &e)`
         for i, p in enumerate(ps):
             ps[i] = sympy.sympify(str(p))
 
@@ -164,11 +170,11 @@ class Reducer:
 
         @functools.cache
         def is_nice_coef(c: int | float) -> bool:
-            return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
+            return abs(c) <= Config.ugly_factor or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
         def is_nice_eqt(eqt: sympy.Expr | sympy.Rel) -> bool:
-            return len(eqt.args) <= settings.UGLY_FACTOR and all(
+            return len(eqt.args) <= Config.ugly_factor and all(
                 is_nice_coef(c) for c in cls.get_coefs(eqt)
             )
 

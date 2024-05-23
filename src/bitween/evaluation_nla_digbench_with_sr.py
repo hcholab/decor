@@ -2,11 +2,13 @@ from bitween.main import (  # noqa F401
     infer_invariants_and_check_correctness,
     infer_invariants_and_verify_correctness,
 )
-from bitween import miscs, settings
+from bitween import miscs
+from bitween.config import Config, InitialMethod
 
 from time import time
 
-log = miscs.getLogger(__name__, settings.LOGGER_LEVEL)
+config = Config()
+log = miscs.getLogger(__name__, config.logger_level)
 
 
 def bresenham():
@@ -253,8 +255,8 @@ def sqrt1():
 
 if __name__ == "__main__":
 
-    pysr = settings.InitialMethod.PYSR
-    gplearn = settings.InitialMethod.GPLEARN
+    pysr = InitialMethod.PYSR
+    gplearn = InitialMethod.GPLEARN
 
     st = time()
 
