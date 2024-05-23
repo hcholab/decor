@@ -1,0 +1,514 @@
+import configparser
+import os
+from enum import Enum
+
+
+class InitialMethod(Enum):
+    MULTIPLE_REGRESSION = 0
+    SIMPLE_REGRESSION = 1
+    FORWARD_SELECTION = 2
+    EAGER_MILP = 3
+    PYSR = 4
+    GPLEARN = 5
+    KAN = 6
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class MILPSolver(Enum):
+    PULP = 0
+    GUROBI = 1
+    GLPK = 2
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class FullMILP(Enum):
+    NEVER = 0
+    ALWAYS = 1
+    AUTO = 2
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class RegressionScore(Enum):
+    NEG_MEAN_SQUARED_ERROR = "neg_mean_squared_error"
+    R2 = "r2"
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class InvariantType(Enum):
+    INT = 0
+    REAL = 1
+    MIXED = 2
+
+    def __str__(self):
+        return self.name.lower()
+
+
+class Config:
+    _instance = None
+    _config_file = "config.ini"
+
+    def __new__(cls, config_file=None):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+            cls._instance._config = configparser.ConfigParser(
+                inline_comment_prefixes=("#", ";")
+            )
+            cls._instance._config_file = config_file or cls._config_file
+            if not os.path.exists(cls._instance._config_file):
+                raise FileNotFoundError(
+                    f"Config file '{cls._instance._config_file}' not found."
+                )
+            cls._instance._config.read(cls._instance._config_file)
+        return cls._instance
+
+    @property
+    def degree(self):
+        """Get the degree."""
+        return self._config.getint("general", "degree", fallback=2)
+
+    @degree.setter
+    def degree(self, value):
+        self._config.set("general", "degree", str(value))
+
+    @property
+    def epsilon(self):
+        """Get the epsilon value. Tolerance for squared error."""
+        return self._config.getfloat("general", "epsilon", fallback=0.001)
+
+    @epsilon.setter
+    def epsilon(self, value):
+        self._config.set("general", "epsilon", str(value))
+
+    @property
+    def delta(self):
+        """Get the delta value."""
+        return self._config.getfloat("general", "delta", fallback=0.2)
+
+    @delta.setter
+    def delta(self, value):
+        self._config.set("general", "delta", str(value))
+
+    @property
+    def precision(self):
+        """Get the precision value. Precision for the floating-point numbers"""
+        return self._config.getint("general", "precision", fallback=3)
+
+    @precision.setter
+    def precision(self, value):
+        self._config.set("general", "precision", str(value))
+
+    @property
+    def logger_level(self):
+        """Get the logger level."""
+        return self._config.getint("general", "logger_level", fallback=3)
+
+    @logger_level.setter
+    def logger_level(self, value):
+        self._config.set("general", "logger_level", str(value))
+
+    @property
+    def invariant_type(self):
+        """Get the invariant type (INT, REAL, or MIXED)."""
+        return self._config.get("general", "invariant_type", fallback="INT")
+
+    @invariant_type.setter
+    def invariant_type(self, value):
+        self._config.set("general", "invariant_type", value)
+
+    @property
+    def initial_method(self):
+        """Get the initial method."""
+        value = self._config.get(
+            "initial_method", "method", fallback="MULTIPLE_REGRESSION"
+        )
+        return InitialMethod[value]
+
+    @initial_method.setter
+    def initial_method(self, value):
+        self._config.set("initial_method", "method", value.name)
+
+    @property
+    def selector_initial_rate(self):
+        """Get the selector initial rate."""
+        return self._config.getfloat(
+            "forward_selection", "selector_initial_rate", fallback=0.8
+        )
+
+    @selector_initial_rate.setter
+    def selector_initial_rate(self, value):
+        self._config.set("forward_selection", "selector_initial_rate", str(value))
+
+    @property
+    def selector_decay_rate(self):
+        """Get the selector decay rate."""
+        return self._config.getfloat(
+            "forward_selection", "selector_decay_rate", fallback=0.3
+        )
+
+    @selector_decay_rate.setter
+    def selector_decay_rate(self, value):
+        self._config.set("forward_selection", "selector_decay_rate", str(value))
+
+    @property
+    def selector_parallel(self):
+        """Get whether the selector is parallel."""
+        return self._config.getboolean(
+            "forward_selection", "selector_parallel", fallback=True
+        )
+
+    @selector_parallel.setter
+    def selector_parallel(self, value):
+        self._config.set("forward_selection", "selector_parallel", str(value))
+
+    @property
+    def selector_max_features(self):
+        """Get the maximum number of selector features."""
+        return self._config.getint(
+            "forward_selection", "selector_max_features", fallback=7
+        )
+
+    @selector_max_features.setter
+    def selector_max_features(self, value):
+        self._config.set("forward_selection", "selector_max_features", str(value))
+
+    @property
+    def cross_validation(self):
+        """Get the number of cross validations."""
+        return self._config.getint(
+            "multiple_regression", "cross_validation", fallback=3
+        )
+
+    @cross_validation.setter
+    def cross_validation(self, value):
+        self._config.set("multiple_regression", "cross_validation", str(value))
+
+    @property
+    def regression_score(self):
+        """Get the regression score."""
+        value = self._config.get(
+            "multiple_regression", "regression_score", fallback="r2"
+        )
+        return RegressionScore(value)
+
+    @regression_score.setter
+    def regression_score(self, value):
+        self._config.set("multiple_regression", "regression_score", value.value)
+
+    @property
+    def regression_refinement(self):
+        """Get whether regression refinement is enabled."""
+        return self._config.getboolean(
+            "regression_refinement", "regression_refinement", fallback=True
+        )
+
+    @regression_refinement.setter
+    def regression_refinement(self, value):
+        self._config.set("regression_refinement", "regression_refinement", str(value))
+
+    @property
+    def sample_rate(self):
+        """Get the sample rate."""
+        return self._config.getint("regression_sample", "sample_rate", fallback=10)
+
+    @sample_rate.setter
+    def sample_rate(self, value):
+        self._config.set("regression_sample", "sample_rate", str(value))
+
+    @property
+    def sample_threshold(self):
+        """Get the sample threshold."""
+        return self._config.getint("regression_sample", "sample_threshold", fallback=50)
+
+    @sample_threshold.setter
+    def sample_threshold(self, value):
+        self._config.set("regression_sample", "sample_threshold", str(value))
+
+    @property
+    def use_sample_rate(self):
+        """Get whether to use sample rate."""
+        return self._config.getboolean(
+            "regression_sample", "use_sample_rate", fallback=True
+        )
+
+    @use_sample_rate.setter
+    def use_sample_rate(self, value):
+        self._config.set("regression_sample", "use_sample_rate", str(value))
+
+    @property
+    def coeff_threshold(self):
+        """Get the coefficient threshold."""
+        return self._config.getfloat(
+            "equation_inference", "coeff_threshold", fallback=0.01
+        )
+
+    @coeff_threshold.setter
+    def coeff_threshold(self, value):
+        self._config.set("equation_inference", "coeff_threshold", str(value))
+
+    @property
+    def use_cutoff(self):
+        """Get whether to use cutoff."""
+        return self._config.getboolean(
+            "equation_inference", "use_cutoff", fallback=True
+        )
+
+    @use_cutoff.setter
+    def use_cutoff(self, value):
+        self._config.set("equation_inference", "use_cutoff", str(value))
+
+    @property
+    def coeff_cutoff(self):
+        """Get the coefficient cutoff value."""
+        return self._config.getint("equation_inference", "coeff_cutoff", fallback=30)
+
+    @coeff_cutoff.setter
+    def coeff_cutoff(self, value):
+        self._config.set("equation_inference", "coeff_cutoff", str(value))
+
+    @property
+    def intercept_cutoff(self):
+        """Get the intercept cutoff value."""
+        return self._config.getint(
+            "equation_inference", "intercept_cutoff", fallback=50
+        )
+
+    @intercept_cutoff.setter
+    def intercept_cutoff(self, value):
+        self._config.set("equation_inference", "intercept_cutoff", str(value))
+
+    @property
+    def milp_enabled(self):
+        """Get whether MILP is enabled."""
+        return self._config.getboolean("milp", "enabled", fallback=True)
+
+    @milp_enabled.setter
+    def milp_enabled(self, value):
+        self._config.set("milp", "enabled", str(value))
+
+    @property
+    def milp_solver(self):
+        """Get the MILP solver."""
+        value = self._config.get("milp", "solver", fallback="GUROBI")
+        return MILPSolver[value]
+
+    @milp_solver.setter
+    def milp_solver(self, value):
+        self._config.set("milp", "solver", value.name)
+
+    @property
+    def objective_threshold(self):
+        """Get the objective threshold."""
+        return self._config.getfloat("milp", "objective_threshold", fallback=1e-9)
+
+    @objective_threshold.setter
+    def objective_threshold(self, value):
+        self._config.set("milp", "objective_threshold", str(value))
+
+    @property
+    def bound(self):
+        """Get the MILP bound."""
+        return self._config.getint("milp", "bound", fallback=20)
+
+    @bound.setter
+    def bound(self, value):
+        self._config.set("milp", "bound", str(value))
+
+    @property
+    def milp_timeout(self):
+        """Get the MILP timeout."""
+        return self._config.getint("milp", "timeout", fallback=1)
+
+    @milp_timeout.setter
+    def milp_timeout(self, value):
+        self._config.set("milp", "timeout", str(value))
+
+    @property
+    def parallel(self):
+        """Get whether MILP is parallel."""
+        return self._config.getboolean("milp", "parallel", fallback=True)
+
+    @parallel.setter
+    def parallel(self, value):
+        self._config.set("milp", "parallel", str(value))
+
+    @property
+    def warnings(self):
+        """Get whether MILP warnings are enabled."""
+        return self._config.getboolean("milp", "warnings", fallback=False)
+
+    @warnings.setter
+    def warnings(self, value):
+        self._config.set("milp", "warnings", str(value))
+
+    @property
+    def sample_rate_milp(self):
+        """Get the MILP sample rate."""
+        return self._config.getfloat("milp_sample", "sample_rate", fallback=1.5)
+
+    @sample_rate_milp.setter
+    def sample_rate_milp(self, value):
+        self._config.set("milp_sample", "sample_rate", str(value))
+
+    @property
+    def sample_threshold_milp(self):
+        """Get the MILP sample threshold."""
+        return self._config.getint("milp_sample", "sample_threshold", fallback=30)
+
+    @sample_threshold_milp.setter
+    def sample_threshold_milp(self, value):
+        self._config.set("milp_sample", "sample_threshold", str(value))
+
+    @property
+    def use_sample_rate_milp(self):
+        """Get whether to use MILP sample rate."""
+        return self._config.getboolean("milp_sample", "use_sample_rate", fallback=True)
+
+    @use_sample_rate_milp.setter
+    def use_sample_rate_milp(self, value):
+        self._config.set("milp_sample", "use_sample_rate", str(value))
+
+    @property
+    def full_milp_strategy(self):
+        """Get the full MILP strategy."""
+        value = self._config.get("full_milp", "strategy", fallback="AUTO")
+        return FullMILP[value]
+
+    @full_milp_strategy.setter
+    def full_milp_strategy(self, value):
+        self._config.set("full_milp", "strategy", value.name)
+
+    @property
+    def full_milp_threshold(self):
+        """Get the full MILP threshold."""
+        return self._config.getint("full_milp", "threshold", fallback=9)
+
+    @full_milp_threshold.setter
+    def full_milp_threshold(self, value):
+        self._config.set("full_milp", "threshold", str(value))
+
+    @property
+    def milp_freq_refine_enabled(self):
+        """Get whether MILP frequency refinement is enabled."""
+        return self._config.getboolean("milp_freq_refine", "enabled", fallback=False)
+
+    @milp_freq_refine_enabled.setter
+    def milp_freq_refine_enabled(self, value):
+        self._config.set("milp_freq_refine", "enabled", str(value))
+
+    @property
+    def linear_solver_enabled(self):
+        """Get whether the linear solver is enabled."""
+        return self._config.getboolean("linear_solver", "enabled", fallback=False)
+
+    @linear_solver_enabled.setter
+    def linear_solver_enabled(self, value):
+        self._config.set("linear_solver", "enabled", str(value))
+
+    @property
+    def ugly_factor(self):
+        """Get the ugly factor."""
+        return self._config.getint("reductions", "ugly_factor", fallback=20)
+
+    @ugly_factor.setter
+    def ugly_factor(self, value):
+        self._config.set("reductions", "ugly_factor", str(value))
+
+    @property
+    def z3_timeout(self):
+        """Get the Z3 SMT solver timeout."""
+        return self._config.getint("z3", "timeout", fallback=10)
+
+    @z3_timeout.setter
+    def z3_timeout(self, value):
+        self._config.set("z3", "timeout", str(value))
+
+    @property
+    def slow_simplify(self):
+        """Get whether slow simplify is enabled."""
+        return self._config.getboolean("z3", "slow_simplify", fallback=False)
+
+    @slow_simplify.setter
+    def slow_simplify(self, value):
+        self._config.set("z3", "slow_simplify", str(value))
+
+    @property
+    def consistency_check(self):
+        """Get whether consistency check is enabled."""
+        return self._config.getboolean("z3", "consistency_check", fallback=False)
+
+    @consistency_check.setter
+    def consistency_check(self, value):
+        self._config.set("z3", "consistency_check", str(value))
+
+    @property
+    def property_table_width(self):
+        """Get the property table width."""
+        return self._config.getint("reporting", "property_table_width", fallback=75)
+
+    @property_table_width.setter
+    def property_table_width(self, value):
+        self._config.set("reporting", "property_table_width", str(value))
+
+    @property
+    def fuzz_timeout(self):
+        """Get the fuzzing timeout."""
+        return self._config.getint("fuzzing", "timeout", fallback=2)
+
+    @fuzz_timeout.setter
+    def fuzz_timeout(self, value):
+        self._config.set("fuzzing", "timeout", str(value))
+
+    @property
+    def is_close_for_float(self):
+        """Get whether is_close_for_float is enabled."""
+        return self._config.getboolean(
+            "verification", "is_close_for_float", fallback=True
+        )
+
+    @is_close_for_float.setter
+    def is_close_for_float(self, value):
+        self._config.set("verification", "is_close_for_float", str(value))
+
+    @property
+    def limit_degree(self):
+        """Get the limit degree."""
+        return self._config.getint("limits", "limit_degree", fallback=10)
+
+    @limit_degree.setter
+    def limit_degree(self, value):
+        self._config.set("limits", "limit_degree", str(value))
+
+    def print_all(self):
+        for section in self._config.sections():
+            print(f"[{section}]")
+            for key in self._config[section]:
+                print(f"{key} = {self._config[section][key]}")
+            print()
+
+
+# Example usage:
+if __name__ == "__main__":
+    try:
+        config = Config()
+        print()
+        # Print all configuration settings
+        config.print_all()
+
+        print(f"Logger Level: {config.logger_level}")
+
+        config.logger_level = 5
+        print(f"Updated Logger Level: {config.logger_level}")
+
+        config.initial_method = InitialMethod.MULTIPLE_REGRESSION
+        print(f"Initial Method: {config.initial_method}")
+        assert config.initial_method == InitialMethod.MULTIPLE_REGRESSION
+    except FileNotFoundError as e:
+        print(e)
