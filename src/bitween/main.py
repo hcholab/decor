@@ -187,7 +187,7 @@ def find_model(pivot, terms, data, test_size=0.2):
     intercept = model.intercept_
     sample_size = X_train.shape[0]
 
-    return pivot, {
+    return {
         "model": model,
         "score": score,
         "model_type": "Linear",
@@ -202,9 +202,58 @@ def find_model(pivot, terms, data, test_size=0.2):
     }
 
 
-def find_models_with_feature_selector(
-    extended_terms, extended_data, degree=2, test_size=0.2
-):
+def find_model_w_lassocv(pivot, terms, data, test_size=0.2):
+    sample_size = data.shape[0]
+
+    if config.use_sample_rate_regression and config.sample_rate_regression > 1:
+        # select a random subset of the data based on the number of terms * sample rate
+        sample_size = int(len(terms) * config.sample_rate_regression)
+        threshold = config.sample_threshold_regression
+        if sample_size < threshold:
+            if data.shape[0] > threshold:
+                sample_size = threshold
+            else:  # use all data
+                sample_size = data.shape[0]
+
+        if sample_size < data.shape[0]:
+            sample_indices = np.random.choice(data.shape[0], sample_size, replace=False)
+            data = data[sample_indices]
+        else:
+            sample_size = data.shape[0]
+
+    X = data
+    y = data[:, terms.index(pivot)]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        np.delete(data, terms.index(pivot), axis=1),
+        y,
+        test_size=test_size,
+        # random_state=42,
+    )
+
+    model = LassoCV(cv=5, random_state=42, alphas=[1e-4, 1e-3, 1e-2, 1e-1, 1, 10, 100])
+    model.fit(X_train, y_train)
+    score = model.score(X_test, y_test)
+    coefficients = model.coef_
+    intercept = model.intercept_
+    sample_size = X_train.shape[0]
+
+    return {
+        "model": model,
+        "score": score,
+        "model_type": "Lasso",
+        "params": {"alpha": model.alpha_},
+        "coefficients": coefficients,
+        "intercept": intercept,
+        "sample_size": sample_size,
+        # "X_test": X_test,
+        # "y_test": y_test,
+        "X_test": X,  # Include the entire X for evaluating the equation
+        "y_test": y,  # Include the entire y for evaluating the equation
+    }
+
+
+def sfs_heuristics(extended_terms, extended_data, degree=2, test_size=0.2):
 
     def get_rate(
         degree=degree,
@@ -297,8 +346,8 @@ def find_models_with_feature_selector(
             coefficients = model.coef_
 
             print("Selected features:", selected_features)
-            # Construct the polynomial equation string
-            equation = 0
+            # Construct the polynomial equation
+            equation = sympy.Rational(0)
             extended_coefficients = np.zeros(features.shape[0])
             feature_list = features.tolist()
             for feature, coeff in zip(selected_features, coefficients):
@@ -366,7 +415,7 @@ def find_models_with_feature_selector(
     return {term: content for term, content in results}
 
 
-def find_models(extended_terms, extended_data, test_size=0.2):
+def linear_regression_heuristics(extended_terms, extended_data, test_size=0.2):
     X = extended_data[:, :-1]  # Exclude the constant term
     models = {}
 
@@ -420,7 +469,7 @@ def find_models(extended_terms, extended_data, test_size=0.2):
     return models
 
 
-def find_best_model(extended_terms, extended_data, test_size=0.2):
+def multiple_regression_heuristics(extended_terms, extended_data, test_size=0.2):
     X_ = extended_data[:, :-1]  # Exclude the constant term
 
     # Define the models and parameters for grid search
@@ -752,7 +801,8 @@ def infer_equations(  # noqa F811
         )
         if equation.expr is not None:
             results.append(equation)
-            milp_input.append((pivot, term, data))
+            milp_input.append((pivot, term, data))  # NOTE: MILP input is collected here
+            # TODO: is this a good idea?
             if equation.error < epsilon:
                 continue
 
@@ -1058,18 +1108,16 @@ def main(file_path: str = None):  # noqa F811
 
             if config.initial_method == InitialMethod.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
-                models = find_best_model(extended_terms, extended_data)
+                models = multiple_regression_heuristics(extended_terms, extended_data)
             elif config.initial_method == InitialMethod.SIMPLE_REGRESSION:
                 # (Option 2) use simple linear regression to find a model for each term
-                models = find_models(extended_terms, extended_data)
+                models = linear_regression_heuristics(extended_terms, extended_data)
             elif config.initial_method == InitialMethod.FORWARD_SELECTION:
                 # (Option 3) use forward selection to find a model for each term
-                models = find_models_with_feature_selector(
-                    extended_terms, extended_data, degree
-                )
+                models = sfs_heuristics(extended_terms, extended_data, degree)
             elif config.initial_method == InitialMethod.EAGER_MILP:
                 # (Option 4) for ablation study
-                models = find_models(extended_terms, extended_data)
+                raise NotImplementedError("Eager MILP is not implemented yet")
             elif config.initial_method == InitialMethod.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
                 results[loc].extend(result)
