@@ -381,15 +381,16 @@ class CustomCGenerator(c_generator.CGenerator):
 
 
 def verify_w_civl(file_path):
-    # Define the path to the CIVL JAR and the folder where it is located
-    civl_folder = "tools/civl/lib"
-    civl_jar = "civl-1.22_5854.jar"
 
-    # Construct the full path to the JAR file
-    civl_jar_path = f"{civl_folder}/{civl_jar}"
+    civl_path = config.civl_path
+    if not os.path.exists(civl_path):
+        log.error("Error: The CIVL JAR file does not exist.")
+        raise FileNotFoundError(
+            "The CIVL JAR file does not exist. Please provide it in the config file."
+        )
 
     # Construct the command to run the Java process
-    command = ["java", "-jar", civl_jar_path, "verify", file_path]
+    command = ["java", "-jar", civl_path, "verify", file_path]
 
     try:
         # Execute the command and capture the output and error
