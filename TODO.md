@@ -22,6 +22,22 @@ Discuss Symbolic Regression.
 ## Integrate PAC.
 
 
+## New Sequential Feature Selection-based Bitween Method.
+
+
+
+![image](miscs/SFS/algo_in_part.png)
+![image](miscs/SFS/algo_animation.png)
+![image](miscs/SFS/algo_explanation.png)
+![image](miscs/SFS/algo_text.png)
+
+First Select the first K features which is less that the target feature size T. Then, run parallel regression models, blocking those features.
+
+## Use Linear Classifier with Higher Dimensional Space to reasone about nonlinear inequalities. 
+We can transform our data to a non-linear higher dimensional space and separate them with a linear classifier
+
+![image](figures/linear_separablity_higher_dimension.png)
+
 # TODO: improvements
 1. Add Advanced scaling (http://www.gurobi.cn/download/GuNum.pdf).
 2. NNL?
