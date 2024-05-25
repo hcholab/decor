@@ -510,6 +510,15 @@ class Config:
     def is_close_for_float(self, value):
         self._config.set("verification", "is_close_for_float", str(value))
 
+    @property
+    def civl_path(self):
+        """Get the path to the CIVL verifier."""
+        return self._config.get("verification", "civl_path", fallback="")
+
+    @civl_path.setter
+    def civl_path(self, value):
+        self._config.set("verification", "civl_path", value)
+
     # NOTE: Limit Degree
     @property
     def limit_degree(self):

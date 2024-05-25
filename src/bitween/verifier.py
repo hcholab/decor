@@ -414,10 +414,11 @@ def fuzz_and_verify(file_path, func_name, trace_equations):
     Fuzzes the given C function by calling it with random inputs and checks the assertions.
     """
     for trace, equations in trace_equations.items():
-        # trace_equations[trace] = [sympy.ccode(equation) for equation in equations]
-        trace_equations[trace] = [
-            CivlCCodePrinter().doprint(equation) for equation in equations
-        ]
+        trace_equations[trace] = [sympy.ccode(equation) for equation in equations]
+        # NOTE: Civl team fixed the bug in the pow function assumption
+        # trace_equations[trace] = [
+        #     CivlCCodePrinter().doprint(equation) for equation in equations
+        # ]
 
     # remove the .c extension from the file_path
     folder_path = os.path.dirname(file_path)
