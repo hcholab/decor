@@ -276,6 +276,14 @@ def readers_writers():
     )
 
 
+def sqrt1():
+    file_path = "./benchmarks/bitween/dig/sqrt1.c"
+    func_name = "sqrt1"
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=15, method=InitialMethod.FORWARD_SELECTION
+    )
+
+
 def wensley2():
     file_path = "./benchmarks/bitween/dig/wensley2.c"
     func_name = "wensley2"
@@ -284,11 +292,19 @@ def wensley2():
     )
 
 
-def sqrt1():
-    file_path = "./benchmarks/bitween/dig/sqrt1.c"
-    func_name = "sqrt1"
+def z3sqrt():
+    file_path = "./benchmarks/bitween/dig/z3sqrt.c"
+    func_name = "z3sqrt"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, method=InitialMethod.FORWARD_SELECTION
+        file_path, func_name, max_degree=2, n=15, milp=None
+    )
+
+
+def isqrt():
+    file_path = "./benchmarks/bitween/dig/isqrt.c"
+    func_name = "isqrt"
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=15, milp=None
     )
 
 
@@ -331,7 +347,9 @@ if __name__ == "__main__":
     # ps5()
     # ps6()
     # readers_writers()
-    wensley2()
     # sqrt1()  # NOTE: use this in demo 1
+    # wensley2()
+    z3sqrt()
+    # isqrt()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
