@@ -15,7 +15,12 @@ def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=None
+        file_path,
+        func_name,
+        max_degree=2,
+        n=15,
+        milp=None,
+        method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -181,6 +186,14 @@ def mannadiv():
     )
 
 
+def petter():
+    file_path = "./benchmarks/bitween/dig/petter.c"
+    func_name = "petter"
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=15, milp=glpk
+    )
+
+
 def prod4br():
     file_path = "./benchmarks/bitween/dig/prod4br.c"
     func_name = "prod4br"
@@ -255,11 +268,19 @@ def ps6():
     )
 
 
+def readers_writers():
+    file_path = "./benchmarks/bitween/dig/readers_writers.c"
+    func_name = "readers_writers"
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=20, milp=None
+    )
+
+
 def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, milp=None
+        file_path, func_name, max_degree=2, n=15, method=InitialMethod.FORWARD_SELECTION
     )
 
 
@@ -292,6 +313,7 @@ if __name__ == "__main__":
     # lcm1()
     # lcm2()  # NOTE: use this in demo
     # mannadiv()
+    # petter()
     # prod4br()
     # prodbin()
     # ps1()
@@ -300,6 +322,7 @@ if __name__ == "__main__":
     # ps4()
     # ps5()
     # ps6()
-    sqrt1()  # NOTE: use this in demo 1
+    readers_writers()
+    # sqrt1()  # NOTE: use this in demo 1
 
     log.debug(f"Total Time: {time() - st:.2f}s")
