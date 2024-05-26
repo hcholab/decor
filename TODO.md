@@ -234,7 +234,7 @@ Explainability vs. predictive power trade-off.
 - Exactly repeated terms in the invariants. (repeated features in the regression model)
 x2 gives no new information if x1 is already in the model.
 f(x1, x2) = 4x1
-f(x1, x2) = w1*x1 + w2*x2 where w1 + w2 = 4 
+f(x1, x2) = w1*x1 + w2*x2 where w1 + w2 = 4 and x1 = x2. 
 
 - Linearly dependent terms in the invariants. (redundant features in the regression model)
 f(x1, x2) = w1*x1 + w2*x2 where w1 = 2w2, then all functions with w1 + 2w2 = k are the same.
