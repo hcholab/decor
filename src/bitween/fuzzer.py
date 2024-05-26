@@ -368,7 +368,7 @@ def create_test_driver(func_name, params, return_type):
         main_function += f"    {return_type} result = {func_name}({param_names});\n"
         print_statement = (
             'printf("%d\\n", result);'
-            if return_type == "int"
+            if return_type in c_types.int_types
             else 'printf("%f\\n", result);'
         )
         main_function += f"    {print_statement}\n"
