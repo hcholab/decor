@@ -276,6 +276,14 @@ def readers_writers():
     )
 
 
+def wensley2():
+    file_path = "./benchmarks/bitween/dig/wensley2.c"
+    func_name = "wensley2"
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=100, milp=None
+    )
+
+
 def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
@@ -322,7 +330,8 @@ if __name__ == "__main__":
     # ps4()
     # ps5()
     # ps6()
-    readers_writers()
+    # readers_writers()
+    wensley2()
     # sqrt1()  # NOTE: use this in demo 1
 
     log.debug(f"Total Time: {time() - st:.2f}s")
