@@ -64,6 +64,8 @@ Type of Program: Integer, Double, and Mixed
 + *** This benchmark includes Non-deterministic choice.
 + -- Symbolic Execution didn't work due to the non-deterministic choice in the benchmark.
 
+TODO: add references and types of the benchmarks from this paper: ![nla-digbench](figures/nla_digbench_table_references.png)
+
 This can be a figure as follows
 
 ![Time Comparison Example Figures](images/time_comparison_example.png)
