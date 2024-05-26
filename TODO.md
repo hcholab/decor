@@ -235,8 +235,13 @@ Explainability vs. predictive power trade-off.
 x2 gives no new information if x1 is already in the model.
 f(x1, x2) = 4x1
 f(x1, x2) = w1*x1 + w2*x2 where w1 + w2 = 4 
+
 - Linearly dependent terms in the invariants. (redundant features in the regression model)
 f(x1, x2) = w1*x1 + w2*x2 where w1 = 2w2, then all functions with w1 + 2w2 = k are the same.
+
+- Multicolinearity in the invariants. (collinearity in the regression model). We can use Ridge or Lasso regression to handle this problem.
+https://en.wikipedia.org/wiki/Multicollinearity
+> Many regression methods are naturally "robust" to multicollinearity and generally perform better than ordinary least squares regression, even when variables are independent. Regularized regression techniques such as ridge regression, LASSO, elastic net regression, or spike-and-slab regression are less sensitive to including "useless" predictors, a common cause of collinearity. These techniques can detect and remove these predictors automatically to avoid problems.
 
 ## Questions that I received from the audience:
 From Jakub’s students, I’ve received these questions:
