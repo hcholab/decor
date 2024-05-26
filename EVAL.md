@@ -45,8 +45,9 @@ Type of Program: Integer, Double, and Mixed
 | 27 | Ps4          |   2   |   3   |  4   | Integer ||    ✓    |     223 |   2.63 ||   ✓   |     228 |  1.07 ||    ✓     |     468 |   7.44 ||
 | 28 | Ps5          |   2   |   3   |  5   | Integer ||    ✓&   |     154 |  11.36 ||   ✓   |     154 |  1.25 ||    ✓     |     251 |   7.19 ||
 | 29 | Ps6          |   2   |   3   |  6   | Integer ||    ✓&   |     154 |  22.65 ||   ✓   |     229 |  2.57 ||    ✓     |     350 |   8.05 ||
-| 29 | Rd_Wr***     |   2   |   3   |  6   | Integer ||    ✓    |     559 |   4.40 ||       |         |       ||          |         |        ||
-| 30 | Sqrt         |   2   |   4   |  2   | Integer ||    ✓    |     146 |   2.81 ||   ✓   |     281 |  0.70 ||    ✓     |     225 |   6.08 ||
+| 30 | Rd_Wr***     |   2   |   6   |  2   | Integer ||    ✓    |     559 |   4.40 ||   ?   |    ToDo |  ToDo ||    ✗--   |      -- |   5.19 ||
+| 31 | Sqrt         |   2   |   4   |  2   | Integer ||    ✓    |     146 |   2.81 ||   ✓   |     281 |  0.70 ||    ✓     |     225 |   6.08 ||
+| 32 | Wensley2     |   2   |   7   |  2   | Float   ||    ✓    |     208 |   7.54 ||   ✗^  |      -- |  0.45 ||    ✗^    |      -- |   2.09 ||
 |----|--------------|-------|-------|------|---------||---------|---------|--------||-------|---------|-------||----------|---------|--------||
                                                      ||   30    |   11493 | 169.19 ||  27   |   67981 | 92.75 ||   22     |   39789 | 445.64 || 
                                                      ||---------|---------|--------||-------|---------|-------||----------|---------|--------||
@@ -59,6 +60,7 @@ Type of Program: Integer, Double, and Mixed
 + * We obtained new invariants for the post conditions of the Knuth benchmark, which are not reported in the literature.
 + ** SymInfer's underlying Symbolic Execution engine couldn't reach the end of the program for these benchmarks.
 + *** This benchmark includes Non-deterministic choice.
++ -- Symbolic Execution didn't work due to the non-deterministic choice in the benchmark.
 
 This can be a figure as follows
 
