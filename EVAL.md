@@ -65,6 +65,7 @@ Type of Program: Integer, Double, and Mixed
 + -- Symbolic Execution didn't work due to the non-deterministic choice in the benchmark.
 
 TODO: add references and types of the benchmarks from this paper: ![nla-digbench](figures/nla_digbench_table_references.png)
+isqrt comes from here: https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
 
 This can be a figure as follows
 
