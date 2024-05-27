@@ -187,7 +187,7 @@ class Config:
         return self._config.getint(
             "forward_selection",
             "selector_max_features",
-            fallback=10 if self.degree > 2 else 7,
+            fallback=10 if self.degree > 2 else 6,
         )
 
     @selector_max_features.setter
