@@ -763,7 +763,7 @@ def infer_equations(  # noqa F811
                 rhs_values[i] += intercept
 
         me = np.mean(np.abs(rhs_values - y_test))
-        str_ += f"(err: {round(me, 2):<5.2f}): ({model_desc}); [{pivot}]"
+        str_ += f"(err: {round(me, 2):<5.2f}): ({model_desc}); [{dims}] [{pivot}]"
         if me < epsilon:
             str_ += "***\n"
         else:
