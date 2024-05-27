@@ -27,16 +27,26 @@ def bresenham():
 def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=None
+    infer_invariants_and_verify_correctness(
+        file_path,
+        func_name,
+        max_degree=2,
+        n=15,
+        milp=None,
+        method=InitialMethod.FORWARD_SELECTION,
     )
 
 
 def cohendiv():
     file_path = "./benchmarks/bitween/dig/cohendiv.c"
     func_name = "cohendiv"
-    infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=25, milp=None
+    infer_invariants_and_verify_correctness(
+        file_path,
+        func_name,
+        max_degree=2,
+        n=15,
+        milp=None,
+        method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -318,7 +328,7 @@ if __name__ == "__main__":
 
     # bresenham()
     # cohencu()  # NOTE: use this in demo
-    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
+    cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
     # egcd()  # NOTE: use this in demo 3
@@ -350,6 +360,6 @@ if __name__ == "__main__":
     # sqrt1()  # NOTE: use this in demo 1
     # wensley2()
     # z3sqrt()
-    isqrt()
+    # isqrt()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
