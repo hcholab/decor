@@ -184,11 +184,12 @@ class Config:
     @property
     def selector_max_features(self):
         """Get the maximum number of selector features for forward selection."""
-        return self._config.getint(
+        features = self._config.getint(
             "forward_selection",
             "selector_max_features",
             fallback=10 if self.degree > 2 else 6,
         )
+        return 10 if features > 10 else features
 
     @selector_max_features.setter
     def selector_max_features(self, value):
