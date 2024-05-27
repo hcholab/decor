@@ -6,7 +6,6 @@
 
 * Create two motivation example (rsr prop over sin, periyodik, etc.) and the motivating example having mixed integer and reals; put the vtrace tables. 
 
-* introduce this vtrace as a function basis like F[a, b, v, n, 1] = 0
 
 ## Learning Algorithms
 Discuss a section for MILP formulation.
@@ -21,6 +20,10 @@ Discuss Symbolic Regression.
 
 ## Integrate PAC.
 
+## Problam Definition
+* introduce this `vtrace(a, b, v, n, 1)` as a function basis like `F[a, b, v, n, 1] = 0`
+
+Draw inspiration from the following definition: ![image](figures/symbolic_regression_definition.png)
 
 ## New Sequential Feature Selection-based Bitween Method.
 
