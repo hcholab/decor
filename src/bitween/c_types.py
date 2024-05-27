@@ -48,7 +48,7 @@ int_types = {
     "int64_t",
 }
 
-int_upper_bound_civl = 100
+int_upper_bound_civl = 10
 
 float_types = {
     "float",
