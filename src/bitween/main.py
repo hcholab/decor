@@ -724,9 +724,11 @@ def infer_equations(  # noqa F811
         for i, coefficient in enumerate(model["coefficients"]):
             if abs(coefficient) >= coeff_threshold:
                 # TODO be careful with rounding
-                coeff = round(coefficient, config.precision)
+                # coeff = round(coefficient, config.precision)
+                coeff = Fraction(coefficient).limit_denominator(10 * config.precision)
                 if coeff != 0:
-                    rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
+                    # rhs += sympy.Rational(coeff) * sympy.Symbol(terms[i])
+                    rhs += coeff * sympy.Symbol(terms[i])
                     coeff_terms[terms[i]] = coefficient
                     # Include term in selected list
                     selected_terms.append(terms[i])
@@ -735,7 +737,8 @@ def infer_equations(  # noqa F811
         # TODO be careful with rounding
         intercept = round(model["intercept"], config.precision)
         if intercept > coeff_threshold:
-            rhs += sympy.Rational(intercept)
+            # rhs += sympy.Rational(intercept)
+            rhs += Fraction(intercept).limit_denominator(10 * config.precision)
 
         equation = sympy.Symbol(pivot) - rhs
         # equation = sympy.simplify(equation)
