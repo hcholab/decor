@@ -7,6 +7,10 @@ from fractions import Fraction
 
 
 class RationalApprox:
+    """
+    Rational approximation using Stern-Brocot binary search
+    """
+
     @staticmethod
     def mediant(r1, r2):
         return Fraction(r1.numerator + r2.numerator, r1.denominator + r2.denominator)
