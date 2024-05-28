@@ -68,7 +68,7 @@ def divbin():
     file_path = "./benchmarks/bitween/dig/divbin.c"
     func_name = "divbin"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=glpk
+        file_path, func_name, max_degree=2, n=20, milp=None
     )
 
 
@@ -335,8 +335,8 @@ if __name__ == "__main__":
     # bresenham()
     # cohencu()  # NOTE: use this in demo
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
-    dijkstra()
-    # divbin()
+    # dijkstra()
+    divbin()
     # egcd()  # NOTE: use this in demo 3
     # egcd2()
     # egcd3()
