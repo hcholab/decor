@@ -2,6 +2,8 @@ from fractions import Fraction
 
 # https://en.wikipedia.org/wiki/Stern–Brocot_tree
 # https://dotink.co/posts/rational-binary-search/
+# https://stackoverflow.com/questions/13437589/how-is-pythons-fractions-limit-denominator-implemented
+# https://github.com/alidasdan/best-rational-approximation/blob/master/ad_rat_by_fast_farey.py
 
 
 class RationalApprox:
