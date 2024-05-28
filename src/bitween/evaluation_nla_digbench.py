@@ -76,7 +76,7 @@ def egcd():
     file_path = "./benchmarks/bitween/dig/egcd.c"
     func_name = "egcd"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=25, milp=glpk
+        file_path, func_name, max_degree=2, n=25, milp=None
     )
 
 
@@ -84,7 +84,7 @@ def egcd2():
     file_path = "./benchmarks/bitween/dig/egcd2.c"
     func_name = "egcd2"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=20, milp=glpk
+        file_path, func_name, max_degree=2, n=20, milp=None
     )
 
 
@@ -93,7 +93,7 @@ def egcd3():
     file_path = "./benchmarks/bitween/dig/egcd3.c"
     func_name = "egcd3"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=18, milp=glpk
+        file_path, func_name, max_degree=2, n=18, milp=None
     )
 
 
@@ -336,9 +336,9 @@ if __name__ == "__main__":
     # cohencu()  # NOTE: use this in demo
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
-    divbin()
+    # divbin()
     # egcd()  # NOTE: use this in demo 3
-    # egcd2()
+    egcd2()
     # egcd3()
     # fermat1() # NOTE: use this in demo
     # fermat2()
