@@ -1,5 +1,7 @@
 from fractions import Fraction
 
+# https://en.wikipedia.org/wiki/Stern–Brocot_tree
+
 
 class RationalApprox:
     @staticmethod
@@ -7,14 +9,17 @@ class RationalApprox:
         return Fraction(r1.numerator + r2.numerator, r1.denominator + r2.denominator)
 
     @staticmethod
-    def approximate(x, epsilon=1e-15):
+    def approximate(x, epsilon=1e-15, max_iterations=10, verbose=False):
         left = Fraction(0)
         right = Fraction(1)
         best = left
-        best_error = abs(x - float(best))
-        print(f"{best} = {float(best)}, error = {best_error}")
+        best_error = abs(x)
+
+        if verbose:
+            print(f"{best} = {float(best)}, error = {best_error}")
 
         # Stern-Brocot binary search
+        iterations = 0
         while best_error > epsilon:
             mediant = RationalApprox.mediant(left, right)
             if x < float(mediant):
@@ -22,16 +27,43 @@ class RationalApprox:
             else:
                 left = mediant  # go right
 
+            # check if better and update champion
             error = abs(float(mediant) - x)
             if error < best_error:
                 best = mediant
                 best_error = error
-                print(f"{best} = {float(best)}, error = {best_error}")
+                if verbose:
+                    print(f"{best} = {float(best)}, error = {best_error}")
 
-        print()
+            iterations += 1
+
+            if iterations > max_iterations:
+                break
+        if iterations > max_iterations and verbose:
+            print(f"Warning: max iterations reached ({max_iterations})")
+            return Fraction(x).limit_denominator(1000)
+        return best
 
 
 if __name__ == "__main__":
-    RationalApprox.approximate(0.333334, epsilon=1e-3)
-    RationalApprox.approximate(0.2, epsilon=1e-3)
-    RationalApprox.approximate(0.666667, epsilon=1e-3)
+    print(
+        RationalApprox.approximate(
+            0.333334, epsilon=1e-3, max_iterations=10, verbose=True
+        )
+    )
+    print(
+        RationalApprox.approximate(0.2, epsilon=1e-3, max_iterations=10, verbose=True)
+    )
+    print(
+        RationalApprox.approximate(
+            0.666667, epsilon=1e-3, max_iterations=10, verbose=True
+        )
+    )
+    print(
+        RationalApprox.approximate(
+            0.1667, epsilon=1e-3, max_iterations=10, verbose=True
+        )
+    )
+    print(
+        RationalApprox.approximate(0.999, epsilon=1e-3, max_iterations=10, verbose=True)
+    )
