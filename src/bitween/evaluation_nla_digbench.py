@@ -14,11 +14,11 @@ log = miscs.getLogger(__name__, config.logger_level)
 def bresenham():
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
-    infer_invariants_and_check_correctness(
+    infer_invariants_and_verify_correctness(
         file_path,
         func_name,
         max_degree=2,
-        n=15,
+        n=20,
         milp=None,
         method=InitialMethod.FORWARD_SELECTION,
     )
@@ -33,7 +33,7 @@ def cohencu():
         max_degree=2,
         n=15,
         milp=None,
-        method=InitialMethod.FORWARD_SELECTION,
+        # method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -46,7 +46,7 @@ def cohendiv():
         max_degree=2,
         n=15,
         milp=None,
-        method=InitialMethod.FORWARD_SELECTION,
+        # method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -54,7 +54,13 @@ def dijkstra():
     file_path = "./benchmarks/bitween/dig/dijkstra.c"
     func_name = "dijkstra"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=3, n=20, bound=16, milp=glpk
+        file_path,
+        func_name,
+        max_degree=3,
+        n=20,
+        # bound=16,
+        # milp=gurobi,
+        # method=InitialMethod.FORWARD_SELECTION,
     )
 
 
@@ -328,8 +334,8 @@ if __name__ == "__main__":
 
     # bresenham()
     # cohencu()  # NOTE: use this in demo
-    cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
-    # dijkstra()
+    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
+    dijkstra()
     # divbin()
     # egcd()  # NOTE: use this in demo 3
     # egcd2()
