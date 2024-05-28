@@ -46,9 +46,23 @@ class RationalApprox:
 
 
 if __name__ == "__main__":
-    print(RationalApprox.approximate(0.333334, epsilon=1e-3, verbose=True))
-    print(RationalApprox.approximate(0.2, epsilon=1e-3, verbose=True))
-    print(RationalApprox.approximate(0.25, epsilon=1e-3, verbose=True))
-    print(RationalApprox.approximate(0.666667, epsilon=1e-3, verbose=True))
-    print(RationalApprox.approximate(0.1667, epsilon=1e-3, verbose=True))
-    print(RationalApprox.approximate(0.999, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(0.333334, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.333334).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(0.2, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.2).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(0.25, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.25).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(0.666667, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.666667).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(0.1667, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.1667).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(0.999, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(0.999).limit_denominator(1000))
+
+    print("SB-Tree:", RationalApprox.approximate(1.2, epsilon=1e-3, verbose=True))
+    print("Fraction:", Fraction(1.2).limit_denominator(1000))
