@@ -89,6 +89,14 @@ poetry install
 
 When you run `poetry install`, poetry creates a `poetry.lock` file, which contains a record of all the dependencies you've installed while developing your package. For anyone else working on your project (including you in the future), running `poetry install` installs dependencies from `poetry.lock` to ensure that they have the same versions of dependencies that you did when developing the package. 
 
+## Install CIVL dependency
+
+In the `tools` directory, run the following command:
+
+```bash
+tar xf CIVL-trunk_5906.tar
+```
+
 ## 5. Adding dependency to `pyproject.toml`:
 
 Examples:
