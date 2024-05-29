@@ -179,7 +179,7 @@ def find_model(pivot, terms, data, test_size=0.2):
         np.delete(data, terms.index(pivot), axis=1),
         y,
         test_size=test_size,
-        random_state=42,
+        # random_state=42,
     )
 
     model = LinearRegression()
