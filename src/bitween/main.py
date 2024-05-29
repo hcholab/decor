@@ -812,12 +812,38 @@ def infer_equations(  # noqa F811
                 continue
 
             # NOTE: start Regression Refinement
-            if settings.REGRESSION_REFINEMENT and len(term) > 1:
-                pivot_, model_ = find_model(pivot, term, data)
-                model_desc = f"{model_['model_type']}({model_['params']})+Refine"
-                equation, _, _ = infer_equation(pivot_, model_, term, data, model_desc)
+            if config.regression_refinement and len(term) > 1:
+                model_1 = find_model(pivot, term, data)
+                model_dsc = f"Refine({model_1['model_type']}({model_1['params']})).1"
+                equation, term_1, data_1 = infer_equation(
+                    pivot, model_1, term, data, model_dsc
+                )
                 if equation.expr is not None:
                     results.append(equation)
+                if term_1 is not None and len(term_1) > 1:
+                    model_2 = find_model(pivot, term_1, data_1)
+                    model_dsc = (
+                        f"Refine({model_2['model_type']}({model_2['params']})).2"
+                    )
+                    equation, term_2, data_2 = infer_equation(
+                        pivot, model_2, term_1, data_1, model_dsc
+                    )
+                    if equation.expr is not None:
+                        results.append(equation)
+                    if (
+                        term_2 is not None
+                        and len(term_2) > 2
+                        and len(term_1) > len(term_2)
+                    ):
+                        model_3 = find_model(pivot, term_2, data_2)
+                        model_dsc = (
+                            f"Refine({model_3['model_type']}({model_3['params']})).3"
+                        )
+                        equation, _, _ = infer_equation(
+                            pivot, model_3, term_2, data_2, model_dsc
+                        )
+                        if equation.expr is not None:
+                            results.append(equation)
 
     # collect term frequencies from inferred equations (results)
     for equation in results:
