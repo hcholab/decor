@@ -334,11 +334,11 @@ if __name__ == "__main__":
 
     # bresenham()
     # cohencu()  # NOTE: use this in demo
-    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
+    cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
     # egcd()  # NOTE: use this in demo 3
-    egcd2()
+    # egcd2()
     # egcd3()
     # fermat1() # NOTE: use this in demo
     # fermat2()
