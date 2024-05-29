@@ -4,6 +4,7 @@ from multiprocessing import cpu_count
 from tempfile import mkdtemp  # noqa F401
 from time import time
 from dataclasses import dataclass
+from fractions import Fraction
 import inspect
 import itertools
 import warnings
