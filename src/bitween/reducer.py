@@ -170,11 +170,11 @@ class Reducer:
 
         @functools.cache
         def is_nice_coef(c: int | float) -> bool:
-            return abs(c) <= Config.ugly_factor or c % 10 == 0 or c % 5 == 0
+            return abs(c) <= config.ugly_factor or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
         def is_nice_eqt(eqt: sympy.Expr | sympy.Rel) -> bool:
-            return len(eqt.args) <= Config.ugly_factor and all(
+            return len(eqt.args) <= config.ugly_factor and all(
                 is_nice_coef(c) for c in cls.get_coefs(eqt)
             )
 
@@ -236,6 +236,7 @@ class Reducer:
         for i, eq in enumerate(eqts):
             uf.add(i)
             for j in range(i):
+                # if cls.has_same_terms(eqts[i], eqts[j]):
                 if cls.is_similar(eqts[i], eqts[j]):
                     uf.union(i, j)
 
@@ -250,7 +251,9 @@ class Reducer:
         # Choose best representation from each group
         equivalence_classes = []
         for group in groups.values():
-            equivalence_classes.append(min(group, key=lambda e: len(str(e))))
+            # equivalence_classes.append(min(group, key=lambda e: len(str(e))))
+            selected = find_best_polynomial(group)
+            equivalence_classes.append(selected)
 
         log.debug(f"Union Find: from {n_eqts} to {len(equivalence_classes)} ps:")
         for eq in equivalence_classes:
