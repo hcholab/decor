@@ -156,8 +156,11 @@ temp/bitween/lin_reg_intercept_from_dig_trace.py
 .csv
 
 tools/civl*
+!tools/CIVL-trunk_5906.tar
+
 *.csv.bkup
 *.pkl
+
 miscs/SFS/Screenshot 2024-05-23 at 10.20.19 PM.png
 miscs/SFS/Screenshot 2024-05-23 at 10.21.47 PM.png
 miscs/SFS/Screenshot 2024-05-23 at 10.23.03 PM.png
