@@ -20,6 +20,7 @@ import sympy
 import csv
 from sklearn.linear_model import (  # noqa F401
     ElasticNet,
+    LassoCV,
     Ridge,
     Lasso,
     LinearRegression,
