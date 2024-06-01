@@ -1296,15 +1296,17 @@ def infer_invariants(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
-    n: int = 40,  # number of iterations
+    n: int = 20,  # number of iterations
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
     method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
+    correctness: Correctness = Correctness.NONE,
 ):
-    """
-    Infers invariants from given C program having vtraces, vassumes, and vdistrs.
-    """
+    """This is prepared for web interface of Bitween"""
+
+    if max_degree > 3:
+        raise ValueError("Degree greater than 3 is not supported for web interface")
 
     config.degree = max_degree
     config.epsilon = epsilon
@@ -1322,14 +1324,25 @@ def infer_invariants(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    return main(trace_file)
+    equations = main(trace_file)
+
+    if correctness == Correctness.VERIFICATION:
+        fuzz_and_verify(file_path, func_name, equations)
+    elif correctness == Correctness.FUZZING:
+        fuzz_and_check(file_path, func_name, equations, n * 10)
+    elif correctness == Correctness.NONE:
+        pass
+    else:
+        raise ValueError("Invalid correctness option")
+
+    return equations
 
 
 def infer_invariants_and_check_correctness(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
-    n: int = 30,  # number of iterations
+    n: int = 20,  # number of iterations
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
@@ -1367,7 +1380,7 @@ def infer_invariants_and_verify_correctness(
     file_path: str,  # path to the C file
     func_name: str,  # name of the function to infer invariants
     max_degree: int = 2,  # maximum degree
-    n: int = 40,  # number of iterations
+    n: int = 20,  # number of iterations
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
