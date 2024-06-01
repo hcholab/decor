@@ -152,7 +152,7 @@ class Config:
         self._config.set("general", "correctness", value)
 
     @property
-    def n(self, value):
+    def n(self):
         """Get the number of data points."""
         return self._config.getint("general", "n", fallback=20)
 
@@ -340,7 +340,7 @@ class Config:
     @property
     def milp_enabled(self):
         """Get whether MILP is enabled."""
-        return self._config.getboolean("milp", "enabled", fallback=True)
+        return self._config.getboolean("milp", "enabled", fallback=False)
 
     @milp_enabled.setter
     def milp_enabled(self, value):

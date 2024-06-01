@@ -42,6 +42,6 @@ file_path = "benchmarks/bitween/dig/bresenham.dig.traces.csv"  # NOTE: NO NEED M
 config.file_path = file_path
 
 if __name__ == "__main__":
-    from bitween.main import main
+    from bitween.main import bitween
 
-    main()
+    bitween()

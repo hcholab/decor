@@ -1102,7 +1102,7 @@ def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
     return results
 
 
-def main(file_path: str = None):  # noqa F811
+def bitween(file_path: str = None):  # noqa F811
 
     if file_path is None:
         file_path = config.file_path
@@ -1324,7 +1324,7 @@ def infer_invariants(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = main(trace_file)
+    equations = bitween(trace_file)
 
     if correctness == Correctness.VERIFICATION:
         fuzz_and_verify(file_path, func_name, equations)
@@ -1369,7 +1369,7 @@ def infer_invariants_and_check_correctness(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = main(trace_file)
+    equations = bitween(trace_file)
 
     fuzz_and_check(file_path, func_name, equations, n * 10)
 
@@ -1402,7 +1402,7 @@ def infer_invariants_and_verify_correctness(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = main(trace_file)
+    equations = bitween(trace_file)
 
     fuzz_and_verify(file_path, func_name, equations)
 
@@ -1498,7 +1498,7 @@ def infer_property(
         writer = csv.writer(file, delimiter=";")
         writer.writerows(evals)
 
-    equations = main("trace.csv")
+    equations = bitween("trace.csv")
 
     # NOTE: verifier for equality works with the lhs of the equation.
     exprs = []
@@ -1570,4 +1570,4 @@ def verify(expr: sympy.Expr, *functions) -> bool:
 
 
 if __name__ == "__main__":  # noqa E123
-    main("benchmarks/bitween/dig/bresenham.dig.traces.csv")
+    bitween("benchmarks/bitween/dig/bresenham.dig.traces.csv")

@@ -156,6 +156,6 @@ if DEGREE > LIMIT_DEGREE:
     DEGREE = LIMIT_DEGREE
 
 if __name__ == "__main__":
-    from bitween.main import main
+    from bitween.main import bitween
 
-    main()
+    bitween()
