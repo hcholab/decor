@@ -54,56 +54,61 @@ class RationalApprox:
 
 
 if __name__ == "__main__":
+    x = 0.1
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
+    print("Fraction:", Fraction(x).limit_denominator(100))
+    print()
+
     x = 0.333334
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.2
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.25
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.666667
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.1667
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.167
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.083
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.1111
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 1.1111
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 0.999
-    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(x, epsilon=1e-3, verbose=False))
     print("Fraction:", Fraction(x).limit_denominator(100))
     print()
 
     x = 1.2
-    print("SB-Tree:", RationalApprox.approximate(1.2, epsilon=1e-3, verbose=True))
+    print("SB-Tree:", RationalApprox.approximate(1.2, epsilon=1e-3, verbose=False))
     print("Fraction:", Fraction(1.2).limit_denominator(100))
