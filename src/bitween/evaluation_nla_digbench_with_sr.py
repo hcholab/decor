@@ -3,7 +3,7 @@ from bitween.main import (  # noqa F401
     infer_invariants_and_verify_correctness,
 )
 from bitween import miscs
-from bitween.config import Config, InitialMethod
+from bitween.config import Config, Method
 
 from time import time
 
@@ -249,14 +249,15 @@ def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_verify_correctness(
-        file_path, func_name, max_degree=2, n=20, method=gplearn
+        file_path, func_name, max_degree=2, n=20, method=kan
     )
 
 
 if __name__ == "__main__":
 
-    pysr = InitialMethod.PYSR
-    gplearn = InitialMethod.GPLEARN
+    pysr = Method.PYSR
+    gplearn = Method.GPLEARN
+    kan = Method.KAN
 
     st = time()
 

@@ -3,7 +3,7 @@ from bitween.main import (  # noqa F401
     infer_invariants_and_verify_correctness,
 )
 from bitween import miscs
-from bitween.config import Config, InitialMethod, MILPSolver
+from bitween.config import Config, Method, MILPSolver
 
 from time import time
 
@@ -20,7 +20,7 @@ def bresenham():
         max_degree=2,
         n=20,
         milp=None,
-        method=InitialMethod.FORWARD_SELECTION,
+        method=Method.FORWARD_SELECTION,
     )
 
 
@@ -267,7 +267,7 @@ def ps5():
         max_degree=5,
         n=10,
         milp=None,
-        method=InitialMethod.FORWARD_SELECTION,
+        method=Method.FORWARD_SELECTION,
     )
 
 
@@ -280,7 +280,7 @@ def ps6():
         max_degree=6,
         n=20,
         milp=glpk,
-        method=InitialMethod.FORWARD_SELECTION,
+        method=Method.FORWARD_SELECTION,
     )
 
 
@@ -296,7 +296,7 @@ def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, method=InitialMethod.FORWARD_SELECTION
+        file_path, func_name, max_degree=2, n=15, method=Method.FORWARD_SELECTION
     )
 
 

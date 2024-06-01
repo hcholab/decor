@@ -3,7 +3,9 @@ import os
 from enum import Enum
 
 
-class InitialMethod(Enum):
+class Method(Enum):
+    """Method for Analysis."""
+
     MULTIPLE_REGRESSION = 0
     SIMPLE_REGRESSION = 1
     FORWARD_SELECTION = 2
@@ -16,7 +18,20 @@ class InitialMethod(Enum):
         return self.name.lower()
 
 
+class Correctness(Enum):
+    """Post Correctness Check."""
+
+    VERIFICATION = 0
+    FUZZING = 1
+    NONE = 2
+
+    def __str__(self):
+        return self.name.lower()
+
+
 class MILPSolver(Enum):
+    """MILP Solver."""
+
     PULP = 0
     GUROBI = 1
     GLPK = 2
@@ -116,6 +131,36 @@ class Config:
         self._config.set("general", "precision", str(value))
 
     @property
+    def initial_method(self):
+        """Get the initial method."""
+        value = self._config.get(
+            "initial_method", "general", fallback="MULTIPLE_REGRESSION"
+        )
+        return Method[value]
+
+    @initial_method.setter
+    def initial_method(self, value):
+        self._config.set("general", "method", value.name)
+
+    @property
+    def correctness(self):
+        """Check or Verify correctness."""
+        self._config.get("general", "correctness", fallback="VERIFICATION")
+
+    @correctness.setter
+    def correctness(self, value):
+        self._config.set("general", "correctness", value)
+
+    @property
+    def n(self, value):
+        """Get the number of data points."""
+        return self._config.getint("general", "n", fallback=20)
+
+    @n.setter
+    def n(self, value):
+        self._config.set("general", "n", str(value))
+
+    @property
     def logger_level(self):
         """Get the logger level."""
         return self._config.getint("general", "logger_level", fallback=3)
@@ -133,19 +178,6 @@ class Config:
     @invariant_type.setter
     def invariant_type(self, value):
         self._config.set("general", "invariant_type", value.name)
-
-    # NOTE: Initial Method
-    @property
-    def initial_method(self):
-        """Get the initial method."""
-        value = self._config.get(
-            "initial_method", "method", fallback="MULTIPLE_REGRESSION"
-        )
-        return InitialMethod[value]
-
-    @initial_method.setter
-    def initial_method(self, value):
-        self._config.set("initial_method", "method", value.name)
 
     # NOTE: Forward Selection Method
     @property
@@ -551,9 +583,9 @@ if __name__ == "__main__":
         config.logger_level = 5
         print(f"Updated Logger Level: {Config().logger_level}")
 
-        config.initial_method = InitialMethod.MULTIPLE_REGRESSION
+        config.initial_method = Method.MULTIPLE_REGRESSION
         print(f"Initial Method: {config.initial_method}")
-        assert config.initial_method == InitialMethod.MULTIPLE_REGRESSION
+        assert config.initial_method == Method.MULTIPLE_REGRESSION
 
         config.invariant_type = InvariantType.INT
         print(f"Invariant Type: {config.invariant_type}")

@@ -38,7 +38,7 @@ from bitween.fuzzer import fuzz_and_trace  # noqa F401
 from bitween.checker import fuzz_and_check  # noqa F401
 from bitween.verifier import fuzz_and_verify  # noqa F401
 from bitween.reducer import Reducer  # noqa F401
-from bitween.config import Config, FullMILP, InitialMethod, MILPSolver
+from bitween.config import Config, FullMILP, Method, MILPSolver, Correctness
 
 sympy.init_printing(use_unicode=False, wrap_line=False)
 
@@ -1127,7 +1127,7 @@ def main(file_path: str = None):  # noqa F811
         _str += f"Shape: {data.shape}\n"
 
         initial_degree = 1
-        if config.initial_method == InitialMethod.FORWARD_SELECTION:
+        if config.initial_method == Method.FORWARD_SELECTION:
             initial_degree = config.degree
 
         for degree in range(initial_degree, config.degree + 1):
@@ -1137,23 +1137,23 @@ def main(file_path: str = None):  # noqa F811
 
             _str += f"{extended_terms}; size: {len(extended_terms)}\n"
 
-            if config.initial_method == InitialMethod.MULTIPLE_REGRESSION:
+            if config.initial_method == Method.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
                 models = multiple_regression_heuristics(extended_terms, extended_data)
-            elif config.initial_method == InitialMethod.SIMPLE_REGRESSION:
+            elif config.initial_method == Method.SIMPLE_REGRESSION:
                 # (Option 2) use simple linear regression to find a model for each term
                 models = linear_regression_heuristics(extended_terms, extended_data)
-            elif config.initial_method == InitialMethod.FORWARD_SELECTION:
+            elif config.initial_method == Method.FORWARD_SELECTION:
                 # (Option 3) use forward selection to find a model for each term
                 models = sfs_heuristics(extended_terms, extended_data, degree)
-            elif config.initial_method == InitialMethod.EAGER_MILP:
+            elif config.initial_method == Method.EAGER_MILP:
                 # (Option 4) for ablation study
                 raise NotImplementedError("Eager MILP is not implemented yet")
-            elif config.initial_method == InitialMethod.PYSR:
+            elif config.initial_method == Method.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
-            elif config.initial_method == InitialMethod.GPLEARN:
+            elif config.initial_method == Method.GPLEARN:
                 result = find_models_with_gplearn(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
@@ -1300,7 +1300,7 @@ def infer_invariants(
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
-    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
+    method: Method = Method.MULTIPLE_REGRESSION,
     correctness: Correctness = Correctness.NONE,
 ):
     """This is prepared for web interface of Bitween"""
@@ -1346,7 +1346,7 @@ def infer_invariants_and_check_correctness(
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
-    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
+    method: Method = Method.MULTIPLE_REGRESSION,
 ):
     """
     Infers invariants from given C program having vtraces, vassumes, and vdistrs, and
@@ -1384,7 +1384,7 @@ def infer_invariants_and_verify_correctness(
     epsilon: float = 0.001,  # error threshold
     milp: MILPSolver = None,
     bound: int = None,
-    method: InitialMethod = InitialMethod.MULTIPLE_REGRESSION,
+    method: Method = Method.MULTIPLE_REGRESSION,
 ):
     config.degree = max_degree
     config.epsilon = epsilon
