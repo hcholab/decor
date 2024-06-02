@@ -68,7 +68,8 @@ class InvariantType(Enum):
 
 class Config:
     _instance = None
-    _config_file = "config.ini"
+    _current_dir = os.path.dirname(os.path.abspath(__file__))
+    _config_file = os.path.join(_current_dir, "../..", "config.ini")
 
     def __new__(cls, config_file=None):
         if cls._instance is None:
@@ -83,6 +84,11 @@ class Config:
                 )
             cls._instance._config.read(cls._instance._config_file)
         return cls._instance
+
+    @property
+    def project_dir(self):
+        """Get the project directory."""
+        return os.path.join(self._current_dir, "../..")
 
     # NOTE: General settings
     @property
