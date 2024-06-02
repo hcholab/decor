@@ -29,6 +29,9 @@ def run():
         "-m", "--func_name", required=True, help="Name of the function to analyze."
     )
     parser.add_argument(
+        "-o", "--out_path", help="Path to the output file (default: file_path)."
+    )
+    parser.add_argument(
         "-d",
         "--degree",
         type=int,
@@ -138,12 +141,12 @@ def run():
         parser.exit(1, f"The file '{args.file_path}' does not exist.\n")
 
     config = Config()
-
     # Override configurations from command-line arguments if provided
     if args.file_path:
         config.file_path = args.file_path
     if args.func_name:
         config.func_name = args.func_name
+    out_path = args.out_path if args.out_path else args.file_path
     if args.degree:
         config.degree = args.degree
     if args.epsilon:
@@ -199,7 +202,7 @@ def run():
     else:
         raise ValueError(f"Invalid correctness option: {config.correctness}")
 
-    decorate_assertions(config.file_path, config.func_name, equations)
+    decorate_assertions(config.file_path, config.func_name, out_path, equations)
 
     return
 

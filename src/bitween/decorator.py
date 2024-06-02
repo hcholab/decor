@@ -50,7 +50,7 @@ def comment_out_assertions(file_path, failed_lines):
             file.write(line)
 
 
-def replace_vtrace_with_equations(file_path, trace_equations):
+def replace_vtrace_with_equations(file_path, out_path, trace_equations):
     """
     Replace the vtrace variables in the C code with the inferred equations.
     """
@@ -65,7 +65,7 @@ def replace_vtrace_with_equations(file_path, trace_equations):
     for trace, equations in trace_equations.items():
         merged_equations[trace] = [f"assert({equation});" for equation in equations]
 
-    with open(file_path, "w") as file:
+    with open(out_path, "w") as file:
         for i, line in enumerate(lines, 1):
             match = pattern.findall(line)
             if match:
@@ -78,7 +78,7 @@ def replace_vtrace_with_equations(file_path, trace_equations):
                 file.write(line)
 
 
-def decorate_assertions(file_path, func_name, trace_equations):
+def decorate_assertions(file_path, func_name, out_path, trace_equations):
     """
     Decorates the assertions in the given C code with the inferred equations.
     """
@@ -95,7 +95,7 @@ def decorate_assertions(file_path, func_name, trace_equations):
     # remove the .c extension from the file_path
     folder_path = os.path.dirname(file_path)
 
-    replace_vtrace_with_equations(file_path, trace_equations)
+    replace_vtrace_with_equations(file_path, out_path, trace_equations)
 
     # TODO: Add the is_close function to the code if the type is floating point
 
@@ -106,10 +106,12 @@ if __name__ == "__main__":
     # This should be the path to your C file
     file_path = "./benchmarks/bitween/dig/bresenham.c"
     func_name = "bresenham"
+    out_path = "./benchmarks/bitween/dig/bresenham.out.c"
 
     decorate_assertions(
         file_path,
         func_name,
+        out_path,
         {
             "vtrace1": [
                 sympy.parse_expr("X + 2*X*y - 2*Y - 2*Y*x + v == 0", evaluate=False)
@@ -125,10 +127,12 @@ if __name__ == "__main__":
 
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
+    out_path = "./benchmarks/bitween/dig/cohencu.out.c"
 
     decorate_assertions(
         file_path,
         func_name,
+        out_path,
         {
             "vtrace1": [
                 sympy.parse_expr("6*n - z + 6 == 0", evaluate=False),
