@@ -1010,10 +1010,14 @@ def find_models_with_pysr(extended_terms, extended_data, test_size=0.2):
     # Create a model for each term in extended_terms, excluding the constant '1'
     for i in range(len(extended_terms) - 1):
         equation = symbolic_regression(i)
-        if equation is None or equation.expr is not None:
+        if equation is not None and equation.expr is not None:
             results.append(equation)
 
     return results
+
+
+def find_models_with_kan(extended_terms, extended_data, test_size=0.2):
+    pass
 
 
 def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
