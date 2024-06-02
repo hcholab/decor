@@ -23,7 +23,7 @@ python src/bitween/run.py -f benchmarks/bitween/dig/cohendiv.c -m cohendiv -n 15
 ```bash
 python src/bitween/run.py -h                                                                               
 
-```
+```bash
 usage: bitween -f <file_path> -n <func_name> [options]
 
 Run analysis based on provided configurations.
