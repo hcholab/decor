@@ -22,7 +22,7 @@ def read_c_file(file_path):
             c_code = file.read()
         return c_code
     except FileNotFoundError:
-        print("Error: The file does not exist.")
+        print(f"Error: The file does not exist: {file_path}")
         return None
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -24,7 +24,7 @@ def read_c_file(file_path):
             c_code = file.read()
         return c_code
     except FileNotFoundError:
-        print("Error: The file does not exist.")
+        print(f"Error: The file does not exist: {file_path}")
         return None
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -382,7 +382,7 @@ class CustomCGenerator(c_generator.CGenerator):
 
 def verify_w_civl(file_path):
 
-    civl_path = config.civl_path
+    civl_path = os.path.join(config.project_dir, config.civl_path)
     if not os.path.exists(civl_path):
         log.error("Error: The CIVL JAR file does not exist.")
         raise FileNotFoundError(
