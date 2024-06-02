@@ -121,16 +121,16 @@ def run():
     )
 
     args = parser.parse_args(
-        args=[
-            "-f",
-            "benchmarks/bitween/dig/cohendiv.c",
-            "-m",
-            "cohendiv",
-            "-n",
-            "15",
-            "--correctness",
-            "verification",
-        ]
+        # args=[
+        #     "-f",
+        #     "../../../benchmarks/bitween/dig/cohendiv.c",
+        #     "-m",
+        #     "cohendiv",
+        #     "-n",
+        #     "15",
+        #     "--correctness",
+        #     "verification",
+        # ]
     )
 
     target_file = Path(args.file_path)
