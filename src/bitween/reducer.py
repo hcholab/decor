@@ -61,7 +61,9 @@ class Reducer:
         return sorted(set(vs), key=str)
 
     @classmethod
-    def find_and_substitute_terms(cls, ps: list[sympy.Expr]):
+    def find_and_substitute_terms(
+        cls, ps: list[sympy.Expr], symbols: dict[str : sympy.Symbol] = {}
+    ) -> list[sympy.Expr]:
         """
         Extract terms from the given list of expressions, and replace them with symbols
         Break complex terms here such that f(x)*(y) is a term, not a product,
@@ -70,7 +72,7 @@ class Reducer:
 
         # TODO: remove "&" from the expression in C e.g. `frexp(a, &e)`
         for i, p in enumerate(ps):
-            ps[i] = sympy.sympify(str(p))
+            ps[i] = sympy.sympify(str(p).replace("&", ""))
 
         for i, eqt in enumerate(ps):
             mapping = {}

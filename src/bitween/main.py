@@ -1119,10 +1119,12 @@ def bitween(file_path: str = None):  # noqa F811
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
+    loc_symbols = {}
     _str = ""
     results = collections.defaultdict(list)
     for loc, data in trace_data.items():
         terms = data["terms"]
+        loc_symbols[loc] = {term: sympy.Symbol(term) for term in terms}  # TODO: check
         data = data["data"]
         samples += data.shape[0]
 
@@ -1159,6 +1161,10 @@ def bitween(file_path: str = None):  # noqa F811
                 continue
             elif config.method == Method.GPLEARN:
                 result = find_models_with_gplearn(extended_terms, extended_data)
+                results[loc].extend(result)
+                continue
+            elif config.method == Method.KAN:
+                result = find_models_with_kan(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
             else:
@@ -1201,6 +1207,7 @@ def bitween(file_path: str = None):  # noqa F811
         # NOTE: a dirty hack to simplify the equation for display
         # based on given function calls and variables
         equations = [eq.expr.evalf() for eq in result]
+        equations = Reducer.find_and_substitute_terms(equations, loc_symbols[loc])
         # NOTE: simplify equations
         equations = [sympy.nsimplify(eq) for eq in equations]
         good_fit = set()
