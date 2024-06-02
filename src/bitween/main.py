@@ -1127,7 +1127,7 @@ def bitween(file_path: str = None):  # noqa F811
         _str += f"Shape: {data.shape}\n"
 
         initial_degree = 1
-        if config.initial_method == Method.FORWARD_SELECTION:
+        if config.method == Method.FORWARD_SELECTION:
             initial_degree = config.degree
 
         for degree in range(initial_degree, config.degree + 1):
@@ -1137,23 +1137,23 @@ def bitween(file_path: str = None):  # noqa F811
 
             _str += f"{extended_terms}; size: {len(extended_terms)}\n"
 
-            if config.initial_method == Method.MULTIPLE_REGRESSION:
+            if config.method == Method.MULTIPLE_REGRESSION:
                 # (Option 1) use cross validation to find the best model for each term
                 models = multiple_regression_heuristics(extended_terms, extended_data)
-            elif config.initial_method == Method.SIMPLE_REGRESSION:
+            elif config.method == Method.SIMPLE_REGRESSION:
                 # (Option 2) use simple linear regression to find a model for each term
                 models = linear_regression_heuristics(extended_terms, extended_data)
-            elif config.initial_method == Method.FORWARD_SELECTION:
+            elif config.method == Method.FORWARD_SELECTION:
                 # (Option 3) use forward selection to find a model for each term
                 models = sfs_heuristics(extended_terms, extended_data, degree)
-            elif config.initial_method == Method.EAGER_MILP:
+            elif config.method == Method.EAGER_MILP:
                 # (Option 4) for ablation study
                 raise NotImplementedError("Eager MILP is not implemented yet")
-            elif config.initial_method == Method.PYSR:
+            elif config.method == Method.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
-            elif config.initial_method == Method.GPLEARN:
+            elif config.method == Method.GPLEARN:
                 result = find_models_with_gplearn(extended_terms, extended_data)
                 results[loc].extend(result)
                 continue
@@ -1319,7 +1319,7 @@ def infer_invariants(
     if bound:
         config.bound = bound
 
-    config.initial_method = method
+    config.method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
@@ -1364,7 +1364,7 @@ def infer_invariants_and_check_correctness(
     if bound:
         config.bound = bound
 
-    config.initial_method = method
+    config.method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
@@ -1397,7 +1397,7 @@ def infer_invariants_and_verify_correctness(
     if bound:
         config.bound = bound
 
-    config.initial_method = method
+    config.method = method
 
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)

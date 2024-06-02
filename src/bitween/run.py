@@ -141,11 +141,12 @@ def run():
     if args.precision:
         config.precision = args.precision
     if args.correctness:
-        config.correctness = args.correctness
+        config.correctness = Correctness[args.correctness.upper()]
+        print(f"Correctness: {config.correctness}")
     if args.n:
         config.n = args.n
     if args.method:
-        config.initial_method = Method[args.method.upper()]
+        config.method = Method[args.method.upper()]
     if args.cross_validation:
         config.cross_validation = args.cross_validation
     if args.regression_score:
@@ -184,7 +185,7 @@ def run():
     elif config.correctness == Correctness.NONE:
         pass
     else:
-        raise ValueError("Invalid correctness option")
+        raise ValueError(f"Invalid correctness option: {config.correctness}")
 
     return equations
 

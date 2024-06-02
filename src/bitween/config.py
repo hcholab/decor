@@ -131,25 +131,26 @@ class Config:
         self._config.set("general", "precision", str(value))
 
     @property
-    def initial_method(self):
+    def method(self):
         """Get the initial method."""
         value = self._config.get(
             "initial_method", "general", fallback="MULTIPLE_REGRESSION"
         )
         return Method[value]
 
-    @initial_method.setter
-    def initial_method(self, value):
+    @method.setter
+    def method(self, value):
         self._config.set("general", "method", value.name)
 
     @property
     def correctness(self):
         """Check or Verify correctness."""
-        self._config.get("general", "correctness", fallback="VERIFICATION")
+        value = self._config.get("general", "correctness", fallback="VERIFICATION")
+        return Correctness[value]
 
     @correctness.setter
     def correctness(self, value):
-        self._config.set("general", "correctness", value)
+        self._config.set("general", "correctness", value.name)
 
     @property
     def n(self):
@@ -583,9 +584,9 @@ if __name__ == "__main__":
         config.logger_level = 5
         print(f"Updated Logger Level: {Config().logger_level}")
 
-        config.initial_method = Method.MULTIPLE_REGRESSION
-        print(f"Initial Method: {config.initial_method}")
-        assert config.initial_method == Method.MULTIPLE_REGRESSION
+        config.method = Method.MULTIPLE_REGRESSION
+        print(f"Initial Method: {config.method}")
+        assert config.method == Method.MULTIPLE_REGRESSION
 
         config.invariant_type = InvariantType.INT
         print(f"Invariant Type: {config.invariant_type}")
