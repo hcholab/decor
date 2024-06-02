@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from bitween.decorator import decorate_assertions
 from bitween.main import bitween
 from bitween.checker import fuzz_and_check
 from bitween.config import (
@@ -119,7 +120,18 @@ def run():
         default=None,
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(
+        args=[
+            "-f",
+            "benchmarks/bitween/dig/cohendiv.c",
+            "-m",
+            "cohendiv",
+            "-n",
+            "15",
+            "--correctness",
+            "verification",
+        ]
+    )
 
     target_file = Path(args.file_path)
     if not target_file.exists():
@@ -187,7 +199,9 @@ def run():
     else:
         raise ValueError(f"Invalid correctness option: {config.correctness}")
 
-    return equations
+    decorate_assertions(config.file_path, config.func_name, equations)
+
+    return
 
 
 if __name__ == "__main__":
