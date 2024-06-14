@@ -2,6 +2,21 @@ import re
 from collections import defaultdict
 
 
+class ExpressionInfo:
+    def __init__(self, expr, line_num, order, variable, function="main"):
+        self.expr = expr
+        self.line_num = line_num
+        self.order = order
+        self.variable = variable
+        self.function = function
+
+    def __repr__(self):
+        return (
+            f"ExpressionInfo(expr={self.expr}, line_num={self.line_num}, "
+            f"order={self.order}, variable={self.variable}, function={self.function})"
+        )
+
+
 class IRParser:
     def __init__(self, ir_content):
         self.ir_content = ir_content
@@ -14,8 +29,10 @@ class IRParser:
         self.assertion_pattern = re.compile(r"\((\d+)\) ASSERT\((.+)\)")
         self.guard_pattern = re.compile(r"\((\d+)\) \\guard#(\d+) == (.+)")
         self.line_comment_pattern = re.compile(r"line (\d+)")
+        self.function_comment_pattern = re.compile(r"function (\w+)")
         self.last_line_numbers = defaultdict(int)
         self.expressions = []
+        self.current_function = None
 
     def convert_variable(self, var):
         if "\\guard" in var:
@@ -47,10 +64,17 @@ class IRParser:
         # Match nondet variables
         nondet_match = self.nondet_var_pattern.match(line)
         if nondet_match:
-            number, var_name, frame_num, ssa_num, var_type = nondet_match.groups()
+            order, var_name, frame_num, ssa_num, var_type = nondet_match.groups()
             converted_var = self.convert_variable(f"{var_name}@{frame_num}#{ssa_num}")
+            expr = f"{converted_var} = {var_type}"
             self.expressions.append(
-                (int(number), f"{converted_var} = {var_type}", current_line_num)
+                ExpressionInfo(
+                    expr,
+                    current_line_num,
+                    int(order),
+                    converted_var,
+                    self.current_function,
+                )
             )
             self.last_line_numbers[converted_var] = int(current_line_num)
             return
@@ -58,11 +82,17 @@ class IRParser:
         # Match guard statements
         guard_match = self.guard_pattern.match(line)
         if guard_match:
-            number, ssa_num, expr = guard_match.groups()
+            order, ssa_num, expr = guard_match.groups()
             converted_var = self.convert_variable(f"\\guard#{ssa_num}")
             converted_expr = self.convert_expression(expr)
             self.expressions.append(
-                (int(number), f"{converted_var} = {converted_expr}", current_line_num)
+                ExpressionInfo(
+                    f"{converted_var} = {converted_expr}",
+                    current_line_num,
+                    int(order),
+                    converted_var,
+                    self.current_function,
+                )
             )
             self.last_line_numbers[converted_var] = int(current_line_num)
             return
@@ -70,12 +100,18 @@ class IRParser:
         # Match expressions
         expression_match = self.expression_pattern.match(line)
         if expression_match:
-            number, var_name, frame_num, ssa_num, expr = expression_match.groups()
+            order, var_name, frame_num, ssa_num, expr = expression_match.groups()
             frame_num = frame_num if frame_num is not None else ""
             converted_var = self.convert_variable(f"{var_name}@{frame_num}#{ssa_num}")
             converted_expr = self.convert_expression(expr)
             self.expressions.append(
-                (int(number), f"{converted_var} = {converted_expr}", current_line_num)
+                ExpressionInfo(
+                    f"{converted_var} = {converted_expr}",
+                    current_line_num,
+                    int(order),
+                    converted_var,
+                    self.current_function,
+                )
             )
             self.last_line_numbers[converted_var] = int(current_line_num)
             return
@@ -83,10 +119,16 @@ class IRParser:
         # Match assertions
         assertion_match = self.assertion_pattern.match(line)
         if assertion_match:
-            number, assertion = assertion_match.groups()
+            order, assertion = assertion_match.groups()
             converted_assertion = self.convert_expression(assertion)
             self.expressions.append(
-                (int(number), f"ASSERT({converted_assertion})", current_line_num)
+                ExpressionInfo(
+                    f"ASSERT({converted_assertion})",
+                    current_line_num,
+                    int(order),
+                    None,
+                    self.current_function,
+                )
             )
             self.last_line_numbers["ASSERT"] = int(current_line_num)
 
@@ -94,15 +136,16 @@ class IRParser:
         current_line_num = None
         for line in self.ir_content.splitlines():
             line_comment_match = self.line_comment_pattern.search(line)
+            function_comment_match = self.function_comment_pattern.search(line)
+            if function_comment_match:
+                self.current_function = function_comment_match.group(1)
             if line_comment_match:
                 current_line_num = int(line_comment_match.group(1))
             else:
                 self.process_line(line, current_line_num)
 
     def get_expressions(self):
-        # Sort expressions by the number in parentheses
-        self.expressions.sort(key=lambda x: x[0])
-        return [(expr, line_num) for _, expr, line_num in self.expressions]
+        return self.expressions
 
     def get_last_line_numbers(self):
         return dict(self.last_line_numbers)
