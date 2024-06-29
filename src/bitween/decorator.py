@@ -58,7 +58,7 @@ def replace_vtrace_with_equations(file_path, out_path, trace_equations):
         lines = file.readlines()
 
     # Regular expression to find 'assert(' and match until the closing parenthesis
-    pattern = re.compile(r"(\s*)vtrace(\d*)\([^)]*\);")
+    pattern = re.compile(r"(\s*)vtrace(\d*).*?;")
 
     # merge all the equations into a single string by trace locations
     merged_equations = {}

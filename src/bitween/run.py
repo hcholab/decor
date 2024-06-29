@@ -13,6 +13,8 @@ from bitween.config import (
 from bitween.fuzzer import fuzz_and_trace
 from bitween.verifier import fuzz_and_verify
 
+config = Config()
+
 
 def run():
     parser = argparse.ArgumentParser(
@@ -123,14 +125,26 @@ def run():
         default=None,
     )
 
+    config = Config()
+
     args = parser.parse_args(
+        # Test arguments
         # args=[
         #     "-f",
-        #     "../../../benchmarks/bitween/dig/cohendiv.c",
-        #     "-m",
-        #     "cohendiv",
+        #     # config.project_dir + "/benchmarks/bitween/rsr-benchs/sine.c",
+        #     config.project_dir + "/benchmarks/bitween/dig/bresenham.c",
+        #     "--func_name",
+        #     # "sine",
+        #     "bresenham",
+        #     "--method",
+        #     "MULTIPLE_REGRESSION",
+        #     "-o",
+        #     # config.project_dir + "/benchmarks/bitween/rsr-benchs/sine.out.c",
+        #     config.project_dir + "/benchmarks/bitween/dig/bresenham.out.c",
+        #     "-d",
+        #     "2",
         #     "-n",
-        #     "15",
+        #     "30",
         #     "--correctness",
         #     "verification",
         # ]
@@ -140,7 +154,6 @@ def run():
     if not target_file.exists():
         parser.exit(1, f"The file '{args.file_path}' does not exist.\n")
 
-    config = Config()
     # Override configurations from command-line arguments if provided
     if args.file_path:
         config.file_path = args.file_path
