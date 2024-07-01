@@ -1432,10 +1432,12 @@ def infer_property(
     precondition: callable = None,  # precondition for the samples
     milp: MILPSolver = None,
     var_bound: int = None,
+    method: Method = Method.MULTIPLE_REGRESSION,
 ) -> list[sympy.Expr]:
 
     config.degree = max_degree
     config.epsilon = epsilon
+    config.method = method
     if milp:
         config.milp_enabled = True
         config.milp_solver = milp
