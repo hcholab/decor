@@ -1,0 +1,68 @@
+(datatype Math
+  (Num i64)
+  (Var String)
+  (Sub Math Math)
+  (Add Math Math)
+  (Mul Math Math))
+
+;; expr1 = 2 * (x + 3)
+(let expr1 (Mul (Num 2) (Add (Var "x") (Num 3))))
+;; expr2 = 6 + 2 * x
+(let expr2 (Add (Num 6) (Mul (Num 2) (Var "x"))))
+;; expr3 = h1 + (x + x)
+;;(let expr3 (Add (Num 1) (Add (Var "x") (Var "x"))))
+(let expr3 (Add (Var "h1") (Add (Var "x") (Var "x"))))
+;; expr4 = (1 + x) + x
+(let expr4 (Add (Add (Num 1) (Var "x")) (Var "x")))
+
+
+(union (Num 1) (Var "h1") )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; First, constant folding!
+;; We don't need an explicit constant folding analysis, we can just union
+;; with nums when we can
+; Cases
+(rewrite (Add (Num a) (Num b)) (Num (+ a b)))
+(rewrite (Sub (Num a) (Num b)) (Num (- a b)))
+(rewrite (Mul (Num a) (Num b)) (Num (* a b)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Rewrites
+;; --------
+;; Commutativity
+(rewrite (Add a b) (Add b a))
+(rewrite (Mul a b) (Mul b a))
+;; Associativity
+(rewrite (Add a (Add b c)) (Add (Add a b) c))
+(rewrite (Add (Add a b) c) (Add a (Add b c)))
+(rewrite (Add a (Sub b c)) (Sub (Add a b) c))
+(rewrite (Add (Sub a b) c) (Sub a (Sub b c)))
+(rewrite (Sub a (Add b c)) (Sub (Sub a b) c))
+(rewrite (Sub (Add a b) c) (Add a (Sub b c)))
+(rewrite (Sub (Sub a b) c) (Sub a (Add b c)))
+(rewrite (Sub a (Sub b c)) (Add (Sub a b) c))
+(rewrite (Mul a (Mul b c)) (Mul (Mul a b) c))
+(rewrite (Mul (Mul a b) c) (Mul a (Mul b c)))
+;; Counting
+(rewrite (Add x x) (Mul (Num 2) x))
+;; Distributivity
+(rewrite (Mul a (Add b c))         (Add (Mul a b) (Mul a c)))
+(rewrite (Mul a (Add b c))         (Add (Mul b a) (Mul c a)))
+(rewrite (Add (Mul a b) (Mul a c)) (Mul a (Add b c)))
+(rewrite (Sub (Mul a b) (Mul a c)) (Mul a (Sub b c)))
+(rewrite (Add (Mul b a) (Mul c a)) (Mul a (Add b c)))
+(rewrite (Sub (Mul b a) (Mul c a)) (Mul a (Sub b c)))
+(rewrite (Add (Mul b a) a)         (Mul (Add b (Num 1)) a))
+(rewrite (Add a (Mul c a))         (Mul (Add c (Num 1)) a))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(run 20)
+;;(check (= expr1 expr3))
+;;(check (= expr2 expr3))
+;;(check (= expr1 expr3))
+
+(query-extract expr1)
+(query-extract expr2)
+(query-extract expr3)
+(query-extract expr4)
