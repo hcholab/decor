@@ -25,6 +25,18 @@ Discuss Symbolic Regression.
 
 Draw inspiration from the following definition: ![image](figures/symbolic_regression_definition.png)
 
+## New type of invariants
+
+https://dl.acm.org/doi/10.5555/3618408.3619552
+
+![image](figures/daikon_properties.png)
+
+http://plse.cs.washington.edu/daikon/ 
+
+- [ ] Daikon invariants that bitween can do as well:
+    - [ ] how daikon handles them? again the same instrumentation trick?
+
+
 ## New Sequential Feature Selection-based Bitween Method.
 
 
