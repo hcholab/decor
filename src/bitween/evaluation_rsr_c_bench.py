@@ -115,6 +115,15 @@ def sigmoid():
     )
 
 
+def logistics():
+    file_path = "./benchmarks/bitween/rsr-benchs/logistic.c"
+    func_name = "sigmoid"
+
+    infer_invariants_and_check_correctness(
+        file_path, func_name, max_degree=2, n=200, milp=glpk
+    )
+
+
 def sigmoid_taylor():
     file_path = "./benchmarks/bitween/rsr-benchs/sigmoid_taylor.c"
     func_name = "sigmoid_taylor"
@@ -281,6 +290,7 @@ if __name__ == "__main__":
     # sin()
     # sin_taylor()
     # sin_taylor_1()
-    sinh_taylor()
+    # sinh_taylor()
+    logistics()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
