@@ -270,7 +270,7 @@ if __name__ == "__main__":
     # exp()
     # exp_math()
     # exp_taylor()
-    # sigmoid()
+    sigmoid()
     # sigmoid_taylor()
     # exp1()
     # exp1_taylor()
@@ -291,6 +291,6 @@ if __name__ == "__main__":
     # sin_taylor()
     # sin_taylor_1()
     # sinh_taylor()
-    logistics()
+    # logistics()
 
     log.debug(f"Total Time: {time() - st:.2f}s")

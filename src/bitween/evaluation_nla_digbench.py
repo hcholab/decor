@@ -20,7 +20,7 @@ def bresenham():
         max_degree=2,
         n=20,
         milp=None,
-        method=Method.FORWARD_SELECTION,
+        # method=Method.FORWARD_SELECTION,
     )
 
 
@@ -333,8 +333,8 @@ if __name__ == "__main__":
     st = time()
 
     # bresenham()
-    # cohencu()  # NOTE: use this in demo
-    cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
+    cohencu()  # NOTE: use this in demo
+    # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
     # egcd()  # NOTE: use this in demo 3
