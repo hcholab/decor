@@ -381,7 +381,7 @@ def create_test_driver(func_name, params, return_type):
 def compile_code(source_file):
     # Assuming gcc is installed and available in the path
     executable = source_file.replace(".fuzzer.c", ".fuzzer")
-    compilation_command = ["gcc", source_file, "-o", executable]
+    compilation_command = ["gcc", source_file, "-o", executable, "-lm"]
     try:
         subprocess.run(compilation_command, check=True)
         log.debug(f"Compilation successful: {executable} created.")
