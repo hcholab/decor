@@ -933,6 +933,87 @@ def test_square_loss():
         verify(eq, f)
 
 
+def test_savage_loss():
+    def F(v):
+        return 1 / (1 + math.exp(v)) ** 2
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=4,
+        n=100,
+    )
+
+    def f(x):
+        return 1 / (1 + sympy.exp(x)) ** 2
+
+    for eq in equations:
+        verify(eq, f)
+
+
+def test_savage_loss_library():
+    def F(x):
+        return 1 / (1 + math.exp(x)) ** 2
+
+    def G(x, y):
+        return math.exp(x) * math.exp(y)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "G(x, y)", "F(x)", "F(y)"],
+        ["f(x+y)", "g(x, y)", "f(x)", "f(y)"],
+        F,
+        G,
+        max_degree=3,
+        n=100,
+    )
+
+    def f(x):
+        return 1 / (1 + sympy.exp(x)) ** 2
+
+    def g(x, y):
+        return sympy.exp(x) * sympy.exp(y)
+
+    for eq in equations:
+        verify(eq, f, g)
+
+    # f(x+y)*g(x)*g(y)**2 + 2*f(x+y)*g(x)*g(y) + f(x+y) - 1 = 0
+
+    # f(x+y) = \frac{1}{g(x) \cdot g(y)^2 + 2 \cdot g(x) \cdot g(y) + 1}
+
+
+def test_savage_loss_basis():
+    def F(x):
+        return 1 / (1 + math.exp(x)) ** 2
+
+    def G(x):
+        return math.exp(x)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "G(x)", "G(y)"],
+        ["f(x+y)", "g(x)", "g(y)"],
+        F,
+        G,
+        max_degree=5,
+        n=100,
+    )
+
+    def f(x):
+        return 1 / (1 + sympy.exp(x)) ** 2
+
+    def g(x):
+        return sympy.exp(x)
+
+    for eq in equations:
+        verify(eq, f, g)
+
+
 if __name__ == "__main__":
     st = time()
 
@@ -976,13 +1057,16 @@ if __name__ == "__main__":
     # test_softmax2_alt_1()  # no solution
 
     # https://en.wikipedia.org/wiki/Sinc_function
-    test_sinc()
+    # test_sinc()
     # test_sinc_composite()
 
     # test_cube()
     # test_log()
 
     # loss functions:https://en.wikipedia.org/wiki/Loss_functions_for_classification
-    test_square_loss()
+    # test_square_loss()
+    # test_savage_loss() # no solution
+    # test_savage_loss_library()  # library
+    test_savage_loss_basis()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
