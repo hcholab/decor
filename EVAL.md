@@ -91,14 +91,14 @@ Vars : Univariate, Bivariate, Trivariate, etc.
 |  2 |  Exp         |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.49 ||  ✓  | ✓ |
 |  3 |  Sigmoid     |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.39 ||  ✓  | ✓ |
 |  4 |  Exp1        |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.60 ||  ✓  | ✓ |
-|  5 |  ExpDivByX   |  1  |  5  | Addition Thm. |  126 ||            |        ||    ?    |  +   |  89.63 ||  ?  | - |
+|  5 |  ExpDivByX   |  1  |  3  | Library       |      ||            |        ||    ✓    |  -   |        ||  ✓  | - |
 |  6 |  Floudas     |  2  |  1  | Addition Thm. |    6 ||            |        ||    ✓    |  -   |   0.72 ||  ✓  | ✓ |
 |  7 |  Mean        |  3  |  1  | Addition Thm. |    8 ||            |        ||    ✓    |  -   |   0.73 ||  ✓  | ✓ |
 |  8 |  Tan         |  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |  -   |   3.07 ||  ✓  | ✓ |
 |  9 |  Cot         |  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |  -   |   2.56 ||  ✓  | ✓ |
 | 10 |  Tanh        |  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |  -   |   3.89 ||  ✓  | ✓ |
 | 11 |  Sub_x2_y2   |  2  |  3  | Addition Thm. |  165 ||            |        ||    ✓    |  -   |  95.09 ||  ✓  | ✓ |
-| 12 |  Sqrt_Add    |  1  |  5  | Addition Thm. |  126 ||            |        ||    ?    |  +   |  97.49 ||  ?  | - |
+| 12 |  Inv_x2      |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |  97.49 ||  ✓  | ✓ |
 | 13 |  Inverse     |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.28 ||  ✓  | ✓ |
 | 14 |  Inv_add     |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   0.94 ||  ✓  | ✓ |
 | 15 |  Inv_Cot_Add*|  1  |  3  | Addition Thm. |   20 ||            |        ||    ✓*   |  -   |   1.18 ||  ✓  | ✓ |
@@ -110,6 +110,15 @@ Vars : Univariate, Bivariate, Trivariate, etc.
 | 21 |  Squared     |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.08 ||  ✓1 | ✓ |
 | 22 |  Sin         |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.04 ||  ✓1 | ✓ |
 | 23 |  Sinh        |  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |  -   |   1.17 ||  ✓1 | ✓ |
+| 24 |  Mod         |  1  |  1  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 25 |  Mod_Mult    |  1  |  1  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 26 |  Int_Mult    |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 27 |  Softmax_1   |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 28 |  Softmax_2   |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 29 |  Logictics_1 |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 30 |  Logictics_2 |  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 31 |  Sinc        |  1  |  3  | Library       |      ||            |        ||    ✓    |  -   |        ||     |   |
+| 32 |  Cube        |  1  |  3  | Addition Thm. |      ||            |        ||    ✓    |  -   |        ||     |   |
 |----|--------------|-----|-----|---------------|------||------------|--------||---------|------|--------||-----|---|
                                                  
 * Templates: F[f(x+y), f(x), f(y), 1] = 0 for others: F[f(x-y), f(x+y), f(x), f(y), 1] = 0. 

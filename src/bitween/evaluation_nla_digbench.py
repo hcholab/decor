@@ -296,7 +296,7 @@ def sqrt1():
     file_path = "./benchmarks/bitween/dig/sqrt1.c"
     func_name = "sqrt1"
     infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, method=Method.FORWARD_SELECTION
+        file_path, func_name, max_degree=2, n=15, method=Method.MULTIPLE_REGRESSION
     )
 
 
@@ -311,8 +311,8 @@ def wensley2():
 def z3sqrt():
     file_path = "./benchmarks/bitween/dig/z3sqrt.c"
     func_name = "z3sqrt"
-    infer_invariants_and_check_correctness(
-        file_path, func_name, max_degree=2, n=15, milp=None
+    infer_invariants_and_verify_correctness(
+        file_path, func_name, max_degree=2, n=10, milp=None
     )
 
 

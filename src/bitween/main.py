@@ -1207,6 +1207,7 @@ def bitween(file_path: str = None):  # noqa F811
         # NOTE: a dirty hack to simplify the equation for display
         # based on given function calls and variables
         equations = [eq.expr.evalf() for eq in result]
+        # TODO: check this.
         equations = Reducer.find_and_substitute_terms(equations, loc_symbols[loc])
         # NOTE: simplify equations
         equations = [sympy.nsimplify(eq) for eq in equations]
@@ -1428,7 +1429,7 @@ def infer_property(
     *functions,
     max_degree: int = 2,  # maximum degree
     n: int = 30,  # number of samples
-    epsilon: float = 0.1,  # error threshold
+    epsilon: float = 0.001,  # error threshold
     precondition: callable = None,  # precondition for the samples
     milp: MILPSolver = None,
     var_bound: int = None,
@@ -1569,6 +1570,8 @@ def verify(expr: sympy.Expr, *functions) -> bool:
             "log": sympy.log,
             "sign": sympy.sign,
             "pi": sympy.pi,
+            "Add": sympy.Add,
+            "Sum": sympy.Sum,
         },
     )
     proof = proved == 0

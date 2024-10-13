@@ -11,6 +11,7 @@ class Domain(Enum):
 
     Real = 1
     Integer = 2
+    Positive_Integer = 3
 
     def __str__(self):
         """
@@ -20,6 +21,8 @@ class Domain(Enum):
             return "Real"
         elif self == Domain.Integer:
             return "Integer"
+        elif self == Domain.Positive_Integer:
+            return "Positive Integer"
         else:
             raise ValueError("Invalid domain")
 
@@ -31,6 +34,8 @@ class Domain(Enum):
             return "\\mathbb{R}"
         elif self == Domain.Integer:
             return "\\mathbb{Z}"
+        elif self == Domain.Positive_Integer:
+            return "\\mathbb{Z}^+"
         else:
             raise ValueError("Invalid domain")
 
@@ -112,6 +117,19 @@ def sample(domain: Domain, distribution: Distribution, variables: list[str | Sym
             values = {}
             for var in variables:
                 values[str(var)] = random.randint(-1000, 1000)
+    elif domain == Domain.Positive_Integer:
+        if distribution == Distribution.Tiny:
+            values = {}
+            for var in variables:
+                values[str(var)] = random.randint(1, 2)
+        elif distribution == Distribution.Small:
+            values = {}
+            for var in variables:
+                values[str(var)] = random.randint(1, 10)
+        else:
+            values = {}
+            for var in variables:
+                values[str(var)] = random.randint(1, 1000)
 
     return values
 
