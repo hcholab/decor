@@ -912,6 +912,27 @@ def test_log():
         verify(eq, f)
 
 
+def test_square_loss():
+    def F(v):
+        return (1 - v) ** 2
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return (1 - x) ** 2
+
+    for eq in equations:
+        verify(eq, f)
+
+
 if __name__ == "__main__":
     st = time()
 
@@ -945,12 +966,23 @@ if __name__ == "__main__":
     # test_mod()
     # test_mod_mult()
     # test_mult()
+
+    # https://en.wikipedia.org/wiki/Logistic_function
     # test_logistic()
+
+    # https://en.wikipedia.org/wiki/Softmax_function
     # test_softmax2_1()
     # test_softmax2_2()
     # test_softmax2_alt_1()  # no solution
-    # test_sinc()
+
+    # https://en.wikipedia.org/wiki/Sinc_function
+    test_sinc()
+    # test_sinc_composite()
+
     # test_cube()
-    test_log()
+    # test_log()
+
+    # loss functions:https://en.wikipedia.org/wiki/Loss_functions_for_classification
+    test_square_loss()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
