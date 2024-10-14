@@ -89,44 +89,44 @@ Vars : Univariate, Bivariate, Trivariate, etc.
 |----|--------------|-------||-----|-----|---------------|------||------------|--------||---------|--------||-----|---|
 |  1 |  Identity    |  Yes  ||  1  |  1  | Addition Thm. |    5 ||            |        ||    ✓    |   0.70 ||  ✓  | ✓ |
 |  2 |  Exp         |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.49 ||  ✓  | ✓ |
-|  3 |  Sigmoid     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.39 ||  ✓  | ✓ |
-|  4 |  Exp1        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.60 ||  ✓  | ✓ |
-|  5 |  ExpDivByX   |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✗    |        ||  ✓  | - |
-|  6 |  ExpDivByX   |   -   ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||  ✓  | - |
-|  7 |  Floudas     |   -   ||  2  |  1  | Addition Thm. |    6 ||            |        ||    ✓    |   0.72 ||  ✓  | ✓ |
-|  8 |  Mean        |   -   ||  3  |  1  | Addition Thm. |    8 ||            |        ||    ✓    |   0.73 ||  ✓  | ✓ |
-|  9 |  Tan         |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   3.07 ||  ✓  | ✓ |
-| 10 |  Cot         |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   2.56 ||  ✓  | ✓ |
-| 11 |  Tanh        |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   3.89 ||  ✓  | ✓ |
-| 12 |  Sub_x2_y2   |   -   ||  2  |  3  | Addition Thm. |  165 ||            |        ||    ✓    |  95.09 ||  ✓  | ✓ |
-| 13 |  Inv_x2      |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  97.49 ||  ✓  | ✓ |
-| 14 |  Inverse     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.28 ||  ✓  | ✓ |
-| 15 |  Inv_add     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   0.94 ||  ✓  | ✓ |
-| 16 |  Inv_Cot_Add*|   -   ||  1  |  3  | Addition Thm. |   20 ||            |        ||    ✓*   |   1.18 ||  ✓  | ✓ |
-| 17 |  Inv_Tan_Add*|   -   ||  1  |  3  | Addition Thm. |   20 ||            |        ||    ✓*   |   1.02 ||  ✓  | ✓ |
-| 18 |  Inv_Sub^    |   -   ||  1  |  3  | Addition Thm. |   15 ||            |        ||    ✓^   |   1.09 ||  ✓  | ✓ |
-| 19 |  Inv_Sub2^   |   -   ||  1  |  3  | Addition Thm. |   15 ||            |        ||    ✓^   |   1.22 ||  ✓  | ✓ |
-| 20 |  Cos         |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.00 ||  ✓  | ✓ |
-| 21 |  Cosh        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.05 ||  ✓2 | ✓ |
-| 22 |  Squared     |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.08 ||  ✓1 | ✓ |
-| 23 |  Sin         |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.04 ||  ✓1 | ✓ |
-| 24 |  Sinh        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.17 ||  ✓1 | ✓ |
-| 25 |  Mod         |   -   ||  1  |  1  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 26 |  Mod_Mult    |   -   ||  2  |  1  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 27 |  Int_Mult    |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 28 |  Softmax_1   |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 29 |  Softmax_2   |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 30 |  Logictics_1 |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 31 |  Logictics_2 |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 32 |  Sinc        |   -   ||  1  |  2  | Library       |      ||            |        ||    ✓    |        ||     |   |
-| 33 |  Sinc        |   -   ||  1  |  3  | RR Method     |      ||            |        ||    ✓    |        ||     |   |
-| 34 |  Cube        |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 35 |  Log         |  Yes  ||  1  |  3  | Pexider       |      ||            |        ||    ✓    |        ||     |   |
-| 36 |  Square Loss |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
-| 37 |  Savage Loss |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✗    |        ||     |   |
-| 38 |  Savage Loss |   -   ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
-| 39 |  Sec         |  Yes  ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
-| 40 |  Csc         |  Yes  ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
+|  3 |  Exp1        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.60 ||  ✓  | ✓ |
+|  4 |  ExpDivByX   |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✗    |        ||  ✓  | - |
+|  5 |  ExpDivByX   |   -   ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||  ✓  | - |
+|  6 |  Floudas     |   -   ||  2  |  1  | Addition Thm. |    6 ||            |        ||    ✓    |   0.72 ||  ✓  | ✓ |
+|  7 |  Mean        |   -   ||  3  |  1  | Addition Thm. |    8 ||            |        ||    ✓    |   0.73 ||  ✓  | ✓ |
+|  8 |  Tan         |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   3.07 ||  ✓  | ✓ |
+|  9 |  Cot         |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   2.56 ||  ✓  | ✓ |
+| 10 |  Tanh        |  Yes  ||  1  |  3  | Addition Thm. |   35 ||            |        ||    ✓    |   3.89 ||  ✓  | ✓ |
+| 11 |  Sub_x2_y2   |   -   ||  2  |  3  | Addition Thm. |  165 ||            |        ||    ✓    |  95.09 ||  ✓  | ✓ |
+| 12 |  Inv_x2      |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |  97.49 ||  ✓  | ✓ |
+| 13 |  Inverse     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.28 ||  ✓  | ✓ |
+| 14 |  Inv_add     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   0.94 ||  ✓  | ✓ |
+| 15 |  Inv_Cot_Add*|   -   ||  1  |  3  | Addition Thm. |   20 ||            |        ||    ✓*   |   1.18 ||  ✓  | ✓ |
+| 16 |  Inv_Tan_Add*|   -   ||  1  |  3  | Addition Thm. |   20 ||            |        ||    ✓*   |   1.02 ||  ✓  | ✓ |
+| 17 |  Inv_Sub^    |   -   ||  1  |  3  | Addition Thm. |   15 ||            |        ||    ✓^   |   1.09 ||  ✓  | ✓ |
+| 18 |  Inv_Sub2^   |   -   ||  1  |  3  | Addition Thm. |   15 ||            |        ||    ✓^   |   1.22 ||  ✓  | ✓ |
+| 19 |  Cos         |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.00 ||  ✓  | ✓ |
+| 20 |  Cosh        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.05 ||  ✓2 | ✓ |
+| 21 |  Squared     |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.08 ||  ✓1 | ✓ |
+| 22 |  Sin         |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.04 ||  ✓1 | ✓ |
+| 23 |  Sinh        |  Yes  ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.17 ||  ✓1 | ✓ |
+| 24 |  Cube        |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 25 |  Log         |  Yes  ||  1  |  3  | Pexider       |      ||            |        ||    ✓    |        ||     |   |
+| 26 |  Sec         |  Yes  ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
+| 27 |  Csc         |  Yes  ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
+| 28 |  Sinc        |   -   ||  1  |  2  | Library       |      ||            |        ||    ✓    |        ||     |   |
+| 29 |  Sinc        |   -   ||  1  |  3  | RR Method     |      ||            |        ||    ✓    |        ||     |   |
+| 30 |  Mod         |   -   ||  1  |  1  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 31 |  Mod_Mult    |   -   ||  2  |  1  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 32 |  Sigmoid     |   -   ||  1  |  2  | Addition Thm. |   15 ||            |        ||    ✓    |   1.39 ||  ✓  | ✓ |
+| 33 |  Int_Mult    |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 34 |  Softmax_1   |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 35 |  Softmax_2   |   -   ||  2  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 36 |  Logistic_1  |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 37 |  Logistic_2  |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 38 |  Square Loss |   -   ||  1  |  2  | Addition Thm. |      ||            |        ||    ✓    |        ||     |   |
+| 39 |  Savage Loss |   -   ||  1  |  3  | Addition Thm. |      ||            |        ||    ✗    |        ||     |   |
+| 40 |  Savage Loss |   -   ||  1  |  3  | Library       |      ||            |        ||    ✓    |        ||     |   |
 |----|--------------|-------||-----|-----|---------------|------||------------|--------||---------|--------||-----|---|
                                                  
 * Templates: F[f(x+y), f(x), f(y), 1] = 0 for others: F[f(x-y), f(x+y), f(x), f(y), 1] = 0. 
