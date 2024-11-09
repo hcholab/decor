@@ -1,3 +1,4 @@
+from bitween._settings import InitialMethod
 from bitween.main import (  # noqa F401
     infer_invariants_and_check_correctness,
     infer_invariants_and_verify_correctness,
@@ -25,16 +26,47 @@ def bresenham():
 
 
 def cohencu():
+    iteration = 40
+    # for each iteration, we will query with different samples (n) and get different errors
+    sample_error = {}
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    infer_invariants_and_verify_correctness(
-        file_path,
-        func_name,
-        max_degree=2,
-        n=15,
-        milp=None,
-        # method=InitialMethod.FORWARD_SELECTION,
-    )
+    for i in range(5, iteration, 5):
+        props, error, sample = infer_invariants_and_check_correctness(
+            file_path,
+            func_name,
+            max_degree=2,
+            n=i,
+            milp=None,
+            method=InitialMethod.MULTIPLE_REGRESSION,
+        )
+
+        if props:
+            print("Properties found:")
+            e_sum = 0
+            s_sample = 0
+            for loc, props in props.items():
+                print(f"Loc: {loc}")
+                for prop in props:
+                    print(f" {prop}")
+                if not props:
+                    continue
+                e = round(error[loc], 5)
+                print(f"Error: {e}")
+                s = sample[loc]
+                print(f"Sample: {s}")
+                (e_sum, s_sample) = (e_sum + e, s_sample + s)
+            sample_error[i] = (e_sum / len(props), s_sample / len(props))
+        else:
+            print("No properties found")
+
+    # create a panda dataset for figure and order by sample
+    import pandas as pd
+
+    df = pd.DataFrame(sample_error).T
+    df.columns = ["Error", "Sample"]
+    df = df.sort_values(by="Sample")
+    print(df)
 
 
 def cohendiv():
@@ -311,7 +343,7 @@ def wensley2():
 def z3sqrt():
     file_path = "./benchmarks/bitween/dig/z3sqrt.c"
     func_name = "z3sqrt"
-    infer_invariants_and_verify_correctness(
+    props, error, sample = infer_invariants_and_check_correctness(
         file_path, func_name, max_degree=2, n=10, milp=None
     )
 

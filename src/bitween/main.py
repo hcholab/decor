@@ -117,7 +117,7 @@ def generate_monomials(terms, degree):
     monomials = []
     for d in range(1, degree + 1):
         for combo in itertools.combinations_with_replacement(terms, d):
-            monomials.append("*".join(combo))
+            monomials.append("||".join(combo))
     return monomials
 
 
@@ -125,7 +125,7 @@ def calculate_monomial_data(terms, monomials, data):
     # Split each monomial and calculate its value for each row in the data
     monomial_values = np.ones((data.shape[0], len(monomials)))
     for i, monomial in enumerate(monomials):
-        for term in monomial.split("*"):
+        for term in monomial.split("||"):
             term_index = terms.index(term)
             monomial_values[:, i] *= data[:, term_index]
     return monomial_values
@@ -137,6 +137,8 @@ def process_trace(terms: list[str], data, degree):
     monomial_data = calculate_monomial_data(terms, monomials, data)
     # append ones column for the constant term to the extended data and a constant term to the extended terms
     extended_terms.append("1")
+    # recover || to *
+    extended_terms = [term.replace("||", "*") for term in extended_terms]
     extended_data = np.hstack((monomial_data, np.ones((data.shape[0], 1))))
     return extended_terms, extended_data
 
@@ -1119,11 +1121,13 @@ def bitween(file_path: str = None):  # noqa F811
     input_data = load_input_data(file_path)
     trace_data = parse_dig_vtrace_file(input_data)
 
+    # TODO: check this
     loc_symbols = {}
     _str = ""
     results = collections.defaultdict(list)
     for loc, data in trace_data.items():
         terms = data["terms"]
+        # TODO: check this
         loc_symbols[loc] = {term: sympy.Symbol(term) for term in terms}  # TODO: check
         data = data["data"]
         samples += data.shape[0]
@@ -1199,6 +1203,8 @@ def bitween(file_path: str = None):  # noqa F811
     # NOTE: Reporting--Display the inferred equalities
     print("\nInferred Equalities:")
     assertion_dict = {}
+    error_dict = {}
+    sample_dict = {}
     for loc, result in results.items():
         print(
             f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
@@ -1212,6 +1218,8 @@ def bitween(file_path: str = None):  # noqa F811
         # NOTE: simplify equations
         equations = [sympy.nsimplify(eq) for eq in equations]
         good_fit = set()
+        good_fit_error = []
+        samples_used = []
         max_p = 4  # pivot
         max_m = 15  # model
         max_e = 30  # equation
@@ -1250,6 +1258,8 @@ def bitween(file_path: str = None):  # noqa F811
                     f"{sanitize_source(eq.model_desc):<{max_m}}| {eq.pivot:^{max_p}} | {eq.dimension:<{max_d}} | {s_eq:<{max_e}} | {round(eq.error, 3):<{max_error}} | {eq.sample_size:^{max_s}} |"
                 )
                 good_fit.add(equations[i])  # NOTE: This is very crucial
+                good_fit_error.append(eq.error)
+                samples_used.append(eq.sample_size)
         print(ruler)
 
         # NOTE: Reductions
@@ -1263,6 +1273,8 @@ def bitween(file_path: str = None):  # noqa F811
 
         # NOTE: relate the location to the equations
         assertion_dict[loc] = equations
+        error_dict[loc] = np.mean(good_fit_error) if len(good_fit_error) > 0 else None
+        sample_dict[loc] = np.mean(samples_used) if len(samples_used) > 0 else None
 
         for eq in equations:
             print(f"{eq} = 0")
@@ -1293,7 +1305,7 @@ def bitween(file_path: str = None):  # noqa F811
         for i, eq in enumerate(eqs):
             assertion_dict[loc][i] = sympy.Eq(eq, 0)
 
-    return assertion_dict
+    return assertion_dict, error_dict, sample_dict
 
 
 def get_vars(template: list[str]):
@@ -1336,7 +1348,7 @@ def infer_invariants(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = bitween(trace_file)
+    equations, error, samples = bitween(trace_file)
 
     if correctness == Correctness.VERIFICATION:
         fuzz_and_verify(file_path, func_name, equations)
@@ -1347,7 +1359,7 @@ def infer_invariants(
     else:
         raise ValueError("Invalid correctness option")
 
-    return equations
+    return equations, error, samples
 
 
 def infer_invariants_and_check_correctness(
@@ -1359,7 +1371,7 @@ def infer_invariants_and_check_correctness(
     milp: MILPSolver = None,
     bound: int = None,
     method: Method = Method.MULTIPLE_REGRESSION,
-):
+) -> tuple[dict, dict, dict]:
     """
     Infers invariants from given C program having vtraces, vassumes, and vdistrs, and
     verifies the inferred invariants using symoblic execution or fuzzing.
@@ -1381,11 +1393,11 @@ def infer_invariants_and_check_correctness(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = bitween(trace_file)
+    equations, error, samples = bitween(trace_file)
 
     fuzz_and_check(file_path, func_name, equations, n * 10)
 
-    return equations
+    return equations, error, samples
 
 
 def infer_invariants_and_verify_correctness(
@@ -1397,7 +1409,7 @@ def infer_invariants_and_verify_correctness(
     milp: MILPSolver = None,
     bound: int = None,
     method: Method = Method.MULTIPLE_REGRESSION,
-):
+) -> tuple[dict, dict, dict]:
     config.degree = max_degree
     config.epsilon = epsilon
     if milp:
@@ -1414,11 +1426,11 @@ def infer_invariants_and_verify_correctness(
     # Load the vtrace, vassume, and vdistr data
     trace_file = fuzz_and_trace(file_path, func_name, n)
 
-    equations = bitween(trace_file)
+    equations, error, samples = bitween(trace_file)
 
     fuzz_and_verify(file_path, func_name, equations)
 
-    return equations
+    return equations, error, samples
 
 
 def infer_property(
@@ -1434,7 +1446,7 @@ def infer_property(
     milp: MILPSolver = None,
     var_bound: int = None,
     method: Method = Method.MULTIPLE_REGRESSION,
-) -> list[sympy.Expr]:
+) -> tuple[dict, dict, dict]:
 
     config.degree = max_degree
     config.epsilon = epsilon
@@ -1512,7 +1524,7 @@ def infer_property(
         writer = csv.writer(file, delimiter=";")
         writer.writerows(evals)
 
-    equations = bitween("trace.csv")
+    equations, error, samples = bitween("trace.csv")
 
     # NOTE: verifier for equality works with the lhs of the equation.
     exprs = []
@@ -1520,10 +1532,10 @@ def infer_property(
         for eqt in eqts:
             exprs.append(eqt.lhs)
 
-    return exprs
+    return equations, error, samples
 
 
-def verify(expr: sympy.Expr, *functions) -> bool:
+def verify(expr: sympy.Expr | sympy.Eq, *functions) -> bool:
     """
     Proof by simplification
 
@@ -1535,6 +1547,9 @@ def verify(expr: sympy.Expr, *functions) -> bool:
     """
 
     log.debug(f"verifying: {expr} = 0")
+
+    if isinstance(expr, sympy.Eq):
+        expr = expr.lhs
 
     st = time()
 

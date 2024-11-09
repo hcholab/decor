@@ -1,6 +1,7 @@
 import math
 import sympy
 
+from bitween._settings import InitialMethod
 from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
 
@@ -11,6 +12,59 @@ from time import time
 
 config = Config()
 log = miscs.getLogger(__name__, config.logger_level)
+
+
+def test_sin_glibc():
+    iteration = 40
+    sample_error = {}
+
+    def F(x):
+        return math.sin(x)
+
+    for i in range(5, iteration, 5):
+        props, error, sample = infer_property(
+            Domain.Real,
+            Distribution.Small,
+            ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+            ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+            F,
+            max_degree=2,
+            n=i,
+            epsilon=0.1,
+        )
+
+        def f(x):
+            return sympy.sin(x)
+
+        for eq in props:
+            verify(eq, f)
+
+        if props:
+            print("Properties found:")
+            e_sum = 0
+            s_sample = 0
+            for loc, props in props.items():
+                print(f"Loc: {loc}")
+                for prop in props:
+                    print(f" {prop}")
+                if not props:
+                    continue
+                e = round(error[loc], 5)
+                print(f"Error: {e}")
+                s = sample[loc]
+                print(f"Sample: {s}")
+                (e_sum, s_sample) = (e_sum + e, s_sample + s)
+            sample_error[i] = (e_sum / len(props), s_sample / len(props))
+        else:
+            print("No properties found")
+
+    # create a panda dataset for figure and order by sample
+    import pandas as pd
+
+    df = pd.DataFrame(sample_error).T
+    df.columns = ["Error", "Sample"]
+    df = df.sort_values(by="Sample")
+    print(df)
 
 
 def test_sin():
@@ -43,7 +97,7 @@ def test_sin():
     def f(x):
         return sympy.sin(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -64,7 +118,7 @@ def test_cos():
     def f(x):
         return sympy.cos(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -85,7 +139,7 @@ def test_tan():
     def f(x):
         return sympy.tan(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -106,7 +160,7 @@ def test_tanh():
     def f(x):
         return sympy.tanh(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -127,7 +181,7 @@ def test_identity():
     def f(x):
         return sympy.Symbol("c") * x
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -148,7 +202,7 @@ def test_inverse():
     def f(x):
         return 1 / x
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -169,7 +223,7 @@ def test_inverse_add():
     def f(x):
         return 1 / (x + 1)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -190,7 +244,7 @@ def test_exp():
     def f(x):
         return sympy.exp(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -212,7 +266,7 @@ def test_exp_div_by_x():
     def f(x):
         return sympy.exp(x) / x
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -247,7 +301,7 @@ def test_exp_div_by_x_composite():
     def p(x, y):
         return x + y
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f, h, p)
 
 
@@ -269,7 +323,7 @@ def test_exp_div_by_log():
     def f(x):
         return (sympy.exp(x) - 1.0) / sympy.log(sympy.exp(x))
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -304,7 +358,7 @@ def test_floudas():
     def f(x1, x2):
         return x1 + x2
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -327,7 +381,7 @@ def test_mean():
     def f(x, y, z):
         return 1 / 3 * (x + y + z)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -349,7 +403,7 @@ def test_inverse_square():
     def f(x):
         return 1 / (x**2)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -372,7 +426,7 @@ def test_diff_x2_y2():
     def f(x1, x2):
         return x1**2 - x2**2
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -393,7 +447,7 @@ def test_exp_minus_one():
     def f(x):
         return sympy.exp(x) - 1
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -414,7 +468,7 @@ def test_cot():
     def f(x):
         return 1 / sympy.tan(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -438,7 +492,7 @@ def test_inverse_cot_plus_one():
     def f(x):
         return 1 / (1 / sympy.tan(x) + 1)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -460,7 +514,7 @@ def test_inverse_tan_plus_one():
     def f(x):
         return 1 / (sympy.tan(x) + 1)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -482,7 +536,7 @@ def test_x_over_one_minus_x():
     def f(x):
         return x / (1 - x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -503,7 +557,7 @@ def test_minus_x_over_one_minus_x():
     def f(x):
         return -x / (1 - x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -525,7 +579,7 @@ def test_sin_over_sin():
     def f(x):
         return sympy.sin(x) / sympy.sin(x + 1)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -547,7 +601,7 @@ def test_sinh_over_sinh():
     def f(x):
         return sympy.sinh(x) / sympy.sinh(x + 1)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -568,7 +622,7 @@ def test_cosh():
     def f(x):
         return sympy.cosh(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -589,7 +643,7 @@ def test_squared():
     def f(x):
         return x**2
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -611,7 +665,7 @@ def test_cube():
     def f(x):
         return x**3
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -632,7 +686,7 @@ def test_sinh():
     def f(x):
         return sympy.sinh(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -646,15 +700,42 @@ def test_sigmoid():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
-        max_degree=2,
-        n=150,
+        max_degree=3,
+        n=100,
+    )
+
+    def f(x):
+        return 1 / (1 + sympy.exp(-x))
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+
+def test_sigmoid_derivative():
+    def F(x):
+        return 1 / (1 + math.exp(-x))
+
+    def dF(x):
+        return F(x) * (1 - F(x))
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["dF(x+y)", "dF(x-y)", "dF(x)", "dF(y)"],
+        ["df(x+y)", "df(x-y)", "df(x)", "df(y)"],
+        dF,
+        max_degree=5,
+        n=100,
     )
 
     def f(x):
         return 2 / (1 + sympy.exp(-x))
 
-    for eq in equations:
-        verify(eq, f)
+    def df(x):
+        return f(x) * (1 - f(x))
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, df)
 
 
 def test_logistic(L=3, k=2, x0=0):
@@ -675,7 +756,7 @@ def test_logistic(L=3, k=2, x0=0):
     def f(x):
         return L / (1 + sympy.exp(-k * (x - x0)))
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -686,8 +767,8 @@ def test_softmax2_1():
     equations = infer_property(
         Domain.Real,
         Distribution.Small,
-        ["F(x+y, y+z)", "F(x, y)", "F(y, z)", "F(x, z)"],
-        ["f(x+y, y+z)", "f(x, y)", "f(y, z)", "f(x, z)"],
+        ["F(x+r, y+r)", "F(x, y)", "F(x, r)", "F(y, r)"],
+        ["f(x+r, y+r)", "f(x, y)", "f(x, r)", "f(y, r)"],
         F,
         max_degree=2,
         n=150,
@@ -696,7 +777,7 @@ def test_softmax2_1():
     def f(x, y):
         return sympy.exp(x) / (sympy.exp(x) + sympy.exp(y))
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -707,8 +788,8 @@ def test_softmax2_2():
     equations = infer_property(
         Domain.Real,
         Distribution.Small,
-        ["F(x+y, y+z)", "F(x, y)", "F(y, z)", "F(x, z)"],
-        ["f(x+y, y+z)", "f(x, y)", "f(y, z)", "f(x, z)"],
+        ["F(x+y, y+z)", "F(x,y)", "F(y,z)", "F(x,z)"],
+        ["f(x+y, y+z)", "f(x,y)", "f(y,z)", "f(x,z)"],
         F,
         max_degree=2,
         n=150,
@@ -717,7 +798,7 @@ def test_softmax2_2():
     def f(x, y):
         return sympy.exp(y) / (sympy.exp(x) + sympy.exp(y))
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -738,7 +819,7 @@ def test_softmax2_alt_1():
     def f(x, y):
         return sympy.exp(x) / (sympy.exp(x) + sympy.exp(y))
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -760,7 +841,7 @@ def test_arctan():
     def f(x):
         return sympy.atan(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -781,7 +862,7 @@ def test_mod():
     def f(x, R=101):
         return sympy.Mod(x, R)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -802,16 +883,16 @@ def test_mod_mult():
     def f(x, y, R=100001):
         return (x * y) % R
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
-def test_mult():
+def test_int_mult():
     def F(x, y):
         return x * y
 
     equations = infer_property(
-        Domain.Real,
+        Domain.Integer,
         Distribution.Small,
         ["F(x1+x2, y1+y2)", "F(x1, y1)", "F(x2, y1)", "F(x1, y2)", "F(x2, y2)"],
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
@@ -823,7 +904,7 @@ def test_mult():
     def f(x, y):
         return x * y
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -858,7 +939,7 @@ def test_sinc_composite():
     def rsr_x(x, y):
         return x + y
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f, rsr_sin, rsr_x)
 
 
@@ -887,7 +968,7 @@ def test_sinc():
     def p(x, y):
         return x + y
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f, p)
 
 
@@ -908,7 +989,7 @@ def test_log():
     def f(x):
         return sympy.log(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -929,7 +1010,7 @@ def test_square_loss():
     def f(x):
         return (1 - x) ** 2
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -950,7 +1031,7 @@ def test_savage_loss():
     def f(x):
         return 1 / (1 + sympy.exp(x)) ** 2
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
 
@@ -978,7 +1059,7 @@ def test_savage_loss_library():
     def g(x, y):
         return sympy.exp(x) * sympy.exp(y)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f, g)
 
     # f(x+y)*g(x)*g(y)**2 + 2*f(x+y)*g(x)*g(y) + f(x+y) - 1 = 0
@@ -1010,8 +1091,29 @@ def test_savage_loss_basis():
     def g(x):
         return sympy.exp(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f, g)
+
+
+def test_relu():
+    def F(x):
+        return max(0, x)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return sympy.Max(0, x)
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
 
 
 if __name__ == "__main__":
@@ -1019,7 +1121,6 @@ if __name__ == "__main__":
 
     # test_identity()
     # test_exp()
-    # test_sigmoid()
     # test_exp_minus_one()
     # test_exp_div_by_x()  # no solution
     # test_exp_div_by_x_composite()
@@ -1027,7 +1128,6 @@ if __name__ == "__main__":
     # test_mean()
     # test_tan()
     # test_cot()
-    # test_tanh()
     # test_diff_x2_y2()
     # test_inverse_square()
     # test_inverse()
@@ -1036,17 +1136,26 @@ if __name__ == "__main__":
     # test_inverse_tan_plus_one()
     # test_x_over_one_minus_x()
     # test_minus_x_over_one_minus_x()
-    # test_sin_over_sin() # TODO fails
+    # test_sin_over_sin()  # TODO fails
     # test_sinh_over_sinh() # TODO fails
     # test_cos()
     # test_cosh()
     # test_squared()
     # test_sin()
+    # test_sin_glibc()
     # test_sinh()
     # test_arctan()  # No solution
     # test_mod()
     # test_mod_mult()
-    # test_mult()
+    # test_int_mult()
+    # test_cube()
+    # test_log()
+
+    #### ACTIVATION FUNCTIONS ####
+
+    # test_sigmoid()
+    # test_sigmoid_derivative()
+    # test_tanh()
 
     # https://en.wikipedia.org/wiki/Logistic_function
     # test_logistic()
@@ -1060,13 +1169,12 @@ if __name__ == "__main__":
     # test_sinc()
     # test_sinc_composite()
 
-    # test_cube()
-    # test_log()
-
     # loss functions:https://en.wikipedia.org/wiki/Loss_functions_for_classification
     # test_square_loss()
     # test_savage_loss() # no solution
     # test_savage_loss_library()  # library
-    test_savage_loss_basis()
+    # test_savage_loss_basis()
+
+    # test_relu()
 
     log.debug(f"Total Time: {time() - st:.2f}s")
