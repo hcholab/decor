@@ -843,10 +843,10 @@ def test_sigmoid_derivative():
         verify(eq, df)
 
 
-def test_logistic(L=3, k=2, x0=0):
+def test_logistic(L=1, k=2, x0=0):
 
     def F(x):
-        return 3 / (1 + math.exp(-2 * (x - 0)))
+        return L / (1 + math.exp(-k * (x - x0)))
 
     equations = infer_property(
         Domain.Real,
@@ -862,13 +862,25 @@ def test_logistic(L=3, k=2, x0=0):
         return L / (1 + sympy.exp(-k * (x - x0)))
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_logistic1(L=3, k=2, x0=1):
 
     def F(x):
-        return 3 / (1 + math.exp(-2 * (x - 0)))
+        return L / (1 + math.exp(-k * (x - x0)))
 
     equations = infer_property(
         Domain.Real,
@@ -884,7 +896,19 @@ def test_logistic1(L=3, k=2, x0=1):
         return L / (1 + sympy.exp(-k * (x - x0)))
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_softmax2_1():
@@ -1230,7 +1254,19 @@ def test_square_loss():
         return (1 - x) ** 2
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_savage_loss():
@@ -1279,7 +1315,19 @@ def test_savage_loss_library():
         return sympy.exp(x) * sympy.exp(y)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f, g)
+        if verify(eq, f, g):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
     # f(x+y)*g(x)*g(y)**2 + 2*f(x+y)*g(x)*g(y) + f(x+y) - 1 = 0
 
@@ -1311,7 +1359,19 @@ def test_savage_loss_basis():
         return sympy.exp(x)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f, g)
+        if verify(eq, f, g):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_relu():
@@ -1392,7 +1452,7 @@ if __name__ == "__main__":
     # test_square_loss()  # 38
     # test_savage_loss() # no solution
     # test_savage_loss_library()  # 39 library
-    # test_savage_loss_basis()  # 40
+    test_savage_loss_basis()  # 40
 
     # test_relu()
 
