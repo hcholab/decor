@@ -404,7 +404,19 @@ def test_inverse_square():
         return 1 / (x**2)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_diff_x2_y2():
@@ -419,8 +431,8 @@ def test_diff_x2_y2():
         ["f(x-a,y-b)", "f(x+a,y-b)", "f(x,y)", "f(a,b)", "f(x-a,y)", "f(x+a,y)", "f(x,y-a)", "f(x,y+a)"],
         # fmt: on
         F,
-        max_degree=3,
-        n=1000,
+        max_degree=2,
+        n=100,
     )
 
     def f(x1, x2):
@@ -666,7 +678,19 @@ def test_cube():
         return x**3
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_sinh():
@@ -711,6 +735,87 @@ def test_sigmoid():
         verify(eq, f)
 
 
+def test_sigmoid_extra():
+
+    def F(x):
+        return 1 / (1 + math.exp(-x))
+
+    def f(x):
+        return 1 / (1 + sympy.exp(-x))
+
+    import statistics
+
+    max_input = 300
+    max_iter = 3
+    sample_error = {}
+
+    for i in range(10, max_input, 10):
+        e_sum = 0
+        s_sample = 0
+        error_j = 0
+        sample_j = 0
+        prop_j = []
+        count = 0
+        for j in range(max_iter):
+
+            props, error, sample = infer_property(
+                Domain.Real,
+                Distribution.Small,
+                ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+                ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+                F,
+                max_degree=3,
+                n=i,
+                milp=None,
+                epsilon=0.2,
+                method=InitialMethod.MULTIPLE_REGRESSION,
+            )
+
+            if props:
+                verified = 0
+                print("Properties found:")
+                for loc, props in props.items():
+                    print(f"Loc: {loc}")
+                    for prop in props:
+                        print(f" {prop}")
+                        if isinstance(prop, sympy.core.relational.Equality) and verify(
+                            prop, f
+                        ):
+                            verified += 1
+                    if not props:
+                        continue
+                    e = round(error[loc], 5)
+                    print(f"Error: {e}")
+                    s = sample[loc]
+                    print(f"Sample: {s}")
+                    (e_sum, s_sample) = (e_sum + e, s_sample + s)
+                if len(props) > 0:
+                    error_j += e_sum / len(props)
+                    sample_j += s_sample / len(props)
+                    prop_j.append(verified)
+                    count += 1
+            else:
+                print("No properties found")
+        if count > 0:
+            sample_error[i] = (
+                error_j / count,
+                sample_j / count,
+                statistics.median(prop_j),
+            )
+        else:
+            sample_error[i] = (0, i, 0)
+
+    # create a panda dataset for figure and order by sample
+    import pandas as pd
+
+    df = pd.DataFrame(sample_error).T
+    df.columns = ["Error", "Sample", "Properties"]
+    df = df.sort_values(by="Sample")
+    # save the dataset to a csv file
+    df.to_csv("sigmoid_extra.csv")
+    print(df)
+
+
 def test_sigmoid_derivative():
     def F(x):
         return 1 / (1 + math.exp(-x))
@@ -741,7 +846,29 @@ def test_sigmoid_derivative():
 def test_logistic(L=3, k=2, x0=0):
 
     def F(x):
-        return L / (1 + math.exp(-k * (x - x0)))
+        return 3 / (1 + math.exp(-2 * (x - 0)))
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
+        F,
+        max_degree=2,
+        n=150,
+    )
+
+    def f(x):
+        return L / (1 + sympy.exp(-k * (x - x0)))
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+
+def test_logistic1(L=3, k=2, x0=1):
+
+    def F(x):
+        return 3 / (1 + math.exp(-2 * (x - 0)))
 
     equations = infer_property(
         Domain.Real,
@@ -864,6 +991,18 @@ def test_mod():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+        print("Isolating f(x+y):")
+        print(
+            sympy.solve(
+                sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+            )
+        )
+        print("Isolating f(x-y):")
+        print(
+            sympy.solve(
+                sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+            )
+        )
 
 
 def test_mod_mult():
@@ -940,7 +1079,19 @@ def test_sinc_composite():
         return x + y
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f, rsr_sin, rsr_x)
+        if verify(eq, f, rsr_sin, rsr_x):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_sinc():
@@ -969,7 +1120,19 @@ def test_sinc():
         return x + y
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f, p)
+        if verify(eq, f, p):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
 
 def test_log():
@@ -990,6 +1153,62 @@ def test_log():
         return sympy.log(x)
 
     for eq in equations[0]["vtrace1"]:
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
+
+
+def test_sec():
+    def F(x):
+        return 1 / math.cos(x)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=3,
+        n=150,
+    )
+
+    def f(x):
+        return 1 / sympy.cos(x)
+
+    for eq in equations:
+        assert verify(eq, f)
+
+
+def test_csc():
+    def F(x):
+        return 1 / math.sin(x)
+
+    equations = infer_property(
+        Domain.Real,
+        Distribution.Small,
+        ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
+        ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
+        # ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
+        # ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
+        F,
+        max_degree=4,
+        n=200,
+    )
+
+    def f(x):
+        return 1 / sympy.sin(x)
+
+    for eq in equations:
         verify(eq, f)
 
 
@@ -1119,61 +1338,61 @@ def test_relu():
 if __name__ == "__main__":
     st = time()
 
-    # test_identity()
-    # test_exp()
-    # test_exp_minus_one()
-    # test_exp_div_by_x()  # no solution
-    # test_exp_div_by_x_composite()
-    # test_floudas()
-    # test_mean()
-    # test_tan()
-    # test_cot()
-    # test_diff_x2_y2()
-    # test_inverse_square()
-    # test_inverse()
-    # test_inverse_add()
-    # test_inverse_cot_plus_one()
-    # test_inverse_tan_plus_one()
-    # test_x_over_one_minus_x()
-    # test_minus_x_over_one_minus_x()
+    # test_identity()  # 1
+    # test_exp()  # 2
+    # test_exp_minus_one()  # 3
+    # test_exp_div_by_x()  # no solution # 4
+    # test_exp_div_by_x_composite()  # 5
+    # test_floudas()  # 6
+    # test_mean()  # 7
+    # test_tan()  # 8
+    # test_cot()  # 9
+    # test_diff_x2_y2()  # 10
+    # test_inverse_square()  # 11
+    # test_inverse()  # 12
+    # test_inverse_add()  # 13
+    # test_inverse_cot_plus_one()  # 14
+    # test_inverse_tan_plus_one()  # 15
+    # test_x_over_one_minus_x()  # 16
+    # test_minus_x_over_one_minus_x()  # 17
     # test_sin_over_sin()  # TODO fails
-    # test_sinh_over_sinh() # TODO fails
-    # test_cos()
-    # test_cosh()
-    # test_squared()
-    # test_sin()
+    # test_sinh_over_sinh()  # TODO fails
+    # test_cos()  # 18
+    # test_cosh()  # 19
+    # test_squared()  # 20
+    # test_sin()  # 21
     # test_sin_glibc()
-    # test_sinh()
+    # test_sinh()  # 22
+    # test_cube()  # 23
+    # test_log()  # 24
+    # test_sec()  # 25
+    # test_csc()  # 26
+    # https://en.wikipedia.org/wiki/Sinc_function
+    # test_sinc()  # 27
+    # test_sinc_composite()  # 28
     # test_arctan()  # No solution
-    # test_mod()
-    # test_mod_mult()
-    # test_int_mult()
-    # test_cube()
-    # test_log()
-
+    # test_mod()  # 29
+    # test_mod_mult()  # 30
+    # test_int_mult()  # 31
     #### ACTIVATION FUNCTIONS ####
-
-    # test_sigmoid()
+    # test_tanh()  # 32
+    # test_sigmoid()  # 33
+    # test_sigmoid_extra()
     # test_sigmoid_derivative()
-    # test_tanh()
-
-    # https://en.wikipedia.org/wiki/Logistic_function
-    # test_logistic()
-
     # https://en.wikipedia.org/wiki/Softmax_function
-    # test_softmax2_1()
-    # test_softmax2_2()
+    # test_softmax2_1()  # 34
+    # test_softmax2_2()  # 35
     # test_softmax2_alt_1()  # no solution
 
-    # https://en.wikipedia.org/wiki/Sinc_function
-    # test_sinc()
-    # test_sinc_composite()
+    # https://en.wikipedia.org/wiki/Logistic_function
+    # test_logistic()  # 36
+    # test_logistic1()  # 37
 
     # loss functions:https://en.wikipedia.org/wiki/Loss_functions_for_classification
-    # test_square_loss()
+    # test_square_loss()  # 38
     # test_savage_loss() # no solution
-    # test_savage_loss_library()  # library
-    # test_savage_loss_basis()
+    # test_savage_loss_library()  # 39 library
+    # test_savage_loss_basis()  # 40
 
     # test_relu()
 

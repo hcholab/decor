@@ -5,6 +5,7 @@ from bitween.main import (  # noqa F401
 )
 from bitween import miscs
 from bitween.config import Config, Method, MILPSolver
+import numpy as np
 
 from time import time
 
@@ -26,46 +27,84 @@ def bresenham():
 
 
 def cohencu():
-    iteration = 40
-    # for each iteration, we will query with different samples (n) and get different errors
-    sample_error = {}
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    for i in range(5, iteration, 5):
-        props, error, sample = infer_invariants_and_check_correctness(
-            file_path,
-            func_name,
-            max_degree=2,
-            n=i,
-            milp=None,
-            method=InitialMethod.MULTIPLE_REGRESSION,
-        )
+    infer_invariants_and_check_correctness(
+        file_path,
+        func_name,
+        max_degree=2,
+        n=20,
+        milp=None,
+        method=InitialMethod.MULTIPLE_REGRESSION,
+    )
 
-        if props:
-            print("Properties found:")
-            e_sum = 0
-            s_sample = 0
-            for loc, props in props.items():
-                print(f"Loc: {loc}")
-                for prop in props:
-                    print(f" {prop}")
-                if not props:
-                    continue
-                e = round(error[loc], 5)
-                print(f"Error: {e}")
-                s = sample[loc]
-                print(f"Sample: {s}")
-                (e_sum, s_sample) = (e_sum + e, s_sample + s)
-            sample_error[i] = (e_sum / len(props), s_sample / len(props))
+
+def bresenham_extra():
+    import statistics
+
+    max_input = 300
+    max_iter = 3
+    # for each iteration, we will query with different samples (n) and get different errors
+    sample_error = {}
+    file_path = "./benchmarks/bitween/dig/bresenham.c"
+    func_name = "bresenham"
+    for i in range(5, max_input, 5):
+        e_sum = 0
+        s_sample = 0
+        error_j = 0
+        sample_j = 0
+        prop_j = []
+        count = 0
+        for j in range(max_iter):
+            props, error, sample = infer_invariants_and_check_correctness(
+                file_path,
+                func_name,
+                max_degree=2,
+                n=i,
+                milp=None,
+                epsilon=0.2,
+                method=InitialMethod.MULTIPLE_REGRESSION,
+            )
+
+            if props:
+                print("Properties found:")
+                for loc, props in props.items():
+                    print(f"Loc: {loc}")
+                    for prop in props:
+                        print(f" {prop}")
+                    if not props:
+                        continue
+                    if loc == "vtrace1":
+                        continue
+                    e = round(error[loc], 5)
+                    print(f"Error: {e}")
+                    s = sample[loc]
+                    print(f"Sample: {s}")
+                    (e_sum, s_sample) = (e_sum + e, s_sample + s)
+                if len(props) > 0:
+                    error_j += e_sum / len(props)
+                    sample_j += s_sample / len(props)
+                    prop_j.append(len(props))
+                    count += 1
+            else:
+                print("No properties found")
+        if count > 0:
+            sample_error[i] = (
+                error_j / count,
+                sample_j / count,
+                statistics.median(prop_j),
+            )
         else:
-            print("No properties found")
+            sample_error[i] = (e_sum, i, 0)
 
     # create a panda dataset for figure and order by sample
     import pandas as pd
 
     df = pd.DataFrame(sample_error).T
-    df.columns = ["Error", "Sample"]
+    df.columns = ["Error", "Sample", "Properties"]
     df = df.sort_values(by="Sample")
+    # save the dataset to a csv file
+    df.to_csv("bresenham_extra.csv")
     print(df)
 
 
@@ -76,7 +115,7 @@ def cohendiv():
         file_path,
         func_name,
         max_degree=2,
-        n=15,
+        n=20,
         milp=None,
         # method=InitialMethod.FORWARD_SELECTION,
     )
@@ -365,7 +404,8 @@ if __name__ == "__main__":
     st = time()
 
     # bresenham()
-    cohencu()  # NOTE: use this in demo
+    # cohencu()  # NOTE: use this in demo
+    bresenham_extra()
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()

@@ -1175,9 +1175,15 @@ def bitween(file_path: str = None):  # noqa F811
                 raise ValueError("Invalid initial method")
 
             # Display the models and their equations
-            for term, content in models.items():
-                _str += f"Model for {term}: Score = {content['score']}, "
-                _str += f"{content['model_type']}({content['params']})\n"
+            for pivot, content in models.items():
+                # check if content is a list because of forward selection
+                if isinstance(content, list):
+                    for c in content:
+                        _str += f"Model for {pivot}: Score = {c['score']}, "
+                        _str += f"{c['model_type']}({c['params']})\n"
+                else:
+                    _str += f"Model for {pivot}: Score = {content['score']}, "
+                    _str += f"{content['model_type']}({content['params']})\n"
 
             _str += "\n"
 
@@ -1242,7 +1248,7 @@ def bitween(file_path: str = None):  # noqa F811
         # print the header
         print(ruler)
         print(
-            f"{'Source':<{max_m}}| {'Term':^{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
+            f"{'Model':<{max_m}}| {'Term':^{max_p}} | {init_d:<{max_d}} | {'Invariant/Property':<{max_e}} | {'Err':<{max_error}} | {'n':^{max_s}} |"
         )
         print(ruler)
         for i, eq in enumerate(result):
@@ -1524,15 +1530,7 @@ def infer_property(
         writer = csv.writer(file, delimiter=";")
         writer.writerows(evals)
 
-    equations, error, samples = bitween("trace.csv")
-
-    # NOTE: verifier for equality works with the lhs of the equation.
-    exprs = []
-    for eqts in equations.values():
-        for eqt in eqts:
-            exprs.append(eqt.lhs)
-
-    return equations, error, samples
+    return bitween("trace.csv")
 
 
 def verify(expr: sympy.Expr | sympy.Eq, *functions) -> bool:
