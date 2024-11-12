@@ -91,6 +91,8 @@ def test_sin():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -112,6 +114,8 @@ def test_cos():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -120,6 +124,8 @@ def test_cos():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_tan():
@@ -133,6 +139,8 @@ def test_tan():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -141,6 +149,8 @@ def test_tan():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_tanh():
@@ -154,6 +164,8 @@ def test_tanh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=80,
     )
 
@@ -162,6 +174,8 @@ def test_tanh():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_identity():
@@ -175,7 +189,9 @@ def test_identity():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=1,
-        n=150,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
+        n=10,
     )
 
     def f(x):
@@ -183,6 +199,8 @@ def test_identity():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_inverse():
@@ -205,6 +223,8 @@ def test_inverse():
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_inverse_add():
     def F(x):
@@ -226,6 +246,8 @@ def test_inverse_add():
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_exp():
     def F(x):
@@ -238,7 +260,9 @@ def test_exp():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        n=150,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
+        n=10,
     )
 
     def f(x):
@@ -246,6 +270,8 @@ def test_exp():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 # double exp1x(double x) { return (exp(x) - 1.0) / x; }
@@ -260,6 +286,8 @@ def test_exp_div_by_x():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=5,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=200,
     )
 
@@ -268,6 +296,8 @@ def test_exp_div_by_x():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_exp_div_by_x_composite():
@@ -289,6 +319,8 @@ def test_exp_div_by_x_composite():
         H,
         P,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -303,6 +335,8 @@ def test_exp_div_by_x_composite():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f, h, p)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 # double exp1x_log(double x) { return (exp(x) - 1.0) / log(exp(x)); }
@@ -325,6 +359,8 @@ def test_exp_div_by_log():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 # double floudas(double x1, double x2) { return x1 + x2; }
@@ -351,6 +387,8 @@ def test_floudas():
         ],
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
         precondition=lambda x1, x2: 0 <= x1 <= 2 and 0 <= x2 <= 3 and x1 + x2 <= 2,
     )
@@ -360,6 +398,8 @@ def test_floudas():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_mean():
@@ -375,6 +415,8 @@ def test_mean():
         # fmt: on
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -383,6 +425,8 @@ def test_mean():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_inverse_square():
@@ -397,6 +441,8 @@ def test_inverse_square():
         ["f(x+y)", "f(x)", "f(y)", "f(x-y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -417,6 +463,8 @@ def test_inverse_square():
                     sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
                 )
             )
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_diff_x2_y2():
@@ -432,6 +480,8 @@ def test_diff_x2_y2():
         # fmt: on
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -440,6 +490,8 @@ def test_diff_x2_y2():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_exp_minus_one():
@@ -453,6 +505,8 @@ def test_exp_minus_one():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -461,6 +515,8 @@ def test_exp_minus_one():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cot():
@@ -474,6 +530,8 @@ def test_cot():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -482,6 +540,8 @@ def test_cot():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_inverse_cot_plus_one():
@@ -496,6 +556,8 @@ def test_inverse_cot_plus_one():
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
         # milp=MILPSolver.GUROBI,
         # var_bound=4,
@@ -506,6 +568,8 @@ def test_inverse_cot_plus_one():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_inverse_tan_plus_one():
@@ -520,6 +584,8 @@ def test_inverse_tan_plus_one():
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -528,6 +594,8 @@ def test_inverse_tan_plus_one():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_x_over_one_minus_x():
@@ -541,6 +609,8 @@ def test_x_over_one_minus_x():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=1000,
         epsilon=0.001,
     )
@@ -550,6 +620,8 @@ def test_x_over_one_minus_x():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_minus_x_over_one_minus_x():
@@ -563,6 +635,8 @@ def test_minus_x_over_one_minus_x():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -571,6 +645,8 @@ def test_minus_x_over_one_minus_x():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 # f(x)=\frac{\sin cx}{\sin(cx+a)
@@ -585,6 +661,8 @@ def test_sin_over_sin():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=300,
     )
 
@@ -593,6 +671,8 @@ def test_sin_over_sin():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 # f(x)=\frac{\sinh cx}{\sinh(cx+a)
@@ -607,6 +687,8 @@ def test_sinh_over_sinh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -615,6 +697,8 @@ def test_sinh_over_sinh():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cosh():
@@ -628,6 +712,8 @@ def test_cosh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -636,6 +722,8 @@ def test_cosh():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_squared():
@@ -649,6 +737,8 @@ def test_squared():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -657,6 +747,8 @@ def test_squared():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cube():
@@ -671,6 +763,8 @@ def test_cube():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -692,6 +786,8 @@ def test_cube():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_sinh():
     def F(x):
@@ -704,6 +800,8 @@ def test_sinh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -712,6 +810,8 @@ def test_sinh():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sigmoid():
@@ -725,6 +825,8 @@ def test_sigmoid():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -733,6 +835,8 @@ def test_sigmoid():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sigmoid_extra():
@@ -830,6 +934,8 @@ def test_sigmoid_derivative():
         ["df(x+y)", "df(x-y)", "df(x)", "df(y)"],
         dF,
         max_degree=5,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -841,6 +947,8 @@ def test_sigmoid_derivative():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, df)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_logistic(L=1, k=2, x0=0):
@@ -855,6 +963,8 @@ def test_logistic(L=1, k=2, x0=0):
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -875,6 +985,8 @@ def test_logistic(L=1, k=2, x0=0):
                     sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
                 )
             )
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_logistic1(L=3, k=2, x0=1):
@@ -889,6 +1001,8 @@ def test_logistic1(L=3, k=2, x0=1):
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -910,6 +1024,8 @@ def test_logistic1(L=3, k=2, x0=1):
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_softmax2_1():
     def F(x, y):
@@ -922,6 +1038,8 @@ def test_softmax2_1():
         ["f(x+r, y+r)", "f(x, y)", "f(x, r)", "f(y, r)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -930,6 +1048,8 @@ def test_softmax2_1():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_softmax2_2():
@@ -943,6 +1063,8 @@ def test_softmax2_2():
         ["f(x+y, y+z)", "f(x,y)", "f(y,z)", "f(x,z)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -951,6 +1073,8 @@ def test_softmax2_2():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_softmax2_alt_1():
@@ -964,6 +1088,8 @@ def test_softmax2_alt_1():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -972,6 +1098,8 @@ def test_softmax2_alt_1():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arctan():
@@ -985,6 +1113,8 @@ def test_arctan():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=200,
         milp=MILPSolver.GLPK,
     )
@@ -994,6 +1124,8 @@ def test_arctan():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_mod():
@@ -1007,6 +1139,8 @@ def test_mod():
         ["f(x+y)", "f(x)", "f(y)"],
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1028,6 +1162,8 @@ def test_mod():
             )
         )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_mod_mult():
     def F(x, y, R=100001):
@@ -1040,6 +1176,8 @@ def test_mod_mult():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1048,6 +1186,8 @@ def test_mod_mult():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_int_mult():
@@ -1061,6 +1201,8 @@ def test_int_mult():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -1069,6 +1211,8 @@ def test_int_mult():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sinc_composite():
@@ -1090,6 +1234,8 @@ def test_sinc_composite():
         RSR_SIN,
         RSR_X,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=50,
     )
 
@@ -1117,6 +1263,8 @@ def test_sinc_composite():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_sinc():
     def F(x):
@@ -1134,6 +1282,8 @@ def test_sinc():
         P,
         sum,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -1158,6 +1308,8 @@ def test_sinc():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_log():
     def F(x):
@@ -1170,6 +1322,8 @@ def test_log():
         ["f(x*y)", "f(x)", "f(y)"],
         F,
         max_degree=1,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=50,
     )
 
@@ -1191,6 +1345,8 @@ def test_log():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_sec():
     def F(x):
@@ -1203,6 +1359,8 @@ def test_sec():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -1210,7 +1368,9 @@ def test_sec():
         return 1 / sympy.cos(x)
 
     for eq in equations:
-        assert verify(eq, f)
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_csc():
@@ -1226,6 +1386,8 @@ def test_csc():
         # ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=4,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=200,
     )
 
@@ -1234,6 +1396,8 @@ def test_csc():
 
     for eq in equations:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_square_loss():
@@ -1247,6 +1411,8 @@ def test_square_loss():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -1268,6 +1434,8 @@ def test_square_loss():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_savage_loss():
     def F(v):
@@ -1280,6 +1448,8 @@ def test_savage_loss():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=4,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1288,6 +1458,8 @@ def test_savage_loss():
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_savage_loss_library():
@@ -1305,6 +1477,8 @@ def test_savage_loss_library():
         F,
         G,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1333,6 +1507,8 @@ def test_savage_loss_library():
 
     # f(x+y) = \frac{1}{g(x) \cdot g(y)^2 + 2 \cdot g(x) \cdot g(y) + 1}
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_savage_loss_basis():
     def F(x):
@@ -1349,6 +1525,8 @@ def test_savage_loss_basis():
         F,
         G,
         max_degree=5,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1373,6 +1551,8 @@ def test_savage_loss_basis():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_relu():
     def F(x):
@@ -1385,6 +1565,8 @@ def test_relu():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
+        # milp=MILPSolver.GUROBI,
+        # method=InitialMethod.EAGER_MILP,
         n=150,
     )
 
@@ -1394,12 +1576,14 @@ def test_relu():
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 if __name__ == "__main__":
     st = time()
 
     # test_identity()  # 1
-    # test_exp()  # 2
+    test_exp()  # 2
     # test_exp_minus_one()  # 3
     # test_exp_div_by_x()  # no solution # 4
     # test_exp_div_by_x_composite()  # 5
@@ -1452,7 +1636,7 @@ if __name__ == "__main__":
     # test_square_loss()  # 38
     # test_savage_loss() # no solution
     # test_savage_loss_library()  # 39 library
-    test_savage_loss_basis()  # 40
+    # test_savage_loss_basis()  # 40
 
     # test_relu()
 
