@@ -93,14 +93,26 @@ def test_sin():
         max_degree=2,
         # milp=MILPSolver.GUROBI,
         # method=InitialMethod.EAGER_MILP,
-        n=150,
+        n=15,
     )
 
     def f(x):
         return sympy.sin(x)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x)")
+                )
+            )
 
 
 def test_cos():
@@ -244,7 +256,19 @@ def test_inverse_add():
         return 1 / (x + 1)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -507,7 +531,7 @@ def test_exp_minus_one():
         max_degree=2,
         # milp=MILPSolver.GUROBI,
         # method=InitialMethod.EAGER_MILP,
-        n=150,
+        n=10,
     )
 
     def f(x):
@@ -809,7 +833,19 @@ def test_sinh():
         return sympy.sinh(x)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1583,7 +1619,7 @@ if __name__ == "__main__":
     st = time()
 
     # test_identity()  # 1
-    test_exp()  # 2
+    # test_exp()  # 2
     # test_exp_minus_one()  # 3
     # test_exp_div_by_x()  # no solution # 4
     # test_exp_div_by_x_composite()  # 5
@@ -1604,7 +1640,7 @@ if __name__ == "__main__":
     # test_cos()  # 18
     # test_cosh()  # 19
     # test_squared()  # 20
-    # test_sin()  # 21
+    test_sin()  # 21
     # test_sin_glibc()
     # test_sinh()  # 22
     # test_cube()  # 23
