@@ -1022,6 +1022,127 @@ def find_models_with_kan(extended_terms, extended_data, test_size=0.2):
     pass
 
 
+def find_models_with_eager_milp(extended_terms, extended_data, test_size=0.2):
+
+    selected_data = extended_data[:, :-1]  # Exclude the constant term
+    selected_terms = extended_terms[:-1]  # Exclude the constant term
+    results = []
+
+    # NOTE: MILP-based Synthesis
+    def milp_synthesis_wrapper(
+        pivot: str,
+        selected_terms: list[str],
+        selected_data: np.ndarray,
+        model_desc: str,
+        blocked: str,
+        bound: int = config.bound,
+    ):
+        str_ = ""
+        optimal = None
+
+        dims = len(selected_terms)
+        sample_size = selected_data.shape[0]
+        if config.use_sample_rate_milp and config.sample_rate_milp > 1:
+            sample_size = int(len(selected_terms) * config.sample_rate_milp)
+            threshold = config.sample_threshold_milp
+            if sample_size < threshold:
+                if selected_data.shape[0] > threshold:
+                    sample_size = threshold
+                else:  # use all data
+                    sample_size = selected_data.shape[0]
+
+            if sample_size < selected_data.shape[0]:
+                sample_indices = np.random.choice(
+                    selected_data.shape[0], sample_size, replace=False
+                )
+                selected_data = selected_data[sample_indices]
+            else:
+                sample_size = selected_data.shape[0]
+
+        if config.milp_solver == MILPSolver.GUROBI:
+            optimal = milp_gurobi.OPTIMAL
+            status, expr, obj, term_coefs, _ = milp_gurobi.milp_synthesis(
+                selected_data,
+                selected_terms,
+                pivot,
+                bound=bound,
+                timeout=config.milp_timeout,
+                blocked=blocked,
+                solver=config.milp_solver,
+            )
+        else:
+            optimal = milp_pulp.OPTIMAL
+            status, expr, obj, term_coefs, _ = milp_pulp.milp_synthesis(
+                selected_data,
+                selected_terms,
+                pivot,
+                bound=bound,
+                timeout=config.milp_timeout,
+                blocked=blocked,
+                solver=config.milp_solver,
+            )
+
+        if status == optimal:
+            if (
+                abs(obj) < config.objective_threshold
+            ):  # check if the objective is small enough
+                equation = sympy.sympify(expr)
+
+                s_eq = str(equation.evalf())
+                if len(s_eq) > TABLE_WIDTH:
+                    s_eq = s_eq[:TABLE_WIDTH] + " ..."
+                    s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+4}} "
+                else:
+                    s_eq = f"{s_eq + ' = 0':<{TABLE_WIDTH+8}} "
+
+                # NOTE: Property Test: Evaluate the equation for each row in entire data
+                error = property_test(term_coefs, extended_terms, extended_data)
+
+                s_err = f"err: {round(error, 2):<5.2f}"
+                s_obj = f"obj: {round(obj, 2):.2f}"
+                str_ += s_eq + f"({s_err}); ({model_desc}); ({s_obj}); [{pivot}] **\n"
+
+                return (
+                    Equation(
+                        equation, error, pivot, sample_size, model_desc, dims, str_
+                    ),
+                    None,
+                    None,
+                )
+            else:
+                str_ += f"MILP for {pivot}: Objective too large: {obj}\n"
+                return (
+                    Equation(None, None, pivot, sample_size, model_desc, dims, str_),
+                    None,
+                    None,
+                )
+        else:
+            str_ += f"MILP for {pivot}: No solution found\n"
+            return (
+                Equation(None, None, pivot, sample_size, model_desc, dims, str_),
+                None,
+                None,
+            )
+
+    # Create a model for each term in extended_terms, excluding the constant '1'
+    for i in range(len(selected_terms)):
+        equation = milp_synthesis_wrapper(
+            selected_terms[i],
+            selected_terms.copy(),
+            selected_data.copy(),
+            "EagerMILP",
+            None,
+        )
+        if (
+            equation is not None
+            and equation[0] is not None
+            and equation[0].expr is not None
+        ):
+            results.append(equation[0])
+
+    return results
+
+
 def find_models_with_gplearn(extended_terms, extended_data, test_size=0.2):
     config.precision = 2  # NOTE: Force the precision to 2 for GPlearn
 
@@ -1158,7 +1279,9 @@ def bitween(file_path: str = None):  # noqa F811
                 models = sfs_heuristics(extended_terms, extended_data, degree)
             elif config.method == Method.EAGER_MILP:
                 # (Option 4) for ablation study
-                raise NotImplementedError("Eager MILP is not implemented yet")
+                result = find_models_with_eager_milp(extended_terms, extended_data)
+                results[loc].extend(result)
+                continue
             elif config.method == Method.PYSR:
                 result = find_models_with_pysr(extended_terms, extended_data)
                 results[loc].extend(result)
@@ -1213,7 +1336,7 @@ def bitween(file_path: str = None):  # noqa F811
     sample_dict = {}
     for loc, result in results.items():
         print(
-            f"\nLocation: {loc}; Traces: {trace_data[loc]['data'].shape[0]}; Terms: {trace_data[loc]['terms']}"
+            f"\nLocation: {loc}; Samples: {trace_data[loc]['data'].shape[0]}; Query Functions: {trace_data[loc]['terms']}"
         )
         p_width = config.property_table_width
         # NOTE: a dirty hack to simplify the equation for display
