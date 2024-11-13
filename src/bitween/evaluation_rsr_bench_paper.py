@@ -12,6 +12,8 @@ from time import time
 config = Config()
 log = miscs.getLogger(__name__, config.logger_level)
 
+solver = MILPSolver.GUROBI
+
 
 def test_sin_glibc():
     iteration = 40
@@ -90,9 +92,9 @@ def test_sin():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        # milp=MILPSolver.GUROBI,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -128,8 +130,9 @@ def test_cos():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -153,9 +156,10 @@ def test_tan():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=10,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=15,
     )
 
     def f(x):
@@ -178,9 +182,10 @@ def test_tanh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=20,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=100,
     )
 
     def f(x):
@@ -203,10 +208,10 @@ def test_identity():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        # milp=MILPSolver.GUROBI,
-        method=Method.GPLEARN,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        # method=Method.GPLEARN,
         n=10,
     )
 
@@ -230,6 +235,9 @@ def test_inverse():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -253,6 +261,9 @@ def test_inverse_add():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -288,8 +299,9 @@ def test_exp():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=10,
     )
 
@@ -313,9 +325,9 @@ def test_exp_div_by_x():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
-        max_degree=5,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=200,
     )
 
@@ -347,8 +359,9 @@ def test_exp_div_by_x_composite():
         H,
         P,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=10,
     )
 
@@ -415,9 +428,10 @@ def test_floudas():
         ],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=10,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=15,
         precondition=lambda x1, x2: 0 <= x1 <= 2 and 0 <= x2 <= 3 and x1 + x2 <= 2,
     )
 
@@ -443,9 +457,10 @@ def test_mean():
         # fmt: on
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=10,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=15,
     )
 
     def f(x, y, z):
@@ -469,8 +484,9 @@ def test_inverse_square():
         ["f(x+y)", "f(x)", "f(y)", "f(x-y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -508,8 +524,9 @@ def test_diff_x2_y2():
         # fmt: on
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -533,8 +550,9 @@ def test_exp_minus_one():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=10,
     )
 
@@ -558,8 +576,9 @@ def test_cot():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -584,11 +603,10 @@ def test_inverse_cot_plus_one():
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
-        # milp=MILPSolver.GUROBI,
-        # var_bound=4,
     )
 
     def f(x):
@@ -612,8 +630,9 @@ def test_inverse_tan_plus_one():
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=40,
     )
 
@@ -649,8 +668,9 @@ def test_x_over_one_minus_x():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
         # epsilon=0.001,
     )
@@ -675,8 +695,9 @@ def test_minus_x_over_one_minus_x():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -701,8 +722,9 @@ def test_sin_over_sin():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=300,
     )
 
@@ -727,8 +749,9 @@ def test_sinh_over_sinh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=150,
     )
 
@@ -752,8 +775,9 @@ def test_cosh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -777,8 +801,9 @@ def test_squared():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -803,8 +828,9 @@ def test_cube():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -840,8 +866,9 @@ def test_sinh():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -877,9 +904,10 @@ def test_sigmoid():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=30,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=100,
     )
 
     def f(x):
@@ -986,8 +1014,9 @@ def test_sigmoid_derivative():
         ["df(x+y)", "df(x-y)", "df(x)", "df(y)"],
         dF,
         max_degree=5,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=100,
     )
 
@@ -1015,9 +1044,10 @@ def test_logistic(L=1, k=2, x0=0):
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=15,
+        milp=MILPSolver.PULP,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=50,
     )
 
     def f(x):
@@ -1053,8 +1083,9 @@ def test_logistic1(L=3, k=2, x0=0):
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -1090,8 +1121,9 @@ def test_softmax2_1():
         ["f(x+r, y+r)", "f(x, y)", "f(x, r)", "f(y, r)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -1115,8 +1147,9 @@ def test_softmax2_2():
         ["f(x+y, y+z)", "f(x,y)", "f(y,z)", "f(x,z)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -1140,8 +1173,9 @@ def test_softmax2_alt_1():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=150,
     )
 
@@ -1165,10 +1199,10 @@ def test_arctan():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=200,
-        milp=MILPSolver.GLPK,
     )
 
     def f(x):
@@ -1191,8 +1225,9 @@ def test_mod():
         ["f(x+y)", "f(x)", "f(y)"],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=10,
     )
 
@@ -1228,8 +1263,9 @@ def test_mod_mult():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=10,
     )
 
@@ -1253,8 +1289,9 @@ def test_int_mult():
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -1286,8 +1323,9 @@ def test_sinc_composite():
         RSR_SIN,
         RSR_X,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
         n=15,
     )
 
@@ -1334,9 +1372,10 @@ def test_sinc():
         P,
         sum,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=15,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=50,
     )
 
     def f(x):
@@ -1374,8 +1413,9 @@ def test_log():
         ["f(x*y)", "f(x)", "f(y)"],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=10,
     )
 
@@ -1411,8 +1451,9 @@ def test_sec():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=50,
     )
 
@@ -1450,8 +1491,9 @@ def test_csc():
         # ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=4,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=100,
     )
 
@@ -1475,8 +1517,9 @@ def test_square_loss():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=2,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=15,
     )
 
@@ -1512,8 +1555,9 @@ def test_savage_loss():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=4,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=100,
     )
 
@@ -1541,9 +1585,10 @@ def test_savage_loss_library():
         F,
         G,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=20,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=50,
     )
 
     def f(x):
@@ -1589,9 +1634,10 @@ def test_savage_loss_basis():
         F,
         G,
         max_degree=5,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
-        n=60,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=20,
+        n=100,
     )
 
     def f(x):
@@ -1629,8 +1675,9 @@ def test_relu():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
         max_degree=3,
-        # milp=MILPSolver.GUROBI,
-        # method=Method.EAGER_MILP,
+        milp=solver,
+        method=Method.EAGER_MILP,
+        var_bound=10,
         n=150,
     )
 
@@ -1646,7 +1693,7 @@ def test_relu():
 if __name__ == "__main__":
     st = time()
 
-    test_identity()  # 1
+    # test_identity()  # 1
     # test_exp()  # 2
     # test_exp_minus_one()  # 3
     # test_exp_div_by_x()  # no solution # 4
@@ -1700,7 +1747,7 @@ if __name__ == "__main__":
     # test_square_loss()  # 38
     # test_savage_loss() # no solution
     # test_savage_loss_library()  # 39 library
-    # test_savage_loss_basis()  # 40
+    test_savage_loss_basis()  # 40
 
     # test_relu()
 
