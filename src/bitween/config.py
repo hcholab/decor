@@ -139,9 +139,7 @@ class Config:
     @property
     def method(self):
         """Get the initial method."""
-        value = self._config.get(
-            "initial_method", "general", fallback="MULTIPLE_REGRESSION"
-        )
+        value = self._config.get("general", "method", fallback="MULTIPLE_REGRESSION")
         return Method[value]
 
     @method.setter
@@ -590,9 +588,9 @@ if __name__ == "__main__":
         config.logger_level = 5
         print(f"Updated Logger Level: {Config().logger_level}")
 
-        config.method = Method.MULTIPLE_REGRESSION
-        print(f"Initial Method: {config.method}")
-        assert config.method == Method.MULTIPLE_REGRESSION
+        config.method = Method.GPLEARN
+        print(f"Method: {config.method}")
+        assert config.method == Method.GPLEARN
 
         config.invariant_type = InvariantType.INT
         print(f"Invariant Type: {config.invariant_type}")
