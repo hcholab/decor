@@ -144,7 +144,7 @@ def run():
         #     "-n",
         #     "150",
         #     "--correctness",
-        #     "fuzzing",
+        #     "verification",
         # ]
     )
 

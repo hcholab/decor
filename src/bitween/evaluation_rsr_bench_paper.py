@@ -1,12 +1,11 @@
 import math
 import sympy
 
-from bitween._settings import InitialMethod
 from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
 
 from bitween import miscs
-from bitween.config import Config, MILPSolver
+from bitween.config import Config, MILPSolver, Method
 
 from time import time
 
@@ -68,7 +67,7 @@ def test_sin_glibc():
 
 
 def test_sin():
-    def F(x, terms=40):
+    def F(x, terms=20):
         """sinTaylor"""
         result = 0.0
 
@@ -92,7 +91,8 @@ def test_sin():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
+        # milp=MILPSolver.GUROBI,
         n=15,
     )
 
@@ -114,6 +114,8 @@ def test_sin():
                 )
             )
 
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
 
 def test_cos():
     def F(x):
@@ -127,8 +129,8 @@ def test_cos():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -152,8 +154,8 @@ def test_tan():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x):
@@ -177,8 +179,8 @@ def test_tanh():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=80,
+        # method=Method.EAGER_MILP,
+        n=20,
     )
 
     def f(x):
@@ -202,7 +204,9 @@ def test_identity():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
+        # milp=MILPSolver.GUROBI,
+        method=Method.GPLEARN,
         n=10,
     )
 
@@ -226,7 +230,7 @@ def test_inverse():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        n=150,
+        n=15,
     )
 
     def f(x):
@@ -249,7 +253,7 @@ def test_inverse_add():
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        n=150,
+        n=15,
     )
 
     def f(x):
@@ -285,7 +289,7 @@ def test_exp():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=10,
     )
 
@@ -311,7 +315,7 @@ def test_exp_div_by_x():
         F,
         max_degree=5,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=200,
     )
 
@@ -344,8 +348,8 @@ def test_exp_div_by_x_composite():
         P,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x):
@@ -412,8 +416,8 @@ def test_floudas():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=10,
         precondition=lambda x1, x2: 0 <= x1 <= 2 and 0 <= x2 <= 3 and x1 + x2 <= 2,
     )
 
@@ -440,8 +444,8 @@ def test_mean():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x, y, z):
@@ -466,8 +470,8 @@ def test_inverse_square():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -505,8 +509,8 @@ def test_diff_x2_y2():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x1, x2):
@@ -530,7 +534,7 @@ def test_exp_minus_one():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=10,
     )
 
@@ -555,8 +559,8 @@ def test_cot():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -581,8 +585,8 @@ def test_inverse_cot_plus_one():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
         # milp=MILPSolver.GUROBI,
         # var_bound=4,
     )
@@ -609,15 +613,27 @@ def test_inverse_tan_plus_one():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=40,
     )
 
     def f(x):
         return 1 / (sympy.tan(x) + 1)
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -634,9 +650,9 @@ def test_x_over_one_minus_x():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=1000,
-        epsilon=0.001,
+        # method=Method.EAGER_MILP,
+        n=15,
+        # epsilon=0.001,
     )
 
     def f(x):
@@ -660,8 +676,8 @@ def test_minus_x_over_one_minus_x():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -686,7 +702,7 @@ def test_sin_over_sin():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=300,
     )
 
@@ -712,7 +728,7 @@ def test_sinh_over_sinh():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=150,
     )
 
@@ -737,8 +753,8 @@ def test_cosh():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -762,8 +778,8 @@ def test_squared():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -788,8 +804,8 @@ def test_cube():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -825,8 +841,8 @@ def test_sinh():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -862,8 +878,8 @@ def test_sigmoid():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=30,
     )
 
     def f(x):
@@ -908,7 +924,7 @@ def test_sigmoid_extra():
                 n=i,
                 milp=None,
                 epsilon=0.2,
-                method=InitialMethod.MULTIPLE_REGRESSION,
+                method=Method.MULTIPLE_REGRESSION,
             )
 
             if props:
@@ -971,7 +987,7 @@ def test_sigmoid_derivative():
         dF,
         max_degree=5,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=100,
     )
 
@@ -1000,8 +1016,8 @@ def test_logistic(L=1, k=2, x0=0):
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -1025,7 +1041,7 @@ def test_logistic(L=1, k=2, x0=0):
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
-def test_logistic1(L=3, k=2, x0=1):
+def test_logistic1(L=3, k=2, x0=0):
 
     def F(x):
         return L / (1 + math.exp(-k * (x - x0)))
@@ -1038,8 +1054,8 @@ def test_logistic1(L=3, k=2, x0=1):
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -1075,8 +1091,8 @@ def test_softmax2_1():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x, y):
@@ -1100,8 +1116,8 @@ def test_softmax2_2():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x, y):
@@ -1125,7 +1141,7 @@ def test_softmax2_alt_1():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=150,
     )
 
@@ -1150,7 +1166,7 @@ def test_arctan():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=200,
         milp=MILPSolver.GLPK,
     )
@@ -1176,8 +1192,8 @@ def test_mod():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x, R=101):
@@ -1213,8 +1229,8 @@ def test_mod_mult():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x, y, R=100001):
@@ -1238,8 +1254,8 @@ def test_int_mult():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x, y):
@@ -1271,8 +1287,8 @@ def test_sinc_composite():
         RSR_X,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=50,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -1319,8 +1335,8 @@ def test_sinc():
         sum,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -1359,8 +1375,8 @@ def test_log():
         F,
         max_degree=1,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=50,
+        # method=Method.EAGER_MILP,
+        n=10,
     )
 
     def f(x):
@@ -1396,15 +1412,27 @@ def test_sec():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=50,
     )
 
     def f(x):
         return 1 / sympy.cos(x)
 
-    for eq in equations:
-        verify(eq, f)
+    # for eq in equations:
+    #     if verify(eq, f):
+    #         print("Isolating f(x+y):")
+    #         print(
+    #             sympy.solve(
+    #                 sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+    #             )
+    #         )
+    #         print("Isolating f(x-y):")
+    #         print(
+    #             sympy.solve(
+    #                 sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+    #             )
+    #         )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1423,15 +1451,15 @@ def test_csc():
         F,
         max_degree=4,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=200,
+        # method=Method.EAGER_MILP,
+        n=100,
     )
 
     def f(x):
         return 1 / sympy.sin(x)
 
-    for eq in equations:
-        verify(eq, f)
+    # for eq in equations:
+    #     verify(eq, f)
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1448,8 +1476,8 @@ def test_square_loss():
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=150,
+        # method=Method.EAGER_MILP,
+        n=15,
     )
 
     def f(x):
@@ -1485,7 +1513,7 @@ def test_savage_loss():
         F,
         max_degree=4,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=100,
     )
 
@@ -1514,8 +1542,8 @@ def test_savage_loss_library():
         G,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=20,
     )
 
     def f(x):
@@ -1562,8 +1590,8 @@ def test_savage_loss_basis():
         G,
         max_degree=5,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
-        n=100,
+        # method=Method.EAGER_MILP,
+        n=60,
     )
 
     def f(x):
@@ -1602,7 +1630,7 @@ def test_relu():
         F,
         max_degree=3,
         # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
+        # method=Method.EAGER_MILP,
         n=150,
     )
 
@@ -1618,7 +1646,7 @@ def test_relu():
 if __name__ == "__main__":
     st = time()
 
-    # test_identity()  # 1
+    test_identity()  # 1
     # test_exp()  # 2
     # test_exp_minus_one()  # 3
     # test_exp_div_by_x()  # no solution # 4
@@ -1640,7 +1668,7 @@ if __name__ == "__main__":
     # test_cos()  # 18
     # test_cosh()  # 19
     # test_squared()  # 20
-    test_sin()  # 21
+    # test_sin()  # 21
     # test_sin_glibc()
     # test_sinh()  # 22
     # test_cube()  # 23

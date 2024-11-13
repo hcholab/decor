@@ -1,4 +1,3 @@
-from bitween._settings import InitialMethod
 from bitween.main import (  # noqa F401
     infer_invariants_and_check_correctness,
     infer_invariants_and_verify_correctness,
@@ -35,7 +34,7 @@ def cohencu():
         max_degree=2,
         n=20,
         milp=None,
-        method=InitialMethod.MULTIPLE_REGRESSION,
+        # method=Method.MULTIPLE_REGRESSION,
     )
 
 
@@ -63,7 +62,7 @@ def bresenham_extra():
                 n=i,
                 milp=None,
                 epsilon=0.2,
-                method=InitialMethod.MULTIPLE_REGRESSION,
+                # method=Method.MULTIPLE_REGRESSION,
             )
 
             if props:
@@ -117,7 +116,7 @@ def cohendiv():
         max_degree=2,
         n=20,
         milp=None,
-        # method=InitialMethod.FORWARD_SELECTION,
+        # method=Method.FORWARD_SELECTION,
     )
 
 
@@ -131,7 +130,7 @@ def dijkstra():
         n=20,
         # bound=16,
         # milp=gurobi,
-        # method=InitialMethod.FORWARD_SELECTION,
+        # method=Method.FORWARD_SELECTION,
     )
 
 
@@ -403,9 +402,9 @@ if __name__ == "__main__":
 
     st = time()
 
-    # bresenham()
+    bresenham()
     # cohencu()  # NOTE: use this in demo
-    bresenham_extra()
+    # bresenham_extra()
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()
     # divbin()
