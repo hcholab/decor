@@ -24,7 +24,7 @@ from sympy import (
 )
 import numpy as np
 
-from bitween.sampler import Distribution, Domain, sample
+from bitween.sampler import Distribution, sample
 
 
 class UnSupportedFunctionSignature(Exception):
@@ -107,8 +107,7 @@ def verify(expr: Expr, *functions) -> bool:
 def property_test(  # noqa E123
     expr: str | Expr,
     *functions,
-    domain: Domain = Domain.Real,
-    distribution: Distribution = Distribution.Small,
+    distribution: Distribution = Distribution(np.random.uniform, low=-5, high=5),
     epsilon=1e-10,
     n=30,
 ) -> bool:
@@ -118,7 +117,6 @@ def property_test(  # noqa E123
     :param expr: the expression to be evaluated
     :param functions: the implementation of functions to be evaluated. It should be a list of
         either symbolic expressions or normal python functions.
-    :param domain: the domain of the function
     :param distribution: the distribution of the domain
     :param epsilon: the error tolerance
     :param n: the number of samples to be generated
@@ -145,7 +143,7 @@ def property_test(  # noqa E123
     print(f"evaluating: {expr}")
     i = 0
     while i < n:
-        variables = sample(domain, distribution, variables)
+        variables = sample(distribution, variables)
         try:
             errors.append(
                 eval(
@@ -280,7 +278,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("------------------------------------------")
 
@@ -290,7 +288,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("------------------------------------------")
 
@@ -369,7 +367,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("---------------------")
 
@@ -386,7 +384,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f, g, h)
     print("---------------------")
-    assert property_test(expr, f, g, h, domain=Domain.Integer)
+    assert property_test(expr, f, g, h)
 
     print("------------------------------------------")
 
@@ -422,7 +420,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("------------------------------------------")
 
@@ -433,7 +431,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("------------------------------------------")
 
@@ -444,7 +442,7 @@ if __name__ == "__main__":  # noqa E123
 
     assert verify(expr, f)
     print("---------------------")
-    assert property_test(expr, f, domain=Domain.Integer)
+    assert property_test(expr, f)
 
     print("------------------------------------------")
 

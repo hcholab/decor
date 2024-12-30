@@ -1,3 +1,4 @@
+import numpy as np
 from bitween.reporter import print_methods
 from sympy import Function, symbols
 from sympy import exp, Abs, sqrt, sin, cos, tan, log, sign  # noqa F401
@@ -46,7 +47,7 @@ print(f"{decode(encode_wrapper(1, 2, 3, 4, 5))}")
 
 methods = generate(
     Domain.Real,
-    Distribution.Small,
+    Distribution(np.random.uniform, low=-5, high=5),
     [MILP(k=2, timeout=5, max_bound=2, obj=1e-12)],  # methods
     ["F(x+y)", "F(x-y)", "F(x)", "F(y)", "1"],  # how to call functions
     ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template

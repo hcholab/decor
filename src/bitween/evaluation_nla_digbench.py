@@ -28,11 +28,11 @@ def bresenham():
 def cohencu():
     file_path = "./benchmarks/bitween/dig/cohencu.c"
     func_name = "cohencu"
-    infer_invariants_and_check_correctness(
+    infer_invariants_and_verify_correctness(
         file_path,
         func_name,
-        max_degree=2,
-        n=20,
+        max_degree=3,
+        n=10,
         milp=None,
         # method=Method.MULTIPLE_REGRESSION,
     )
@@ -402,8 +402,8 @@ if __name__ == "__main__":
 
     st = time()
 
-    bresenham()
-    # cohencu()  # NOTE: use this in demo
+    # bresenham()
+    cohencu()  # NOTE: use this in demo
     # bresenham_extra()
     # cohendiv()  # may generates an unsound invariant and we catch it in the check_correctness 4
     # dijkstra()

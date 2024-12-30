@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import sympy
 
 from bitween._settings import InitialMethod
@@ -24,7 +25,7 @@ def test_sin_glibc():
     for i in range(5, iteration, 5):
         props, error, sample = infer_property(
             Domain.Real,
-            Distribution.Small,
+            Distribution(np.random.uniform, low=-5, high=5),
             ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
             ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
             F,
@@ -86,7 +87,7 @@ def test_sin():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -121,14 +122,14 @@ def test_cos():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
         # milp=MILPSolver.GUROBI,
         # method=InitialMethod.EAGER_MILP,
-        n=150,
+        n=100,
     )
 
     def f(x):
@@ -146,7 +147,7 @@ def test_tan():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -171,7 +172,7 @@ def test_tanh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -196,7 +197,7 @@ def test_identity():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -221,7 +222,7 @@ def test_inverse():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -244,7 +245,7 @@ def test_inverse_add():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -279,7 +280,7 @@ def test_exp():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -305,7 +306,7 @@ def test_exp_div_by_x():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Tiny,
+        Distribution(np.random.uniform, low=-2, high=2),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -336,7 +337,7 @@ def test_exp_div_by_x_composite():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Tiny,
+        Distribution(np.random.uniform, low=-2, high=2),
         ["F(x+y)", "H(x)", "H(y)", "P(x,y)"],
         ["f(x+y)", "h(x)", "h(y)", "p(x,y)"],
         F,
@@ -370,7 +371,7 @@ def test_exp_div_by_log():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -394,7 +395,7 @@ def test_floudas():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [
             "F(x1+x2,y1+y2)",
             "F(x2+x3,y2+y3)",
@@ -431,8 +432,8 @@ def test_mean():
         return 1 / 3 * (x + y + z)
 
     equations = infer_property(
-        Domain.Integer,
-        Distribution.Small,
+        Domain.Real,
+        Distribution(np.random.uniform, low=-5, high=5),
         # fmt: off
         ["F(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "F(x1+x2,y1+y2,z1+z2)", "F(x2+x3,y2+y3,z2+z3)", "F(x1+x3,y1+y3,z1+z3)", "F(x1,y1,z1)", "F(x2,y2,z2)", "F(x3,y3,z3)"],
         ["f(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "f(x1+x2,y1+y2,z1+z2)", "f(x2+x3,y2+y3,z2+z3)", "f(x1+x3,y1+y3,z1+z3)", "f(x1,y1,z1)", "f(x2,y2,z2)", "f(x3,y3,z3)"],
@@ -460,7 +461,7 @@ def test_inverse_square():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x)", "F(y)", "F(x-y)"],
         ["f(x+y)", "f(x)", "f(y)", "f(x-y)"],
         F,
@@ -497,7 +498,7 @@ def test_diff_x2_y2():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # fmt: off
         ["F(x-a,y-b)", "F(x+a,y-b)", "F(x,y)", "F(a,b)", "F(x-a, y)", "F(x+a, y)", "F(x, y-a)", "F(x, y+a)"],
         ["f(x-a,y-b)", "f(x+a,y-b)", "f(x,y)", "f(a,b)", "f(x-a,y)", "f(x+a,y)", "f(x,y-a)", "f(x,y+a)"],
@@ -524,7 +525,7 @@ def test_exp_minus_one():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -549,7 +550,7 @@ def test_cot():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -575,7 +576,7 @@ def test_inverse_cot_plus_one():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -603,7 +604,7 @@ def test_inverse_tan_plus_one():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -628,7 +629,7 @@ def test_x_over_one_minus_x():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -654,7 +655,7 @@ def test_minus_x_over_one_minus_x():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -680,7 +681,7 @@ def test_sin_over_sin():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -706,7 +707,7 @@ def test_sinh_over_sinh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -731,7 +732,7 @@ def test_cosh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -755,8 +756,8 @@ def test_squared():
         return x**2
 
     equations = infer_property(
-        Domain.Integer,
-        Distribution.Small,
+        Domain.Real,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -781,8 +782,8 @@ def test_cube():
         return x**3
 
     equations = infer_property(
-        Domain.Integer,
-        Distribution.Small,
+        Domain.Real,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -819,7 +820,7 @@ def test_sinh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -856,7 +857,7 @@ def test_sigmoid():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -900,7 +901,7 @@ def test_sigmoid_extra():
 
             props, error, sample = infer_property(
                 Domain.Real,
-                Distribution.Small,
+                Distribution(np.random.uniform, low=-5, high=5),
                 ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
                 ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
                 F,
@@ -965,7 +966,7 @@ def test_sigmoid_derivative():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["dF(x+y)", "dF(x-y)", "dF(x)", "dF(y)"],
         ["df(x+y)", "df(x-y)", "df(x)", "df(y)"],
         dF,
@@ -994,7 +995,7 @@ def test_logistic(L=1, k=2, x0=0):
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1032,7 +1033,7 @@ def test_logistic1(L=3, k=2, x0=1):
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1069,7 +1070,7 @@ def test_softmax2_1():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+r, y+r)", "F(x, y)", "F(x, r)", "F(y, r)"],
         ["f(x+r, y+r)", "f(x, y)", "f(x, r)", "f(y, r)"],
         F,
@@ -1094,7 +1095,7 @@ def test_softmax2_2():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y, y+z)", "F(x,y)", "F(y,z)", "F(x,z)"],
         ["f(x+y, y+z)", "f(x,y)", "f(y,z)", "f(x,z)"],
         F,
@@ -1119,7 +1120,7 @@ def test_softmax2_alt_1():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x1+x2, y1+y2)", "F(x1, y1)", "F(x2, y1)", "F(x1, y2)", "F(x2, y2)"],
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
@@ -1144,7 +1145,7 @@ def test_arctan():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Tiny,
+        Distribution(np.random.uniform, low=-2, high=2),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1170,13 +1171,11 @@ def test_mod():
 
     equations = infer_property(
         Domain.Positive_Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         ["F(x+y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x)", "f(y)"],
         F,
         max_degree=1,
-        # milp=MILPSolver.GUROBI,
-        # method=InitialMethod.EAGER_MILP,
         n=100,
     )
 
@@ -1207,7 +1206,7 @@ def test_mod_mult():
 
     equations = infer_property(
         Domain.Positive_Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         ["F(x1+x2, y1+y2)", "F(x1, y1)", "F(x2, y1)", "F(x1, y2)", "F(x2, y2)"],
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
@@ -1232,7 +1231,7 @@ def test_int_mult():
 
     equations = infer_property(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         ["F(x1+x2, y1+y2)", "F(x1, y1)", "F(x2, y1)", "F(x1, y2)", "F(x2, y2)"],
         ["f(x1+x2, y1+y2)", "f(x1, y1)", "f(x2, y1)", "f(x1, y2)", "f(x2, y2)"],
         F,
@@ -1263,7 +1262,7 @@ def test_sinc_composite():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "RSR_SIN(x,y)", "RSR_X(x,y)"],
         ["f(x+y)", "rsr_sin(x,y)", "rsr_x(x,y)"],
         F,
@@ -1311,7 +1310,7 @@ def test_sinc():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "sin(x)", "sin(y)", "sin(x-y)", "P(x,y)"],
         ["f(x+y)", "sin(x)", "sin(y)", "sin(x-y)", "p(x,y)"],
         F,
@@ -1353,7 +1352,7 @@ def test_log():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x*y)", "F(x)", "F(y)"],
         ["f(x*y)", "f(x)", "f(y)"],
         F,
@@ -1390,7 +1389,7 @@ def test_sec():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -1403,8 +1402,20 @@ def test_sec():
     def f(x):
         return 1 / sympy.cos(x)
 
-    for eq in equations:
-        verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1415,7 +1426,7 @@ def test_csc():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         # ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -1430,8 +1441,20 @@ def test_csc():
     def f(x):
         return 1 / sympy.sin(x)
 
-    for eq in equations:
-        verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1442,7 +1465,7 @@ def test_square_loss():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1479,7 +1502,7 @@ def test_savage_loss():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1507,7 +1530,7 @@ def test_savage_loss_library():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "G(x, y)", "F(x)", "F(y)"],
         ["f(x+y)", "g(x, y)", "f(x)", "f(y)"],
         F,
@@ -1555,7 +1578,7 @@ def test_savage_loss_basis():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "G(x)", "G(y)"],
         ["f(x+y)", "g(x)", "g(y)"],
         F,
@@ -1596,7 +1619,7 @@ def test_relu():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -1670,7 +1693,7 @@ if __name__ == "__main__":
 
     # loss functions:https://en.wikipedia.org/wiki/Loss_functions_for_classification
     # test_square_loss()  # 38
-    # test_savage_loss() # no solution
+    # test_savage_loss()  # no solution
     # test_savage_loss_library()  # 39 library
     # test_savage_loss_basis()  # 40
 

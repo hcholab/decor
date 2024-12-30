@@ -47,6 +47,8 @@ log = miscs.getLogger(__name__, config.logger_level)
 
 TABLE_WIDTH = config.property_table_width
 
+__version__ = "1.0.0"
+
 
 @dataclass(frozen=True)
 class Equation:
@@ -321,102 +323,127 @@ def sfs_heuristics(extended_terms, extended_data, degree=2, test_size=0.2):
         # Define the range of features to select
         last_mse = np.inf
         # n_features = max_features
-        for n_features in range(1, max_features):  # Will go from 7 to 4
-            print(f"\nEvaluating model with {n_features} features selected:")
-            # Define the feature selector with the current number of features
-            selector = SequentialFeatureSelector(
-                LinearRegression(fit_intercept=False),
-                n_features_to_select=n_features,
-                cv=3,  # TODO check this, 5 is the recommended value
-                # n_jobs=-1,
+        counter = collections.Counter()
+        models = []
+        for i in range(2):
+            if i == 1:
+                # remove the max counted term from terms and data
+                dominant_term = counter.most_common(1)[0][0]
+                idx = extended_terms.index(dominant_term)
+                X_ = np.delete(X_, idx, axis=1)
+                features = np.delete(features, np.where(features == dominant_term))
+                X_train = np.delete(X_train, idx, axis=1)
+                print(f"\nRemoved {dominant_term} from the {features}")
+
+            if not config.selector_parallel:
+                print("-" * 80)
+
+            for n_features in range(1, max_features + 1):
+                # for n_features in range(max_features, max_features + 1):
+                print(f"\nEvaluating model with {n_features} features selected:")
+                # Define the feature selector with the current number of features
+                selector = SequentialFeatureSelector(
+                    LinearRegression(fit_intercept=False),
+                    n_features_to_select=n_features,
+                    cv=3,  # TODO check this, 5 is the recommended value
+                    # n_jobs=-1,
+                )
+                # Define the pipeline with the current feature selector
+                # cachedir = mkdtemp()
+                pipe = Pipeline(
+                    [
+                        ("selector", selector),
+                        ("linear", LinearRegression(fit_intercept=False)),
+                    ],
+                    # memory=cachedir,
+                )
+
+                # Fit the pipeline to the training data
+                pipe.fit(X_train, y_train)
+
+                # Get the selected features and their coefficients
+                mask = pipe.named_steps["selector"].get_support()
+                selected_features = features[mask]
+                model = pipe.named_steps["linear"]
+                coefficients = model.coef_
+
+                # Count the frequency of each term
+                counter.update(selected_features)
+
+                print("Selected features:", selected_features)
+                # Construct the polynomial equation
+                equation = sympy.Rational(0)
+                extended_coefficients = np.zeros(features.shape[0])
+                feature_list = features.tolist()
+                for feature, coeff in zip(selected_features, coefficients):
+                    idx = feature_list.index(feature)
+                    extended_coefficients[idx] = coeff
+                    # TODO be careful with rounding
+                    coeff = Fraction(coeff).limit_denominator(10 * config.precision)
+                    # coeff = round(coeff, config.precision)
+                    if feature == "1" and coeff != 0:
+                        # equation += sympy.Rational(coeff)
+                        equation += coeff
+                    elif coeff != 0:
+                        # equation += sympy.Rational(coeff) * sympy.Symbol(feature)
+                        equation += coeff * sympy.Symbol(feature)
+
+                # equation = equation.rstrip(" + ")  # remove the last plus sign
+                print(f"Equation: {pivot} = {equation}")
+                equation = sympy.Symbol(pivot) - equation
+
+                # Predict and evaluate the model on the test set
+                # mse = mean_squared_error(y_test, model.predict(X_test[:, mask]))
+                # NOTE use the entire X and y for evaluating the equation
+                # mse = mean_squared_error(y, model.predict(X_[:, mask]))
+                mse = mean_absolute_error(y, model.predict(X_[:, mask]))
+                if mse <= best_error:
+                    best_score = mse
+                    best_model = model
+                    best_intercept = model.intercept_
+                    best_coefficients = extended_coefficients
+
+                print(f"Mean Absolute Error on Test Data: {pp(mse)}")
+
+                if mse < 1e-10:  # TODO check this threshold
+                    print(
+                        f"Model for {pivot}: {equation.evalf()} (Found a perfect model)"
+                    )
+                    break
+
+                # if mse - last_mse > 1e-4:  # TODO check this threshold
+                #     print(f"mse increased from {last_mse} to {mse}, stopping the search.")
+                #     break
+
+                last_mse = mse
+
+            if i == 1:
+                params = {"blocked": f"{dominant_term}"}
+            else:
+                params = ""
+
+            models.append(
+                {
+                    "model": best_model,
+                    "score": best_score,
+                    "model_type": "ForwardSelection",
+                    "params": params,
+                    "intercept": best_intercept,
+                    "coefficients": best_coefficients,
+                    "sample_size": sample_size,
+                    "X_test": extended_data,  # NOTE: Entire X for evaluating the eq.
+                    "y_test": extended_data[:, target_idx],  # NOTE: Entire y
+                }
             )
-            # Define the pipeline with the current feature selector
-            # cachedir = mkdtemp()
-            pipe = Pipeline(
-                [
-                    ("selector", selector),
-                    ("linear", LinearRegression(fit_intercept=False)),
-                ],
-                # memory=cachedir,
-            )
 
-            # Fit the pipeline to the training data
-            pipe.fit(X_train, y_train)
-
-            # Get the selected features and their coefficients
-            mask = pipe.named_steps["selector"].get_support()
-            selected_features = features[mask]
-            model = pipe.named_steps["linear"]
-            coefficients = model.coef_
-
-            print("Selected features:", selected_features)
-            # Construct the polynomial equation
-            equation = sympy.Rational(0)
-            extended_coefficients = np.zeros(features.shape[0])
-            feature_list = features.tolist()
-            for feature, coeff in zip(selected_features, coefficients):
-                idx = feature_list.index(feature)
-                extended_coefficients[idx] = coeff
-                # TODO be careful with rounding
-                coeff = round(coeff, config.precision)
-                if feature == "1" and coeff != 0:
-                    equation += sympy.Rational(coeff)
-                elif coeff != 0:
-                    equation += sympy.Rational(coeff) * sympy.Symbol(feature)
-
-            # equation = equation.rstrip(" + ")  # remove the last plus sign
-            print(f"Equation: {pivot} = {equation.evalf()}")
-            equation = sympy.Symbol(pivot) - equation
-
-            # Predict and evaluate the model on the test set
-            # mse = mean_squared_error(y_test, model.predict(X_test[:, mask]))
-            # NOTE use the entire X and y for evaluating the equation
-            # mse = mean_squared_error(y, model.predict(X_[:, mask]))
-            mse = mean_absolute_error(y, model.predict(X_[:, mask]))
-            if mse <= best_error:
-                best_score = mse
-                best_model = model
-                best_intercept = model.intercept_
-                best_coefficients = extended_coefficients
-
-            print(f"Mean Squared Error on Test Data: {pp(mse)}")
-
-            if mse < 1e-10:  # TODO check this threshold
-                print(f"Model for {pivot}: {equation.evalf()} (Found a perfect model)")
-                break
-
-            if mse - last_mse > 1e-4:  # TODO check this threshold
-                print(f"mse increased from {last_mse} to {mse}, stopping the search.")
-                break
-
-            last_mse = mse
-
-            # selected_features_n = selected_features.shape[0]
-            # if selected_features_n < (n_features - 1):
-            #     # Decrease the number of features to select
-            #     n_features = selected_features_n
-            # else:
-            #     # Decrease the number of features to select
-            # n_features -= 1
-
-        return pivot, {
-            "model": best_model,
-            "score": best_score,
-            "model_type": "ForwardSelection",
-            "params": "",  # NOTE: No parameters for simple linear regression
-            "intercept": best_intercept,
-            "coefficients": best_coefficients,
-            "sample_size": sample_size,
-            "X_test": extended_data,  # NOTE: Include the entire X for evaluating the eq.
-            "y_test": extended_data[:, target_idx],  # NOTE: Include the entire y
-        }
+        return (pivot, models)
 
     # Create a model for each term in extended_terms, excluding the constant '1'
     results = Parallel(n_jobs=-1 if config.selector_parallel else 1)(
         delayed(fit_model)(i) for i in range(len(extended_terms) - 1)
     )
 
-    return {term: content for term, content in results}
+    return {pivot: content for pivot, content in results}
 
 
 def linear_regression_heuristics(extended_terms, extended_data, test_size=0.2):
@@ -808,7 +835,9 @@ def infer_equations(  # noqa F811
         )
         if equation.expr is not None:
             results.append(equation)
-            milp_input.append((pivot, term, data))  # NOTE: MILP input is collected here
+            # milp_input.append((pivot, term, data))  # NOTE: MILP input is collected here
+            if equation.error >= epsilon:
+                milp_input.append((pivot, term, data))
             # TODO: is this a good idea?
             if equation.error < epsilon:
                 continue
@@ -1310,7 +1339,20 @@ def bitween(file_path: str = None):  # noqa F811
 
             _str += "\n"
 
-            result, term_freq = infer_equations(models, extended_terms, extended_data)
+            term_freq = None
+            if config.method == Method.FORWARD_SELECTION:
+                for pivot, contents in models.items():
+                    for content in contents:
+                        result, term_freq = infer_equations(
+                            {pivot: content}, extended_terms, extended_data
+                        )
+                        results[loc].extend(result)
+                        term_freq.update(term_freq)
+            else:
+                result, term_freq = infer_equations(
+                    models, extended_terms, extended_data
+                )
+
             _str += f"Term Frequencies: {term_freq}; Size: {len(term_freq)}\n\n"
             results[loc].extend(result)
             for r in result:
@@ -1597,7 +1639,7 @@ def infer_property(
     evals = [["vtrace1"] + [f"I {term}" for term in template]]
     i = 0
     while i < n:
-        variables = sample(domain, distribution, list(variables))
+        variables = sample(distribution, list(variables))
         if precondition:
             # This work only for the first function
             func = list(functions.values())[0]
@@ -1639,6 +1681,9 @@ def infer_property(
                         },
                     )
                 )
+            # if any of the evaluation is None, skip the row
+            if None in eval_row:
+                continue
             evals.append(eval_row)
         except ZeroDivisionError as e:
             print(f"ZeroDivisionError: {e}, {variables}")

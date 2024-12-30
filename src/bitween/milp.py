@@ -16,6 +16,8 @@ ROUND = None
 
 OPTIMAL = GRB.OPTIMAL
 
+__version__ = "1.0.0"
+
 
 def milp_synthesis(  # noqa: C901
     data: np.ndarray,
@@ -234,7 +236,7 @@ if __name__ == "__main__":  # noqa E123
     from bitween.sampler import Distribution, Domain, sample
 
     domain = Domain.Real
-    distribution = Distribution.Small
+    distribution = Distribution(np.random.uniform, low=-5, high=5)
     degree = 2
     bound = 2
     blocked = None
@@ -275,7 +277,7 @@ if __name__ == "__main__":  # noqa E123
 
         i = 30
         while i > 0:
-            x, y = tuple(sample(domain, distribution, ["x", "y"]).values())
+            x, y = tuple(sample(distribution, ["x", "y"]).values())
 
             (values, terms) = get_values_terms(
                 degree,

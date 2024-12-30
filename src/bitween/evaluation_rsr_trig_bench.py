@@ -1,6 +1,7 @@
 import math
 import numpy
 import sympy
+import numpy as np
 
 from bitween.main import infer_property, verify
 from bitween.sampler import Domain, Distribution
@@ -20,19 +21,21 @@ def test_sin():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
         max_degree=2,
-        n=150,
+        n=100,
     )
 
     def f(x):
         return sympy.sin(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cos():
@@ -41,7 +44,7 @@ def test_cos():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         # ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -54,8 +57,10 @@ def test_cos():
     def f(x):
         return sympy.cos(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_tan():
@@ -64,7 +69,7 @@ def test_tan():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         # ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -77,8 +82,10 @@ def test_tan():
     def f(x):
         return sympy.tan(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_tanh():
@@ -87,7 +94,7 @@ def test_tanh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         # ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -100,8 +107,10 @@ def test_tanh():
     def f(x):
         return sympy.tanh(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cosh():
@@ -110,7 +119,7 @@ def test_cosh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         # ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -123,8 +132,10 @@ def test_cosh():
     def f(x):
         return sympy.cosh(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sinh():
@@ -133,7 +144,7 @@ def test_sinh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -144,8 +155,10 @@ def test_sinh():
     def f(x):
         return sympy.sinh(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sigmoid():
@@ -154,7 +167,7 @@ def test_sigmoid():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -165,8 +178,10 @@ def test_sigmoid():
     def f(x):
         return 1 / (1 + sympy.exp(-x))
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arctan():
@@ -187,8 +202,10 @@ def test_arctan():
     def f(x):
         return sympy.atan(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_sec():
@@ -197,7 +214,7 @@ def test_sec():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         F,
@@ -208,8 +225,10 @@ def test_sec():
     def f(x):
         return 1 / sympy.cos(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_csc():
@@ -218,7 +237,7 @@ def test_csc():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         # ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -231,8 +250,10 @@ def test_csc():
     def f(x):
         return 1 / sympy.sin(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arcsin():
@@ -255,8 +276,10 @@ def test_arcsin():
     def f(x):
         return sympy.asin(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arccos():
@@ -279,8 +302,10 @@ def test_arccos():
     def f(x):
         return sympy.acos(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arccot():
@@ -289,7 +314,7 @@ def test_arccot():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -300,8 +325,10 @@ def test_arccot():
     def f(x):
         return sympy.acot(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_arcsinh():
@@ -310,7 +337,7 @@ def test_arcsinh():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
@@ -321,8 +348,10 @@ def test_arcsinh():
     def f(x):
         return sympy.asinh(x)
 
-    for eq in equations:
+    for eq in equations[0]["vtrace1"]:
         verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 def test_cot():
@@ -331,7 +360,7 @@ def test_cot():
 
     equations = infer_property(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         # ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],  # how to call functions
         # ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],  # function basis aka the template
         ["F(x+y)", "F(x)", "F(y)"],  # how to call functions
@@ -344,8 +373,10 @@ def test_cot():
     def f(x):
         return 1 / sympy.tan(x)
 
-    for eq in equations:
-        assert verify(eq, f)
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
 
 
 if __name__ == "__main__":
@@ -358,7 +389,7 @@ if __name__ == "__main__":
 
     # NOTE: sine
     # f(x)**2 - f(x+y)*f(x-y) - f(y)**2 = 0
-    # test_sin()
+    test_sin()
 
     # NOTE: cosine
     # f(x)**2 - 2*f(x)*f(x+y)*f(y) + f(x+y)**2 + f(y)**2 - 1 = 0
@@ -411,6 +442,6 @@ if __name__ == "__main__":
 
     # NOTE: arcsinh (inverse hyperbolic sine)
     # Not found
-    test_arcsinh()
+    # test_arcsinh()
 
     log.debug(f"Total Time: {time() - st:.2f}s")

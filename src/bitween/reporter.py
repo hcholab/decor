@@ -1,4 +1,6 @@
 from inspect import signature
+
+import numpy as np
 from bitween import milp
 from sympy import (
     Function,
@@ -147,7 +149,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["P(x+y)", "P(x-y)", "P(x)", "P(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -173,7 +175,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -200,7 +202,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -230,7 +232,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -257,7 +259,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -284,7 +286,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -310,7 +312,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -336,7 +338,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -363,7 +365,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "1"],  # function basis aka the template
@@ -390,7 +392,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -417,7 +419,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -444,7 +446,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -470,7 +472,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -497,7 +499,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -524,7 +526,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -551,7 +553,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x+y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -577,7 +579,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -603,7 +605,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # how to call functions
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],  # function basis aka the template
@@ -640,7 +642,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x + y)", "f(x - y)", "f(x)", "f(y)", "g(x)", "h(x)", "1"],
         [
@@ -685,7 +687,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-10)],  # methods
         ["f(x)", "g(x)", "h(x)", "1"],
         [
@@ -721,7 +723,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         # fmt: off
         [
@@ -756,7 +758,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x+r,y+s)", "f(x,y)", "f(x,s)", "f(r,y)", "f(r,s)", "1"],
         ["f(x+r,y+s)", "f(x,y)", "f(x,s)", "f(r,y)", "f(r,s)", "1"],
@@ -782,7 +784,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x+r,y+s)", "f(x,y)", "f(x,s)", "f(r,y)", "f(r,s)", "1"],
         ["f(x+r,y+s)", "f(x,y)", "f(x,s)", "f(r,y)", "f(r,s)", "1"],
@@ -808,7 +810,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x, y)", "f(x, f(x, y))", "f(f(x, y), y)", "f(f(x, y), f(x, y))", "1"],
         ["f(x, y)", "f(x, f(x, y))", "f(f(x, y), y)", "f(f(x, y), f(x, y))", "1"],
@@ -834,7 +836,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         # fmt: off
         ["f(x, y)", "f(x, f(x, y))", "f(f(x, y), y)", "f(f(x, y), f(x, y))", "f(f(x, y), z)", "f(x, f(y, z))", "1", ],
@@ -862,7 +864,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x,y)", "f(x+r,y+s)", "f(x+r,s)", "f(r,y+s)", "f(r,s)", "1"],
         ["f(x,y)", "f(x+r,y+s)", "f(x+r,s)", "f(r,y+s)", "f(r,s)", "1"],
@@ -888,7 +890,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x,y)", "f(x-r,y-s)", "f(x-r,s)", "f(r,y-s)", "f(r,s)", "1"],
         ["f(x,y)", "f(x-r,y-s)", "f(x-r,s)", "f(r,y-s)", "f(r,s)", "1"],
@@ -914,7 +916,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-10)],  # methods
         ["f(x,y)", "f(x+r,y+s)", "f(x+r,s)", "f(r,y+s)", "f(r,s)", "1"],
         ["f(x,y)", "f(x+r,y+s)", "f(x+r,s)", "f(r,y+s)", "f(r,s)", "1"],
@@ -940,7 +942,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=16, obj=1e-10)],  # methods
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)", "1"],
@@ -966,7 +968,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-12)],  # methods
         ["f(x)", "f(x-x1)", "f(x-x2)", "f(x-x3)", "f(x1)", "f(x2)", "f(x3)", "1"],
         ["f(x)", "f(x-x1)", "f(x-x2)", "f(x-x3)", "f(x1)", "f(x2)", "f(x3)", "1"],
@@ -992,7 +994,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-12)],  # methods
         # fmt: off
         ["f(x1+x2+x3)", "f(x1+x2)", "f(x2+x3)", "f(x1+x3)", "f(x1)", "f(x2)", "f(x3)", "1"],
@@ -1020,7 +1022,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=3, max_bound=1, obj=1e-12)],  # methods
         # fmt: off
         ["f(x1+x2+x3)", "f(x1+x2)", "f(x2+x3)", "f(x1+x3)", "f(x1)", "f(x2)", "f(x3)", "1"],
@@ -1048,7 +1050,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Integer,
-        Distribution.Small,
+        Distribution(np.random.randint, low=1, high=10),
         [MILP(k=1, timeout=2, max_bound=1, obj=1e-14)],  # methods
         # fmt: off
         ["f(x1+x2+x3, y1+y2+y3, z1+z2+z3)", "f(x1+x2,y1+y2,z1+z2)", "f(x2+x3,y2+y3,z2+z3)", "f(x1+x3,y1+y3,z1+z3)", "f(x1,y1,z1)", "f(x2,y2,z2)", "f(x3,y3,z3)", "1"],
@@ -1097,7 +1099,7 @@ if __name__ == "__main__":  # noqa E123
 
     methods = generate(
         Domain.Real,
-        Distribution.Small,
+        Distribution(np.random.uniform, low=-5, high=5),
         [MILP(k=1, timeout=3, max_bound=2, obj=1e-12)],  # methods
         ["S(x+y)", "S(x-y)", "S(x)", "S(y)", "1"],  # how to call functions
         ["s(x+y)", "s(x-y)", "s(x)", "s(y)", "1"],  # function basis aka the template
