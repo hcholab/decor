@@ -23,53 +23,53 @@ Type of Program: Integer, Double, and Mixed
 |  5 | Divbin       |   3   |   5   |  2   | int     ||    ✓    |      90 |   2.02 ||   ✓   |     679 |  0.92 ||    ✓     |     212 |   6.41 ||
 |  6 | Egcd         |   2   |   8   |  2   | int     ||    ✓    |     299 |   6.59 ||   ✓   |    4580 |  7.81 ||    ✓     |    3564 |  48.91 ||
 |  7 | Egcd2        |   3   |  10   |  3   | int     ||    ✓    |     629 |   9.21 ||   ✓   |    4342 | 43.50 ||    ✓     |   11635 |  72.07 ||
-|  8 | Egcd3        |   4   |  12   |  2   | int     ||    ✓    |     562 |  16.84 ||   ✓-  |    2457 |  3.63 ||    ✓-    |    1693 |  15.05 ||
+|  8 | Egcd3        |   4   |  12   |  2   | int     ||    ✓    |     562 |  16.84 ||   ✓{\mathsection}  |    2457 |  3.63 ||    ✓{\mathsection}    |    1693 |  15.05 ||
 |  9 | Fermat1      |   4   |   5   |  2   | double  ||    ✓    |     965 |   4.94 ||   ✓   |    9578 |  1.46 ||    ✗**   |      -- |   6.09 ||
 | 10 | Fermat2      |   2   |   5   |  2   | double  ||    ✓    |     336 |   5.59 ||   ✓   |    2805 |  1.29 ||    ✓     |     157 |  15.74 ||
 | 11 | Freire1_int  |   1   |   3   |  2   | int     ||    ✓    |     175 |   1.36 ||   ✓   |     417 |  0.64 ||    ✓     |     223 |   5.57 ||
-| 12 | Freire1      |   1   |   3   |  2   | double  ||    ✓    |     111 |   1.42 ||   ✗^  |      -- |  0.45 ||    ✗^    |      -- |   2.09 ||
-| 13 | Freire2      |   1   |   3   |  3   | double  ||    ✓    |      39 |   1.22 ||   ✗^  |      -- |  0.45 ||    ✗^    |      -- |   4.71 ||
+| 12 | Freire1      |   1   |   3   |  2   | double  ||    ✓    |     111 |   1.42 ||   ✗{\ddagger}  |      -- |  0.45 ||    ✗{\ddagger}    |      -- |   2.09 ||
+| 13 | Freire2      |   1   |   3   |  3   | double  ||    ✓    |      39 |   1.22 ||   ✗{\ddagger}  |      -- |  0.45 ||    ✗{\ddagger}    |      -- |   4.71 ||
 | 14 | Geo1         |   2   |   4   |  2   | int     ||    ✓    |      54 |   2.58 ||   ✓   |     140 |  0.76 ||    ✓     |     114 |   7.05 ||
 | 15 | Geo2         |   2   |   4   |  2   | int     ||    ✓    |      60 |   2.66 ||   ✓   |     140 |  0.75 ||    ✓     |     115 |   6.69 ||
 | 16 | Geo3         |   2   |   5   |  3   | int     ||    ✓    |     166 |   5.77 ||   ✗   |     159 |  0.49 ||    ✗     |     438 |  10.78 ||
 | 17 | Hard         |   3   |   6   |  2   | int     ||    ✓    |      44 |   3.35 ||   ✓   |     659 |  1.07 ||    ✓     |     264 |   7.01 ||
-| 18 | Knuth*       |   2   |   8   |  3   | unsigned||    ✓    |     144 |  21.99 ||   ✗!  |      -- |  1.16 ||    ✗$    |      -- |   5.43 ||
-| 19 | Lcm1         |   3   |   6   |  2   | int     ||    ✓    |     238 |   3.41 ||   ✗   |    4253 |  1.16 ||    ✗$    |      -- |   5.26 ||
-| 20 | Lcm2         |   2   |   6   |  2   | int     ||    ✓    |     153 |   2.38 ||   ✓   |    4881 |  1.84 ||    ✗$    |    1719 |  43.40 ||
+| 18 | Knuth*       |   2   |   8   |  3   | unsigned||    ✓    |     144 |  21.99 ||   ✗{\mathparagraph}  |      -- |  1.16 ||    ✗{\dagger}|      -- |   5.43 ||
+| 19 | Lcm1         |   3   |   6   |  2   | int     ||    ✓    |     238 |   3.41 ||   ✗   |    4253 |  1.16 ||    ✗{\dagger}|      -- |   5.26 ||
+| 20 | Lcm2         |   2   |   6   |  2   | int     ||    ✓    |     153 |   2.38 ||   ✓   |    4881 |  1.84 ||    ✗{\dagger}|    1719 |  43.40 ||
 | 21 | Mannadiv     |   2   |   5   |  2   | int     ||    ✓    |    1230 |   2.42 ||   ✓   |   10586 |  1.59 ||    ✓     |    2916 |   7.20 ||
 | 22 | Prod4br      |   2   |   6   |  2   | int     ||    ✓    |     127 |   2.26 ||   ✓   |     810 |  5.22 ||    ✓     |    1056 |  49.30 ||
 | 23 | Prodbin      |   2   |   5   |  2   | double  ||    ✓    |      95 |   2.21 ||   ✓   |     790 |  0.94 ||    ✓     |     256 |  23.52 ||
-| 24 | Ps1          |   1   |   3   |  1   | int     ||    ✓    |    1128 |   1.39 ||   ✓   |    3950 |  0.68 ||    ✗$    |      -- |   5.19 ||
+| 24 | Ps1          |   1   |   3   |  1   | int     ||    ✓    |    1128 |   1.39 ||   ✓   |    3950 |  0.68 ||    ✗{\dagger}|      -- |   5.19 ||
 | 25 | Ps2          |   2   |   3   |  2   | int     ||    ✓    |      35 |   1.88 ||   ✓   |     228 |  0.62 ||    ✓     |     324 |   6.67 ||
 | 26 | Ps3          |   2   |   3   |  3   | int     ||    ✓    |     164 |   2.56 ||   ✓   |     228 |  0.77 ||    ✓     |     324 |   6.67 ||
 | 27 | Ps4          |   2   |   3   |  4   | int     ||    ✓    |     223 |   2.63 ||   ✓   |     228 |  1.07 ||    ✓     |     468 |   7.44 ||
-| 28 | Ps5          |   2   |   3   |  5   | int     ||    ✓&   |     154 |  11.36 ||   ✓   |     154 |  1.25 ||    ✓     |     251 |   7.19 ||
-| 29 | Ps6          |   2   |   3   |  6   | int     ||    ✓&   |     154 |  22.65 ||   ✓   |     229 |  2.57 ||    ✓     |     350 |   8.05 ||
-| 30 | Readers***   |   2   |   6   |  2   | int     ||    ✓    |     559 |   4.40 ||   ?   |    ToDo |  ToDo ||    ✗--   |      -- |   5.19 ||
+| 28 | Ps5          |   2   |   3   |  5   | int     ||    ✓{\|}|     154 |  11.36 ||   ✓   |     154 |  1.25 ||    ✓     |     251 |   7.19 ||
+| 29 | Ps6          |   2   |   3   |  6   | int     ||    ✓{\|}|     154 |  22.65 ||   ✓   |     229 |  2.57 ||    ✓     |     350 |   8.05 ||
+| 30 | Readers{\ddagger\ddagger}   |   2   |   6   |  2   | int     ||    ✓    |     559 |   4.40 ||   ?   |    ToDo |  ToDo ||    ✗{\dagger\dagger}    |      {\dagger\dagger}  |   5.19 ||
 | 31 | Sqrt         |   2   |   4   |  2   | int     ||    ✓    |     146 |   2.81 ||   ✓   |     281 |  0.70 ||    ✓     |     225 |   6.08 ||
-| 32 | Wensley2     |   2   |   7   |  2   | float   ||    ✓    |     208 |   7.54 ||   ✗^  |      -- |  0.45 ||    ✗^    |      -- |   2.09 ||
-| 33 | z3sqrt       |   2   |   4   |  2   | float   ||    ✓    |      27 |   3.86 ||   ✗^  |      -- |  0.45 ||    ✗^    |      -- |   2.09 ||
+| 32 | Wensley2     |   2   |   7   |  2   | float   ||    ✓    |     208 |   7.54 ||   ✗{\ddagger}  |      -- |  0.45 ||    ✗{\ddagger}    |      -- |   2.09 ||
+| 33 | z3sqrt       |   2   |   4   |  2   | float   ||    ✓    |      27 |   3.86 ||   ✗{\ddagger}  |      -- |  0.45 ||    ✗{\ddagger}    |      -- |   2.09 ||
 | 34 | isqrt        |   2   |   4   |  2   | int_32  ||    ✓    |     112 |   4.71 || ToDo  |    ToDo |  ToDo ||   ToDo   |    ToDo |   ToDo ||
 |----|--------------|-------|-------|------|---------||---------|---------|--------||-------|---------|-------||----------|---------|--------||
                                                      ||   30    |   11493 | 169.19 ||  27   |   67981 | 92.75 ||   22     |   39789 | 445.64 || 
                                                      ||---------|---------|--------||-------|---------|-------||----------|---------|--------||
 
-+ & Due to numerical instability, first we couldn't find the invariants for Ps5 and Ps6 benchmarks. Then, we have used more advanced scaling technique to find the invariants for these benchmarks.
-+ ^ DIG couldn't find the invariants for these benchmarks since the program has floating-point operations.
-+ $ SymInfer's underlying Symbolic Execution engine couldn't do external function calls for these benchmarks (gcd/lcm/sqrt functions). 
-+ ! DIG couldn't call the external sqrt function 
-+ - DIG and SymInfer couldn't find all target invariants for these benchmarks.
++ {\|} Due to numerical instability, first we couldn't find the invariants for Ps5 and Ps6 benchmarks. Then, we have used more advanced scaling technique to find the invariants for these benchmarks.
++ {\ddagger} DIG couldn't find the invariants for these benchmarks since the program has floating-point operations.
++ {\dagger} SymInfer's underlying Symbolic Execution engine couldn't do external function calls for these benchmarks (gcd/lcm/sqrt functions). 
++ {\mathparagraph} DIG couldn't call the external sqrt function 
++ {\mathsection} DIG and SymInfer couldn't find all target invariants for these benchmarks.
 + * We obtained new invariants for the post conditions of the Knuth benchmark, which are not reported in the literature.
 + ** SymInfer's underlying Symbolic Execution engine couldn't reach the end of the program for these benchmarks.
-+ *** This benchmark includes Non-deterministic choice.
-+ -- Symbolic Execution didn't work due to the non-deterministic choice in the benchmark.
++ {\ddagger\ddagger} This benchmark includes Non-deterministic choice.
++ {\dagger\dagger} Symbolic Execution didn't work due to the non-deterministic choice in the benchmark.
 
 TODO: add references and types of the benchmarks from this paper: ![nla-digbench](figures/nla_digbench_table_references.png)
 isqrt comes from here: https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
 
 This can be a figure as follows
 
-![Time Comparison Example Figures](images/time_comparison_example.png)
+![Time Comparison Example Figures](benchmarks/bitween/dig/images/time_comparison_example.png)
 
 * This is to show the effect of sample size on the term size of the invariants generated by Bitween vs. DIG
 * For each benchmark, the largest number of samples that DIG/SymInfer cannot generate invariants is used as the sample size for Bitween
