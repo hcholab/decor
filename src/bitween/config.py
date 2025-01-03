@@ -68,8 +68,10 @@ class InvariantType(Enum):
 
 class Config:
     _instance = None
+    _working_dir = os.getcwd()
     _current_dir = os.path.dirname(os.path.abspath(__file__))
-    _config_file = os.path.join(_current_dir, "../..", "config.ini")
+    _config_file = os.path.join(_current_dir, "../..", "bitween.ini")
+    _alternate_config_file = os.path.join(_working_dir, "bitween.ini")
 
     def __new__(cls, config_file=None):
         if cls._instance is None:
@@ -77,7 +79,12 @@ class Config:
             cls._instance._config = configparser.ConfigParser(
                 inline_comment_prefixes=("#", ";")
             )
-            cls._instance._config_file = config_file or cls._config_file
+            if cls._alternate_config_file and os.path.exists(
+                cls._alternate_config_file
+            ):
+                cls._instance._config_file = cls._alternate_config_file
+            else:
+                cls._instance._config_file = config_file or cls._config_file
             if not os.path.exists(cls._instance._config_file):
                 raise FileNotFoundError(
                     f"Config file '{cls._instance._config_file}' not found."
