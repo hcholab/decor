@@ -761,17 +761,35 @@ def test_squared():
         ["F(x+y)", "F(x-y)", "F(x)", "F(y)"],
         ["f(x+y)", "f(x-y)", "f(x)", "f(y)"],
         F,
-        max_degree=2,
+        max_degree=1,
         # milp=MILPSolver.GUROBI,
         # method=InitialMethod.EAGER_MILP,
-        n=150,
+        n=10,
     )
 
     def f(x):
         return x**2
 
     for eq in equations[0]["vtrace1"]:
-        verify(eq, f)
+        if verify(eq, f):
+            print("Isolating f(x+y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x+y)")
+                )
+            )
+            print("Isolating f(x-y):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x-y)")
+                )
+            )
+            print("Isolating f(x):")
+            print(
+                sympy.solve(
+                    sympy.Eq(sympy.sympify(str(eq.lhs)), 0), sympy.sympify("f(x)")
+                )
+            )
 
     print(f"Sample complexity: {equations[2]['vtrace1']}")
 
@@ -1238,11 +1256,101 @@ def test_int_mult():
         max_degree=1,
         # milp=MILPSolver.GUROBI,
         # method=InitialMethod.EAGER_MILP,
-        n=150,
+        n=10,
     )
 
     def f(x, y):
         return x * y
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
+
+def test_int_mult_3():
+    def F(x, y):
+        return x * y
+
+    equations = infer_property(
+        Domain.Integer,
+        Distribution(np.random.randint, low=1, high=10),
+        [
+            "F(x1+x2+x3, y1+y2+y3)",
+            "F(x1, y1)",
+            "F(x2, y1)",
+            "F(x3, y1)",
+            "F(x1, y2)",
+            "F(x2, y2)",
+            "F(x3, y2)",
+            "F(x1, y3)",
+            "F(x2, y3)",
+            "F(x3, y3)",
+        ],
+        [
+            "f(x1+x2+x3, y1+y2+y3)",
+            "f(x1, y1)",
+            "f(x2, y1)",
+            "f(x3, y1)",
+            "f(x1, y2)",
+            "f(x2, y2)",
+            "f(x3, y2)",
+            "f(x1, y3)",
+            "f(x2, y3)",
+            "f(x3, y3)",
+        ],
+        F,
+        max_degree=1,
+        n=20,
+    )
+
+    def f(x, y):
+        return x * y
+
+    for eq in equations[0]["vtrace1"]:
+        verify(eq, f)
+
+    print(f"Sample complexity: {equations[2]['vtrace1']}")
+
+
+def test_int_add_3():
+    def F(x, y):
+        return x + y
+
+    equations = infer_property(
+        Domain.Integer,
+        Distribution(np.random.randint, low=1, high=10),
+        [
+            "F(x1+x2+x3, y1+y2+y3)",
+            "F(x1, y1)",
+            "F(x2, y1)",
+            "F(x3, y1)",
+            "F(x1, y2)",
+            "F(x2, y2)",
+            "F(x3, y2)",
+            "F(x1, y3)",
+            "F(x2, y3)",
+            "F(x3, y3)",
+        ],
+        [
+            "f(x1+x2+x3, y1+y2+y3)",
+            "f(x1, y1)",
+            "f(x2, y1)",
+            "f(x3, y1)",
+            "f(x1, y2)",
+            "f(x2, y2)",
+            "f(x3, y2)",
+            "f(x1, y3)",
+            "f(x2, y3)",
+            "f(x3, y3)",
+        ],
+        F,
+        max_degree=1,
+        n=10,
+    )
+
+    def f(x, y):
+        return x + y
 
     for eq in equations[0]["vtrace1"]:
         verify(eq, f)
@@ -1656,14 +1764,14 @@ if __name__ == "__main__":
     # test_inverse_add()  # 13
     # test_inverse_cot_plus_one()  # 14
     # test_inverse_tan_plus_one()  # 15
-    # test_x_over_one_minus_x()  # 16
+    # test_x_over_one_minaus_x()  # 16
     # test_minus_x_over_one_minus_x()  # 17
     # test_sin_over_sin()  # TODO fails
     # test_sinh_over_sinh()  # TODO fails
     # test_cos()  # 18
     # test_cosh()  # 19
-    # test_squared()  # 20
-    test_sin()  # 21
+    test_squared()  # 20
+    # test_sin()  # 21
     # test_sin_glibc()
     # test_sinh()  # 22
     # test_cube()  # 23
@@ -1677,6 +1785,8 @@ if __name__ == "__main__":
     # test_mod()  # 29
     # test_mod_mult()  # 30
     # test_int_mult()  # 31
+    # test_int_mult_3()  # 31
+    # test_int_add_3()  # 31
     #### ACTIVATION FUNCTIONS ####
     # test_tanh()  # 32
     # test_sigmoid()  # 33
