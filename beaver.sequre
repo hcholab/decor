@@ -58,13 +58,13 @@ class MPCArithmetic:
 class MPCFP:
     def _beaver_sin(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
-            sin_x_r.mul_mod(cos_r, modulus), modulus).add_mod(
-            self.trunc(cos_x_r.mul_mod(sin_r, modulus), modulus), modulus)
+            sin_x_r.mul_mod(cos_r, modulus).add_mod(
+            cos_x_r.mul_mod(sin_r, modulus), modulus), modulus)
     
     def _beaver_cos(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
-            cos_x_r.mul_mod(cos_r, modulus), modulus).sub_mod(
-            self.trunc(sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
+            cos_x_r.mul_mod(cos_r, modulus).sub_mod(
+            sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
 
 
 @local
