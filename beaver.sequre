@@ -1,4 +1,4 @@
-import math
+import math, time
 
 from sequre import local
 from sequre.mpc.arithmetic import MPCArithmetic
@@ -8,7 +8,6 @@ from sequre.utils.testing import assert_eq_approx
 from sequre.utils.utils import random_floats
 from sequre.types.utils import double_to_fp, fp_to_double
 from sequre.constants import MPC_NBIT_F
-from functools import partial
 
 
 def _double_to_fp(value, modulus):
@@ -68,12 +67,13 @@ class MPCFP:
 
 
 @local
-def test_beaver_trig(mpc, iterations=100, shape=(10,)):
+def test_beaver_trig(mpc, iterations=100, shape=(100,)):
     """
     Test Beaver's protocol for computing sine and cosine using MPC.
     """
     modulus = mpc.default_mpc_modulus
-    
+    total_time = 0.0
+
     for i in range(iterations):
         with mpc.randomness.seed_switch(-1):
             floats = random_floats(shape, 20) - 10
@@ -81,11 +81,14 @@ def test_beaver_trig(mpc, iterations=100, shape=(10,)):
         fp_floats = _double_to_fp(floats, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
+        s = time.time()
         beaver_trig_elem = mpc.arithmetic.__beaver_trig(
             *mpc.arithmetic.__beaver_partition(
                 shared_fp, modulus), modulus)
-
         shared_result = mpc.fp._beaver_sin(*beaver_trig_elem, modulus)
+        e = time.time()
+        total_time += e - s
+        
         if mpc.pid != 0:
             assert_eq_approx(
                 f'Beaver sin (iteration {i}/{iterations}) for {floats}',
@@ -99,7 +102,7 @@ def test_beaver_trig(mpc, iterations=100, shape=(10,)):
                 fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
                 cos(floats), silent_pass=True)
     
-    print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n')
+    print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per iteration: {total_time / iterations} seconds')
 
 
 test_beaver_trig()
