@@ -1,0 +1,52 @@
+import math
+
+from sequre.types.utils import double_to_fp, fp_to_double
+from sequre.constants import MPC_NBIT_F
+
+
+MASK: Static[int] = (1 << MPC_NBIT_F) - 1
+FOURIER_DEGREE: Static[int] = 10
+
+
+def period_double_to_fp(value, period, modulus):
+    return double_to_fp(value * (1 / period), modulus)
+
+
+def period_fp_to_double(value, period, modulus):
+    return fp_to_double(value, modulus) * period
+
+
+def trig_double_to_fp(value, modulus):
+    return period_double_to_fp(value, math.pi * 2, modulus)
+
+
+def trig_fp_to_double(value, modulus):
+    return period_fp_to_double(value, math.pi * 2, modulus)
+
+
+def recursive_reduce(func, iterable):
+    if isinstance(iterable, ByVal):
+        return func(iterable)
+    
+    if isinstance(iterable, list):
+        return [recursive_reduce(func, v) for v in iterable]
+    
+    compile_error("invalid type for recursive_reduce")
+
+
+def sin(value):
+    return recursive_reduce(math.sin, value)
+
+
+def cos(value):
+    return recursive_reduce(math.cos, value)
+
+
+def sigmoid(value):
+    return recursive_reduce(lambda x: 1 / (1 + (-x).exp()), value)
+
+
+@python
+def trapz(y: list[float], x: list[float]) -> float:
+    import numpy as np
+    return np.trapz(y, x)
