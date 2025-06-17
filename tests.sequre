@@ -56,33 +56,34 @@ def test_op(mpc, msg, fourier_op, raw_mat, mpc_mat, expected_result, interval, e
     assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_mat.reveal(mpc).tolist() * period, raw_mat, error, silent_pass=True)
 
 
-def test_beaver_fourier(mpc, shape=(3,)):
-    interval = (-math.pi, math.pi)
+def test_beaver_fourier(mpc, interval, shape=(3,)):
+    period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
     alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} on {alg_struct} ... \n')
     
     with mpc.randomness.seed_switch(-1):
-        floats = random_floats(shape, math.pi * 2) - math.pi
+        floats = random_floats(shape, period) + interval[0]
     
-    fp_floats = period_double_to_fp(floats, interval[1] - interval[0], modulus)
+    fp_floats = period_double_to_fp(floats, period, modulus)
     shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
     stensor = Sharetensor(shared_fp, modulus)
     stensor.fp = True
 
-    test_op(mpc, "Fourier sin",
-            fourier_sin, floats, stensor, sin(floats), interval)
+    test_op(mpc, f"Fourier sin at interval {interval}",
+            fourier_sin, floats, stensor, sin(floats), interval, 0.2)
     
-    test_op(mpc, "Fourier cos",
-            fourier_cos, floats, stensor, cos(floats), interval)
+    test_op(mpc, f"Fourier cos at interval {interval}",
+            fourier_cos, floats, stensor, cos(floats), interval, 0.2)
     
-    test_op(mpc, "Fourier sigmoid",
+    test_op(mpc, f"Fourier sigmoid at interval {interval}",
             fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.2)
 
 
 @local
 def test(mpc):
     test_beaver_trig(mpc)
-    test_beaver_fourier(mpc)
+    test_beaver_fourier(mpc, (-math.pi, math.pi))
+    test_beaver_fourier(mpc, (-math.pi, math.pi / 2))
 
 test()

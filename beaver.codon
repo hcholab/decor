@@ -3,7 +3,7 @@ from sequre.mpc.fp import MPCFP
 from sequre.types.builtin import *
 from sequre.types.utils import double_to_fp
 
-from utils import trig_fp_to_double, sin, cos, MASK
+from utils import period_fp_to_double, trig_fp_to_double, sin, cos, MASK
 
 
 @extend
@@ -21,6 +21,25 @@ class MPCArithmetic:
         cos_x_r = double_to_fp(cos(double_x_r), modulus)
 
         return sin_x_r, sin_r_share, cos_x_r, cos_r_share
+    
+    def _beaver_fourier(self, x_r, r, coeffs, period, modulus, degree: Static[int]):
+        _, an, bn, cn = coeffs
+
+        double_r = period_fp_to_double(r & MASK, period, modulus)
+        double_x_r = period_fp_to_double(x_r & MASK, period, modulus)
+
+        sin_rs = [double_to_fp(sin(double_r * cn[i]), modulus) for i in staticrange(degree)]
+        cos_rs = [double_to_fp(cos(double_r * cn[i]), modulus) for i in staticrange(degree)]
+
+        sin_rs_share = self.comms.share_from_trusted_dealer(sin_rs, modulus)
+        cos_rs_share = self.comms.share_from_trusted_dealer(cos_rs, modulus)
+
+        sin_x_rs = [sin(double_x_r * cn[i]) for i in staticrange(degree)]
+        cos_x_rs = [cos(double_x_r * cn[i]) for i in staticrange(degree)]
+        t1s = [double_to_fp(cos_x_rs[i] * an[i] + sin_x_rs[i] * bn[i], modulus) for i in staticrange(degree)]
+        t2s = [double_to_fp(cos_x_rs[i] * bn[i] - sin_x_rs[i] * an[i], modulus) for i in staticrange(degree)]
+
+        return t1s, sin_rs_share, t2s, cos_rs_share
 
 
 @extend
@@ -34,3 +53,12 @@ class MPCFP:
         return self.trunc(
             cos_x_r.mul_mod(cos_r, modulus).sub_mod(
             sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
+    
+    def _beaver_fourier_eval(self, t1s, sin_rs_share, t2s, cos_rs_share, coeffs, modulus, degree: Static[int]):
+        ts = self.trunc(cos_rs_share.mul_mod(t1s, modulus).add_mod(sin_rs_share.mul_mod(t2s, modulus), modulus), modulus)
+
+        result_share = ts[0]
+        for i in staticrange(1, degree):
+            result_share = result_share.add_mod(ts[i], modulus)
+
+        return self.arithmetic.add_public(result_share, double_to_fp(coeffs[0], modulus), modulus)
