@@ -1,0 +1,88 @@
+import time, math
+
+from sequre import local
+from sequre.types.sharetensor import Sharetensor
+from sequre.types.utils import fp_to_double
+from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
+from sequre.utils.utils import random_floats
+
+from beaver import *
+from fourier import fourier_sin, fourier_cos, fourier_sigmoid
+from utils import trig_double_to_fp, period_double_to_fp, sin, cos, sigmoid
+
+
+def test_beaver_trig(mpc, iterations=100, shape=(100,)):
+    """
+    Test Beaver's protocol for computing sine and cosine using MPC.
+    """
+    modulus = mpc.default_mpc_modulus
+    total_time = 0.0
+
+    for i in range(iterations):
+        with mpc.randomness.seed_switch(-1):
+            floats = random_floats(shape, 20) - 10
+        
+        fp_floats = trig_double_to_fp(floats, modulus)
+        shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+
+        s = time.time()
+        beaver_trig_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
+        beaver_trig_elem = mpc.arithmetic._beaver_trig(*beaver_trig_partitions, modulus)
+        shared_result = mpc.fp._beaver_sin(*beaver_trig_elem, modulus)
+        e = time.time()
+        total_time += e - s
+        
+        if mpc.pid != 0:
+            assert_eq_approx(
+                f'Beaver sin (iteration {i}/{iterations}) for {floats}',
+                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                sin(floats), silent_pass=True)
+
+        shared_result = mpc.fp._beaver_cos(*beaver_trig_elem, modulus)
+        if mpc.pid != 0:
+            assert_eq_approx(
+                f'Beaver cos (iteration {i}/{iterations}) for {floats}',
+                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                cos(floats), silent_pass=True)
+    
+    print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per iteration: {total_time / iterations} seconds')
+
+
+def test_op(mpc, msg, fourier_op, raw_mat, mpc_mat, expected_result, interval, error=0.01):
+    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
+    period = interval[1] - interval[0]
+    mpc_result = fourier_op(mpc, mpc_mat, interval)
+    assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tSequre {msg} (MPC) on {alg_struct}', mpc_result.reveal(mpc).tolist(), expected_result, error)
+    assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_mat.reveal(mpc).tolist() * period, raw_mat, error, silent_pass=True)
+
+
+def test_beaver_fourier(mpc, shape=(3,)):
+    interval = (-math.pi, math.pi)
+    modulus = mpc.default_mpc_modulus
+    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
+    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier on {alg_struct} ... \n')
+    
+    with mpc.randomness.seed_switch(-1):
+        floats = random_floats(shape, math.pi * 2) - math.pi
+    
+    fp_floats = period_double_to_fp(floats, interval[1] - interval[0], modulus)
+    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+    stensor = Sharetensor(shared_fp, modulus)
+    stensor.fp = True
+
+    test_op(mpc, "Fourier sin",
+            fourier_sin, floats, stensor, sin(floats), interval)
+    
+    test_op(mpc, "Fourier cos",
+            fourier_cos, floats, stensor, cos(floats), interval)
+    
+    test_op(mpc, "Fourier sigmoid",
+            fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.2)
+
+
+@local
+def test(mpc):
+    test_beaver_trig(mpc)
+    test_beaver_fourier(mpc)
+
+test()
