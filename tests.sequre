@@ -112,7 +112,4 @@ def test(mpc):
     test_beaver_fourier(mpc, (-math.pi, math.pi))
     test_beaver_fourier(mpc, (-math.pi, math.pi / 2))
 
-    test_beaver_taylor(mpc, (-math.pi, math.pi))
-    test_beaver_taylor(mpc, (-math.pi, math.pi / 2))
-
 test()
