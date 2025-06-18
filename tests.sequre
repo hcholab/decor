@@ -8,6 +8,7 @@ from sequre.utils.utils import random_floats
 
 from beaver import *
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid
+from taylor import taylor_sin, taylor_cos, taylor_sigmoid
 from utils import trig_double_to_fp, period_double_to_fp, sin, cos, sigmoid
 
 
@@ -48,10 +49,10 @@ def test_beaver_trig(mpc, iterations=100, shape=(100,)):
     print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per iteration: {total_time / iterations} seconds')
 
 
-def test_op(mpc, msg, fourier_op, raw_mat, mpc_mat, expected_result, interval, error=0.01):
+def test_op(mpc, msg, op, raw_mat, mpc_mat, expected_result, interval, error=0.01):
     alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
     period = interval[1] - interval[0]
-    mpc_result = fourier_op(mpc, mpc_mat, interval)
+    mpc_result = op(mpc, mpc_mat, interval)
     assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tSequre {msg} (MPC) on {alg_struct}', mpc_result.reveal(mpc).tolist(), expected_result, error)
     assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_mat.reveal(mpc).tolist() * period, raw_mat, error, silent_pass=True)
 
@@ -80,10 +81,38 @@ def test_beaver_fourier(mpc, interval, shape=(3,)):
             fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.2)
 
 
+def test_beaver_taylor(mpc, interval, shape=(3,)):
+    period = interval[1] - interval[0]
+    modulus = mpc.default_mpc_modulus
+    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
+    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Taylor at interval {interval} on {alg_struct} ... \n')
+    
+    with mpc.randomness.seed_switch(-1):
+        floats = random_floats(shape, 1)
+    
+    fp_floats = period_double_to_fp(floats, period, modulus)
+    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+    stensor = Sharetensor(shared_fp, modulus)
+    stensor.fp = True
+
+    test_op(mpc, f"Taylor sin at interval {interval}",
+            taylor_sin, floats, stensor, sin(floats), interval)
+    
+    test_op(mpc, f"Taylor cos at interval {interval}",
+            taylor_cos, floats, stensor, cos(floats), interval)
+    
+    test_op(mpc, f"Taylor sigmoid at interval {interval}",
+            taylor_sigmoid, floats, stensor, sigmoid(floats), interval)
+
+
 @local
 def test(mpc):
     test_beaver_trig(mpc)
+    
     test_beaver_fourier(mpc, (-math.pi, math.pi))
     test_beaver_fourier(mpc, (-math.pi, math.pi / 2))
+
+    test_beaver_taylor(mpc, (-math.pi, math.pi))
+    test_beaver_taylor(mpc, (-math.pi, math.pi / 2))
 
 test()
