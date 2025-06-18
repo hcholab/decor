@@ -7,6 +7,7 @@ from utils import recursive_reduce, sin, cos, trapz, FOURIER_DEGREE
 
 
 def fourier_coeffs(op, nodes, period, degree: Static[int]):
+    # TODO: Generalized Fourier can be optimized if the terms multiplied by small coeffs (an, bn) are ignored in the final evaluation.
     a0 = trapz(recursive_reduce(op, nodes), nodes) / period
     an = [(trapz(recursive_reduce(op, nodes) * cos(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]
     bn = [(trapz(recursive_reduce(op, nodes) * sin(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]

@@ -6,6 +6,8 @@ from sequre.constants import MPC_NBIT_F
 
 MASK: Static[int] = (1 << MPC_NBIT_F) - 1
 FOURIER_DEGREE: Static[int] = 10
+TAYLOR_DEGREE: Static[int] = 5
+TAYLOR_STEP: float = 1e-5
 
 
 def period_double_to_fp(value, period, modulus):
@@ -44,6 +46,17 @@ def cos(value):
 
 def sigmoid(value):
     return recursive_reduce(lambda x: 1 / (1 + (-x).exp()), value)
+
+
+def df(f, x, deg: Static[int]):
+    if deg < 0:
+        compile_error("invalid degree for differential")
+    
+    if deg == 0:
+        return f(x)
+    
+    return (df(f, x + TAYLOR_STEP, deg - 1) - df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (TAYLOR_STEP * 2))
+
 
 
 @python

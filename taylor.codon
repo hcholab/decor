@@ -1,0 +1,32 @@
+from sequre.types.builtin import *
+from sequre.types.sharetensor import Sharetensor
+
+from utils import TAYLOR_DEGREE, sin, cos, sigmoid
+
+
+def taylor_evaluate(mpc, x, op, interval, degree: Static[int]):
+    modulus = x.modulus
+    x_r, r = x.get_partitions(mpc)
+
+    partitions = mpc.arithmetic._beaver_taylor(x_r, r, op, interval, modulus, degree)
+    result = mpc.fp._beaver_taylor_eval(*partitions, modulus, degree)
+    stensor = Sharetensor(result, modulus)
+    stensor.fp = True
+
+    return stensor
+
+
+def via_taylor(mpc, x, op, interval, degree: Static[int]):
+    return taylor_evaluate(mpc, x, op, interval, degree)
+
+
+def taylor_sin(mpc, x, interval):
+    return via_taylor(mpc, x, sin, interval, TAYLOR_DEGREE)
+
+
+def taylor_cos(mpc, x, interval):
+    return via_taylor(mpc, x, cos, interval, TAYLOR_DEGREE)
+
+
+def taylor_sigmoid(mpc, x, interval):
+    return via_taylor(mpc, x, sigmoid, interval, TAYLOR_DEGREE)
