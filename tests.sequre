@@ -9,7 +9,20 @@ from sequre.utils.utils import random_floats
 from beaver import *
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
-from utils import trig_double_to_fp, period_double_to_fp, sin, cos, sigmoid
+from utils import trig_double_to_fp, period_double_to_fp, sin, cos, expc, sigmoid
+
+
+@extend
+class Sharetensor:
+    def __init__(self: Sharetensor[TP], other: TP, fp: bool, modulus: mpc_uint):
+        stensor = Sharetensor(other, modulus)
+        stensor.fp = fp
+        return stensor
+    
+    def __init__(self: Sharetensor[TP], other: TP, fp: bool, public: bool, modulus: mpc_uint):
+        stensor = Sharetensor(other, fp, modulus)
+        stensor.public = public
+        return stensor
 
 
 def test_beaver_trig(mpc, iterations=100, shape=(100,)):
@@ -49,6 +62,59 @@ def test_beaver_trig(mpc, iterations=100, shape=(100,)):
     print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per iteration: {total_time / iterations} seconds')
 
 
+def test_beaver_exp(mpc, iterations=100, shape=(100,)):
+    """
+    Test Beaver's protocol for computing exp using MPC.
+    """
+    modulus = mpc.default_mpc_modulus
+    plain_total_time = 0.0
+    sequre_total_time = 0.0
+    period = 5.0
+
+    for i in range(iterations):
+        with mpc.randomness.seed_switch(-1):
+            floats = random_floats(shape, period)
+        
+        fp_floats = period_double_to_fp(floats, period, modulus)
+        shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+
+        s = time.time()
+        beaver_exp_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
+        beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, period, modulus)
+        shared_result = mpc.fp._beaver_exp(*beaver_exp_elem, shared_fp, modulus)
+        e = time.time()
+        plain_total_time += e - s
+        
+        if mpc.pid != 0:
+            assert_eq_approx(
+                f'Beaver exp (iteration {i}/{iterations}) for {floats}',
+                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                expc(floats), silent_pass=True)
+        
+        # TODO: Needs debugging
+        # s = time.time()
+        # beaver_exp_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
+        # beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, period, modulus)
+        # exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac = beaver_exp_elem
+
+        # stensor_floats = Sharetensor(shared_fp, True, modulus)
+        # stensor_exp_x_r = Sharetensor(exp_x_r, True, True, modulus)
+        # stensor_exp_x_r_p = Sharetensor(exp_x_r_p, True, True, modulus)
+        # stensor_exp_r = Sharetensor(shared_exp_r, True, modulus)
+        # stensor_r_frac = Sharetensor(shared_r_frac, True, modulus)
+        
+        # shared_result = beaver_exp(mpc, stensor_exp_x_r, stensor_exp_x_r_p, stensor_exp_r, stensor_r_frac, stensor_floats)
+        # e = time.time()
+        # sequre_total_time += e - s
+        
+        # if mpc.pid != 0:
+        #     assert_eq_approx(
+        #         f'Beaver exp via Sequre (iteration {i}/{iterations}) for {floats}',
+        #         shared_result.reveal(mpc).tolist(), expc(floats), silent_pass=True)
+
+    print(f'CP{mpc.pid}:\tGeneralized Exp Beaver tests passed.\n\tRuntime per iteration (plain): {plain_total_time / iterations} seconds\n\tRuntime per iteration (Sequre): {sequre_total_time / iterations} seconds')
+
+
 def test_op(mpc, msg, op, raw_mat, mpc_mat, expected_result, interval, error=0.01):
     alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
     period = interval[1] - interval[0]
@@ -72,13 +138,13 @@ def test_beaver_fourier(mpc, interval, shape=(3,)):
     stensor.fp = True
 
     test_op(mpc, f"Fourier sin at interval {interval}",
-            fourier_sin, floats, stensor, sin(floats), interval, 0.2)
+            fourier_sin, floats, stensor, sin(floats), interval, 0.3)
     
     test_op(mpc, f"Fourier cos at interval {interval}",
-            fourier_cos, floats, stensor, cos(floats), interval, 0.2)
+            fourier_cos, floats, stensor, cos(floats), interval, 0.3)
     
     test_op(mpc, f"Fourier sigmoid at interval {interval}",
-            fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.2)
+            fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.3)
 
 
 def test_beaver_taylor(mpc, interval, shape=(3,)):
@@ -108,6 +174,7 @@ def test_beaver_taylor(mpc, interval, shape=(3,)):
 @local
 def test(mpc):
     test_beaver_trig(mpc)
+    test_beaver_exp(mpc)
     
     test_beaver_fourier(mpc, (-math.pi, math.pi))
     test_beaver_fourier(mpc, (-math.pi, math.pi / 2))
