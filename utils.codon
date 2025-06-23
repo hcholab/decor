@@ -44,6 +44,10 @@ def cos(value):
     return recursive_reduce(math.cos, value)
 
 
+def expc(value):
+    return recursive_reduce(lambda x: x.exp() - 1, value)
+
+
 def sigmoid(value):
     return recursive_reduce(lambda x: 1 / (1 + (-x).exp()), value)
 
