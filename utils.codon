@@ -10,6 +10,27 @@ TAYLOR_DEGREE: Static[int] = 5
 TAYLOR_STEP: float = 1e-5
 
 
+@python
+def trapz(y: list[float], x: list[float]) -> float:
+    import numpy as np
+    return np.trapz(y, x)
+
+
+def df(f, x, deg: Static[int]):
+    if deg < 0:
+        compile_error("invalid degree for differential")
+    
+    if deg == 0:
+        return f(x)
+    
+    return (df(f, x + TAYLOR_STEP, deg - 1) - df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (TAYLOR_STEP * 2))
+
+
+def linspace(a, b, count):
+    step = (b - a) / (count - 1)
+    return [(a + step * i) for i in range(count)]
+
+
 def period_double_to_fp(value, period, modulus):
     return double_to_fp(value * (1 / period), modulus)
 
@@ -44,26 +65,29 @@ def cos(value):
     return recursive_reduce(math.cos, value)
 
 
+def tan(value):
+    return recursive_reduce(math.tan, value)
+
+
 def expc(value):
     return recursive_reduce(lambda x: x.exp() - 1, value)
+
+
+def exp(value):
+    return recursive_reduce(lambda x: x.exp(), value)
 
 
 def sigmoid(value):
     return recursive_reduce(lambda x: 1 / (1 + (-x).exp()), value)
 
 
-def df(f, x, deg: Static[int]):
-    if deg < 0:
-        compile_error("invalid degree for differential")
-    
-    if deg == 0:
-        return f(x)
-    
-    return (df(f, x + TAYLOR_STEP, deg - 1) - df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (TAYLOR_STEP * 2))
+def log(value):
+    return recursive_reduce(math.log, value)
 
 
+def sqrt(value):
+    return recursive_reduce(math.sqrt, value)
 
-@python
-def trapz(y: list[float], x: list[float]) -> float:
-    import numpy as np
-    return np.trapz(y, x)
+
+def mul_inv(value):
+    return recursive_reduce(lambda x: 1 / x, value)
