@@ -48,7 +48,7 @@ def test_beaver_trig(mpc, iterations=10, size=100):
     data_dump = {}
 
     for i in range(iterations):
-        floats = linspace(-10, 10, size)
+        floats = linspace(-math.pi, math.pi, size)
         fp_floats = trig_double_to_fp(floats, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
@@ -104,7 +104,7 @@ def test_beaver_exp(mpc, iterations=10, size=100):
     modulus = mpc.default_mpc_modulus
     plain_total_time = 0.0
     sequre_total_time = 0.0
-    period = 5.0
+    period = math.pi * 2
     data_dump = {}
 
     for i in range(iterations):
