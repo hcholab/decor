@@ -4,12 +4,22 @@ from sequre import local
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
-from sequre.utils.utils import random_floats
 
 from beaver import *
-from fourier import fourier_sin, fourier_cos, fourier_sigmoid
+from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
-from utils import trig_double_to_fp, period_double_to_fp, sin, cos, expc, sigmoid
+from cheby import cheby_sin, cheby_cos, cheby_sigmoid, cheby_exp, cheby_log, cheby_mul_inv, cheby_sqrt
+from utils import linspace, trig_double_to_fp, period_double_to_fp, sin, cos, expc, exp, sigmoid, log, mul_inv, sqrt
+
+
+@python
+def pickle_dump(path: str, data: Dict[str, List[float]]):
+    """
+    Temp method until Codon Jupyter is fixed.
+    """
+    import pickle
+    with open(path, "wb") as f:
+        pickle.dump(data, f)
 
 
 @extend
@@ -25,44 +35,67 @@ class Sharetensor:
         return stensor
 
 
-def test_beaver_trig(mpc, iterations=100, shape=(100,)):
+def test_beaver_trig(mpc, iterations=10, size=100):
     """
     Test Beaver's protocol for computing sine and cosine using MPC.
     """
     modulus = mpc.default_mpc_modulus
-    total_time = 0.0
+    total_partition_time = 0.0
+    total_sin_time = 0.0
+    total_cos_time = 0.0
+    data_dump = {}
 
     for i in range(iterations):
-        with mpc.randomness.seed_switch(-1):
-            floats = random_floats(shape, 20) - 10
-        
+        floats = linspace(-10, 10, size)
         fp_floats = trig_double_to_fp(floats, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
         s = time.time()
         beaver_trig_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
         beaver_trig_elem = mpc.arithmetic._beaver_trig(*beaver_trig_partitions, modulus)
+        e = time.time()
+        total_partition_time += e - s
+        
+        s = time.time()
         shared_result = mpc.fp._beaver_sin(*beaver_trig_elem, modulus)
         e = time.time()
-        total_time += e - s
+        total_sin_time += e - s
         
+        revealed_sin_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
         if mpc.pid != 0:
             assert_eq_approx(
                 f'Beaver sin (iteration {i}/{iterations}) for {floats}',
-                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                revealed_sin_result,
                 sin(floats), silent_pass=True)
 
+        s = time.time()
         shared_result = mpc.fp._beaver_cos(*beaver_trig_elem, modulus)
+        e = time.time()
+        total_cos_time += e - s
+        revealed_cos_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
         if mpc.pid != 0:
             assert_eq_approx(
                 f'Beaver cos (iteration {i}/{iterations}) for {floats}',
-                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                revealed_cos_result,
                 cos(floats), silent_pass=True)
+        
+        data_dump = {
+            'x': floats,
+            'beaver_sin': revealed_sin_result,
+            'beaver_sin_expected': sin(floats),
+            'beaver_cos': revealed_cos_result,
+            'beaver_cos_expected': cos(floats)}
     
-    print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per iteration: {total_time / iterations} seconds')
+    avg_partition_time = total_partition_time / iterations
+    avg_sin_time = total_sin_time / iterations
+    avg_cos_time = total_cos_time / iterations
+    print(f'CP{mpc.pid}:\tGeneralized Trigonometry Beaver tests passed.\n\tRuntime per partitioning iteration: {avg_partition_time} seconds\n\tRuntime per sin iteration: {avg_sin_time} seconds\n\tRuntime per cos iteration: {avg_cos_time} seconds')
+    data_dump['beaver_sin_time'] = [avg_sin_time + avg_partition_time]
+    data_dump['beaver_cos_time'] = [avg_cos_time + avg_partition_time]
+    return data_dump
 
 
-def test_beaver_exp(mpc, iterations=100, shape=(100,)):
+def test_beaver_exp(mpc, iterations=10, size=100):
     """
     Test Beaver's protocol for computing exp using MPC.
     """
@@ -70,11 +103,10 @@ def test_beaver_exp(mpc, iterations=100, shape=(100,)):
     plain_total_time = 0.0
     sequre_total_time = 0.0
     period = 5.0
+    data_dump = {}
 
     for i in range(iterations):
-        with mpc.randomness.seed_switch(-1):
-            floats = random_floats(shape, period)
-        
+        floats = linspace(0, period, size)
         fp_floats = period_double_to_fp(floats, period, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
@@ -85,10 +117,11 @@ def test_beaver_exp(mpc, iterations=100, shape=(100,)):
         e = time.time()
         plain_total_time += e - s
         
+        revealed_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
         if mpc.pid != 0:
             assert_eq_approx(
                 f'Beaver exp (iteration {i}/{iterations}) for {floats}',
-                fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus),
+                revealed_result,
                 expc(floats), silent_pass=True)
         
         # TODO: Needs debugging
@@ -112,71 +145,148 @@ def test_beaver_exp(mpc, iterations=100, shape=(100,)):
         #         f'Beaver exp via Sequre (iteration {i}/{iterations}) for {floats}',
         #         shared_result.reveal(mpc).tolist(), expc(floats), silent_pass=True)
 
-    print(f'CP{mpc.pid}:\tGeneralized Exp Beaver tests passed.\n\tRuntime per iteration (plain): {plain_total_time / iterations} seconds\n\tRuntime per iteration (Sequre): {sequre_total_time / iterations} seconds')
+        data_dump = {
+            'x': floats,
+            'beaver_expc': revealed_result,
+            'beaver_expc_expected': expc(floats)}
+
+    avg_time = plain_total_time / iterations
+    print(f'CP{mpc.pid}:\tGeneralized Exp Beaver tests passed.\n\tRuntime per iteration (plain): {avg_time} seconds\n\tRuntime per iteration (Sequre): {sequre_total_time / iterations} seconds')
+    data_dump['beaver_expc_time'] = [avg_time]
+    return data_dump
 
 
-def test_op(mpc, msg, op, raw_mat, mpc_mat, expected_result, interval, error=0.01):
+def test_op(mpc, data_dump, msg, op, raw_input, mpc_input, expected_result, interval, error=0.01, skip_assert=False):
     alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
     period = interval[1] - interval[0]
-    mpc_result = op(mpc, mpc_mat, interval)
-    assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tSequre {msg} (MPC) on {alg_struct}', mpc_result.reveal(mpc).tolist(), expected_result, error)
-    assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_mat.reveal(mpc).tolist() * period, raw_mat, error, silent_pass=True)
+    
+    s = time.time()
+    mpc_result = op(mpc, mpc_input, interval)
+    e = time.time()
+    data_dump[f"{msg}_time"] = [e - s]
+    revealed_result = mpc_result.reveal(mpc).tolist()
+    
+    if not skip_assert:
+        assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC) on {alg_struct}', revealed_result, expected_result, error)
+        assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_input.reveal(mpc).tolist() * period, raw_input, error, silent_pass=True)
+
+    data_dump[msg] = revealed_result
+    data_dump[f"{msg}_expected"] = expected_result
 
 
-def test_beaver_fourier(mpc, interval, shape=(3,)):
+def test_beaver_fourier(mpc, interval, size=100):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
     alg_struct = "ring" if modulus.popcnt() == 1 else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} on {alg_struct} ... \n')
     
-    with mpc.randomness.seed_switch(-1):
-        floats = random_floats(shape, period) + interval[0]
-    
+    floats = linspace(*interval, size)
     fp_floats = period_double_to_fp(floats, period, modulus)
     shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
     stensor = Sharetensor(shared_fp, modulus)
     stensor.fp = True
-
-    test_op(mpc, f"Fourier sin at interval {interval}",
-            fourier_sin, floats, stensor, sin(floats), interval, 0.3)
+    data_dump = {'x': floats}
     
-    test_op(mpc, f"Fourier cos at interval {interval}",
-            fourier_cos, floats, stensor, cos(floats), interval, 0.3)
+    test_op(mpc, data_dump, "fourier_sin",
+        fourier_sin, floats, stensor, sin(floats), interval, skip_assert=True)
     
-    test_op(mpc, f"Fourier sigmoid at interval {interval}",
-            fourier_sigmoid, floats, stensor, sigmoid(floats), interval, 0.3)
+    test_op(mpc, data_dump, "fourier_cos",
+        fourier_cos, floats, stensor, cos(floats), interval, skip_assert=True)
+    
+    test_op(mpc, data_dump, "fourier_sigmoid",
+        fourier_sigmoid, floats, stensor, sigmoid(floats), interval, skip_assert=True)
+    
+    test_op(mpc, data_dump, "fourier_exp",
+        fourier_exp, floats, stensor, exp(floats), interval, skip_assert=True)
+    
+    if interval[0] > 0:
+        test_op(mpc, data_dump, "fourier_log",
+            fourier_log, floats, stensor, log(floats), interval, skip_assert=True)
+        
+        test_op(mpc, data_dump, "fourier_mul_inv",
+            fourier_mul_inv, floats, stensor, mul_inv(floats), interval, skip_assert=True)
+
+        test_op(mpc, data_dump, "fourier_sqrt",
+            fourier_sqrt, floats, stensor, sqrt(floats), interval, skip_assert=True)
+
+    return data_dump
 
 
-def test_beaver_taylor(mpc, interval, shape=(3,)):
+def test_beaver_taylor(mpc, interval, size=100):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
     alg_struct = "ring" if modulus.popcnt() == 1 else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre Beaver Taylor at interval {interval} on {alg_struct} ... \n')
     
-    with mpc.randomness.seed_switch(-1):
-        floats = random_floats(shape, 1)
-    
+    floats = linspace(*interval, size)
     fp_floats = period_double_to_fp(floats, period, modulus)
     shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
     stensor = Sharetensor(shared_fp, modulus)
     stensor.fp = True
+    data_dump = {'x': floats}
 
-    test_op(mpc, f"Taylor sin at interval {interval}",
+    test_op(mpc, data_dump, "taylor_sin",
             taylor_sin, floats, stensor, sin(floats), interval)
     
-    test_op(mpc, f"Taylor cos at interval {interval}",
+    test_op(mpc, data_dump, "taylor_cos",
             taylor_cos, floats, stensor, cos(floats), interval)
     
-    test_op(mpc, f"Taylor sigmoid at interval {interval}",
+    test_op(mpc, data_dump, "taylor_sigmoid",
             taylor_sigmoid, floats, stensor, sigmoid(floats), interval)
+    
+    return data_dump
+
+
+def test_cheby(mpc, interval, size=100):
+    period = interval[1] - interval[0]
+    modulus = mpc.default_mpc_modulus
+    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
+    print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} on {alg_struct} ... \n')
+    
+    floats = linspace(*interval, size)
+    fp_floats = period_double_to_fp(floats, period, modulus)
+    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+    stensor = Sharetensor(shared_fp, modulus)
+    stensor.fp = True
+    data_dump = {'x': floats}
+    
+    test_op(mpc, data_dump, "cheby_sin",
+        cheby_sin, floats, stensor, sin(floats), interval, skip_assert=True)
+    
+    test_op(mpc, data_dump, "cheby_cos",
+        cheby_cos, floats, stensor, cos(floats), interval, skip_assert=True)
+    
+    test_op(mpc, data_dump, "cheby_sigmoid",
+        cheby_sigmoid, floats, stensor, sigmoid(floats), interval, skip_assert=True)
+    
+    test_op(mpc, data_dump, "cheby_exp",
+        cheby_exp, floats, stensor, exp(floats), interval, skip_assert=True)
+    
+    if interval[0] > 0:
+        test_op(mpc, data_dump, "cheby_log",
+            cheby_log, floats, stensor, log(floats), interval, skip_assert=True)
+        
+        test_op(mpc, data_dump, "cheby_mul_inv",
+            cheby_mul_inv, floats, stensor, mul_inv(floats), interval, skip_assert=True)
+
+        test_op(mpc, data_dump, "cheby_sqrt",
+            cheby_sqrt, floats, stensor, sqrt(floats), interval, skip_assert=True)
+
+    return data_dump
 
 
 @local
 def test(mpc):
-    test_beaver_trig(mpc)
-    test_beaver_exp(mpc)
+    pickle_dump("_dump_beaver_trig.p", test_beaver_trig(mpc))
+    pickle_dump("_dump_beaver_exp.p", test_beaver_exp(mpc))
     
-    test_beaver_fourier(mpc, (-math.pi, math.pi))
-    test_beaver_fourier(mpc, (-math.pi, math.pi / 2))
+    pickle_dump("_dump_fourier_full_circle.p", test_beaver_fourier(mpc, (-math.pi, math.pi)))
+    pickle_dump("_dump_fourier_partial_circle.p", test_beaver_fourier(mpc, (-1.0, 2.5)))
+    pickle_dump("_dump_fourier_positive_quad.p", test_beaver_fourier(mpc, (math.pi * 0.25, math.pi * 0.75)))
+
+    pickle_dump("_dump_cheby_full_circle.p", test_cheby(mpc, (-math.pi, math.pi)))
+    pickle_dump("_dump_cheby_partial_circle.p", test_cheby(mpc, (-1.0, 2.5)))
+    pickle_dump("_dump_cheby_positive_quad.p", test_cheby(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    
 
 test()

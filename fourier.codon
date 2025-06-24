@@ -3,7 +3,7 @@ import math
 from sequre.types.builtin import *
 from sequre.types.sharetensor import Sharetensor
 
-from utils import recursive_reduce, sin, cos, trapz, FOURIER_DEGREE
+from utils import recursive_reduce, sin, cos, trapz, linspace, FOURIER_DEGREE
 
 
 def fourier_coeffs(op, nodes, period, degree: Static[int]):
@@ -28,11 +28,6 @@ def fourier_evaluate(mpc, x, coeffs, period, degree: Static[int]):
     return stensor
 
 
-def linspace(a, b, count):
-    step = (b - a) / (count - 1)
-    return [(a + step * i) for i in range(count)]
-
-
 def via_fourier(mpc, x, op, interval, degree: Static[int]):
     period = interval[1] - interval[0]
     nodes = linspace(*interval, 1000)
@@ -49,5 +44,25 @@ def fourier_cos(mpc, x, interval):
     return via_fourier(mpc, x, math.cos, interval, FOURIER_DEGREE)
 
 
+def fourier_tan(mpc, x, interval):
+    return via_fourier(mpc, x, math.tan, interval, FOURIER_DEGREE)
+
+
 def fourier_sigmoid(mpc, x, interval):
     return via_fourier(mpc, x, lambda x: 1 / (1 + (-x).exp()), interval, FOURIER_DEGREE)
+
+
+def fourier_exp(mpc, x, interval):
+    return via_fourier(mpc, x, lambda x: x.exp(), interval, FOURIER_DEGREE)
+
+
+def fourier_log(mpc, x, interval):
+    return via_fourier(mpc, x, math.log, interval, FOURIER_DEGREE)
+
+
+def fourier_mul_inv(mpc, x, interval):
+    return via_fourier(mpc, x, lambda x: 1 / x, interval, FOURIER_DEGREE)
+
+
+def fourier_sqrt(mpc, x, interval):
+    return via_fourier(mpc, x, math.sqrt, interval, FOURIER_DEGREE)
