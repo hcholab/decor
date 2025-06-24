@@ -1,0 +1,11 @@
+import math
+
+from sequre.stdlib.builtin import *
+
+
+def chebyshev_sin(mpc, x, interval):
+    return via_chebyshev(mpc, x, math.sin, interval, CHEBYSHEV_DEGREE)
+
+
+def chebyshev_cos(mpc, x, interval):
+    return via_chebyshev(mpc, x, math.cos, interval, CHEBYSHEV_DEGREE)

@@ -1,5 +1,7 @@
 import time, math
 
+from numpy.create import array
+
 from sequre import local
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double
@@ -8,7 +10,7 @@ from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
 from beaver import *
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
-from cheby import cheby_sin, cheby_cos, cheby_sigmoid, cheby_exp, cheby_log, cheby_mul_inv, cheby_sqrt
+from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt
 from utils import linspace, trig_double_to_fp, period_double_to_fp, sin, cos, expc, exp, sigmoid, log, mul_inv, sqrt
 
 
@@ -156,7 +158,7 @@ def test_beaver_exp(mpc, iterations=10, size=100):
     return data_dump
 
 
-def test_op(mpc, data_dump, msg, op, raw_input, mpc_input, expected_result, interval, error=0.01, skip_assert=False):
+def test_op(mpc, data_dump, msg, op, raw_input, mpc_input, expected_result, interval, error=0.01, skip_assert=False, periodic=True):
     alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
     period = interval[1] - interval[0]
     
@@ -166,9 +168,10 @@ def test_op(mpc, data_dump, msg, op, raw_input, mpc_input, expected_result, inte
     data_dump[f"{msg}_time"] = [e - s]
     revealed_result = mpc_result.reveal(mpc).tolist()
     
+    revealed_input = mpc_input.reveal(mpc).tolist()
     if not skip_assert:
         assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC) on {alg_struct}', revealed_result, expected_result, error)
-        assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', mpc_input.reveal(mpc).tolist() * period, raw_input, error, silent_pass=True)
+        assert_distributed_eq_approx(mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}', (revealed_input * period) if periodic else revealed_input, raw_input, error, silent_pass=True)
 
     data_dump[msg] = revealed_result
     data_dump[f"{msg}_expected"] = expected_result
@@ -237,40 +240,36 @@ def test_beaver_taylor(mpc, interval, size=100):
     return data_dump
 
 
-def test_cheby(mpc, interval, size=100):
-    period = interval[1] - interval[0]
+def test_chebyshev(mpc, interval, size=100):
     modulus = mpc.default_mpc_modulus
     alg_struct = "ring" if modulus.popcnt() == 1 else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} on {alg_struct} ... \n')
     
     floats = linspace(*interval, size)
-    fp_floats = period_double_to_fp(floats, period, modulus)
-    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
-    stensor = Sharetensor(shared_fp, modulus)
-    stensor.fp = True
+    stensor = Sharetensor.enc(mpc, array(floats), 0, modulus)
     data_dump = {'x': floats}
     
-    test_op(mpc, data_dump, "cheby_sin",
-        cheby_sin, floats, stensor, sin(floats), interval, skip_assert=True)
+    test_op(mpc, data_dump, "chebyshev_sigmoid",
+        chebyshev_sigmoid, floats, stensor, sigmoid(floats), interval, periodic=False)
     
-    test_op(mpc, data_dump, "cheby_cos",
-        cheby_cos, floats, stensor, cos(floats), interval, skip_assert=True)
+    test_op(mpc, data_dump, "chebyshev_exp",
+        chebyshev_exp, floats, stensor, exp(floats), interval, periodic=False)
     
-    test_op(mpc, data_dump, "cheby_sigmoid",
-        cheby_sigmoid, floats, stensor, sigmoid(floats), interval, skip_assert=True)
+    test_op(mpc, data_dump, "chebyshev_sin",
+        chebyshev_sin, floats, stensor, sin(floats), interval, periodic=False)
     
-    test_op(mpc, data_dump, "cheby_exp",
-        cheby_exp, floats, stensor, exp(floats), interval, skip_assert=True)
+    test_op(mpc, data_dump, "chebyshev_cos",
+        chebyshev_cos, floats, stensor, cos(floats), interval, periodic=False)
     
     if interval[0] > 0:
-        test_op(mpc, data_dump, "cheby_log",
-            cheby_log, floats, stensor, log(floats), interval, skip_assert=True)
+        test_op(mpc, data_dump, "chebyshev_log",
+            chebyshev_log, floats, stensor, log(floats), interval, periodic=False)
         
-        test_op(mpc, data_dump, "cheby_mul_inv",
-            cheby_mul_inv, floats, stensor, mul_inv(floats), interval, skip_assert=True)
+        test_op(mpc, data_dump, "chebyshev_mul_inv",
+            chebyshev_mul_inv, floats, stensor, mul_inv(floats), interval, periodic=False)
 
-        test_op(mpc, data_dump, "cheby_sqrt",
-            cheby_sqrt, floats, stensor, sqrt(floats), interval, skip_assert=True)
+        test_op(mpc, data_dump, "chebyshev_sqrt",
+            chebyshev_sqrt, floats, stensor, sqrt(floats), interval, periodic=False)
 
     return data_dump
 
@@ -284,9 +283,9 @@ def test(mpc):
     pickle_dump("_dump_fourier_partial_circle.p", test_beaver_fourier(mpc, (-1.0, 2.5)))
     pickle_dump("_dump_fourier_positive_quad.p", test_beaver_fourier(mpc, (math.pi * 0.25, math.pi * 0.75)))
 
-    pickle_dump("_dump_cheby_full_circle.p", test_cheby(mpc, (-math.pi, math.pi)))
-    pickle_dump("_dump_cheby_partial_circle.p", test_cheby(mpc, (-1.0, 2.5)))
-    pickle_dump("_dump_cheby_positive_quad.p", test_cheby(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    pickle_dump("_dump_cheby_full_circle.p", test_chebyshev(mpc, (-math.pi, math.pi)))
+    pickle_dump("_dump_cheby_partial_circle.p", test_chebyshev(mpc, (-1.0, 2.5)))
+    pickle_dump("_dump_cheby_positive_quad.p", test_chebyshev(mpc, (math.pi * 0.25, math.pi * 0.75)))
     
 
 test()
