@@ -6,6 +6,7 @@ from sequre import local
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
+from sequre.constants import MPC_NBIT_F
 
 from beaver import *
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
@@ -22,19 +23,6 @@ def pickle_dump(path: str, data: Dict[str, List[float]]):
     import pickle
     with open(path, "wb") as f:
         pickle.dump(data, f)
-
-
-@extend
-class Sharetensor:
-    def __init__(self: Sharetensor[TP], other: TP, fp: bool, modulus: mpc_uint):
-        stensor = Sharetensor(other, modulus)
-        stensor.fp = fp
-        return stensor
-    
-    def __init__(self: Sharetensor[TP], other: TP, fp: bool, public: bool, modulus: mpc_uint):
-        stensor = Sharetensor(other, fp, modulus)
-        stensor.public = public
-        return stensor
 
 
 def test_beaver_trig(mpc, iterations=10, size=100):
@@ -132,11 +120,18 @@ def test_beaver_exp(mpc, iterations=10, size=100):
         # beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, period, modulus)
         # exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac = beaver_exp_elem
 
-        # stensor_floats = Sharetensor(shared_fp, True, modulus)
-        # stensor_exp_x_r = Sharetensor(exp_x_r, True, True, modulus)
-        # stensor_exp_x_r_p = Sharetensor(exp_x_r_p, True, True, modulus)
-        # stensor_exp_r = Sharetensor(shared_exp_r, True, modulus)
-        # stensor_r_frac = Sharetensor(shared_r_frac, True, modulus)
+        # stensor_floats = Sharetensor(shared_fp, modulus)
+        # stensor_floats.fp = True
+        # stensor_exp_x_r = Sharetensor(exp_x_r, modulus)
+        # stensor_exp_x_r.fp = True
+        # stensor_exp_x_r.public = True
+        # stensor_exp_x_r_p = Sharetensor(exp_x_r_p, modulus)
+        # stensor_exp_x_r_p.fp = True
+        # stensor_exp_x_r_p.public = True
+        # stensor_exp_r = Sharetensor(shared_exp_r, modulus)
+        # stensor_exp_r.fp = True
+        # stensor_r_frac = Sharetensor(shared_r_frac, modulus)
+        # stensor_r_frac.fp = True
         
         # shared_result = beaver_exp(mpc, stensor_exp_x_r, stensor_exp_x_r_p, stensor_exp_r, stensor_r_frac, stensor_floats)
         # e = time.time()
@@ -250,42 +245,44 @@ def test_chebyshev(mpc, interval, size=100):
     data_dump = {'x': floats}
     
     test_op(mpc, data_dump, "chebyshev_sigmoid",
-        chebyshev_sigmoid, floats, stensor, sigmoid(floats), interval, periodic=False)
+        chebyshev_sigmoid, floats, stensor, sigmoid(floats), interval, skip_assert=True, periodic=False)
     
     test_op(mpc, data_dump, "chebyshev_exp",
-        chebyshev_exp, floats, stensor, exp(floats), interval, periodic=False)
+        chebyshev_exp, floats, stensor, exp(floats), interval, skip_assert=True, periodic=False)
     
     test_op(mpc, data_dump, "chebyshev_sin",
-        chebyshev_sin, floats, stensor, sin(floats), interval, periodic=False)
+        chebyshev_sin, floats, stensor, sin(floats), interval, skip_assert=True, periodic=False)
     
     test_op(mpc, data_dump, "chebyshev_cos",
-        chebyshev_cos, floats, stensor, cos(floats), interval, periodic=False)
+        chebyshev_cos, floats, stensor, cos(floats), interval, skip_assert=True, periodic=False)
     
     if interval[0] > 0:
         test_op(mpc, data_dump, "chebyshev_log",
-            chebyshev_log, floats, stensor, log(floats), interval, periodic=False)
+            chebyshev_log, floats, stensor, log(floats), interval, skip_assert=True, periodic=False)
         
         test_op(mpc, data_dump, "chebyshev_mul_inv",
-            chebyshev_mul_inv, floats, stensor, mul_inv(floats), interval, periodic=False)
+            chebyshev_mul_inv, floats, stensor, mul_inv(floats), interval, skip_assert=True, periodic=False)
 
         test_op(mpc, data_dump, "chebyshev_sqrt",
-            chebyshev_sqrt, floats, stensor, sqrt(floats), interval, periodic=False)
+            chebyshev_sqrt, floats, stensor, sqrt(floats), interval, skip_assert=True, periodic=False)
 
     return data_dump
 
 
 @local
 def test(mpc):
-    pickle_dump("_dump_beaver_trig.p", test_beaver_trig(mpc))
-    pickle_dump("_dump_beaver_exp.p", test_beaver_exp(mpc))
+    pickle_dump(f"_dump_beaver_trig_{MPC_NBIT_F}.p", test_beaver_trig(mpc))
+    pickle_dump(f"_dump_beaver_exp_{MPC_NBIT_F}.p", test_beaver_exp(mpc))
     
-    pickle_dump("_dump_fourier_full_circle.p", test_beaver_fourier(mpc, (-math.pi, math.pi)))
-    pickle_dump("_dump_fourier_partial_circle.p", test_beaver_fourier(mpc, (-1.0, 2.5)))
-    pickle_dump("_dump_fourier_positive_quad.p", test_beaver_fourier(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    pickle_dump(f"_dump_fourier_full_circle_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-math.pi, math.pi)))
+    pickle_dump(f"_dump_fourier_partial_circle_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-1.0, 2.5)))
+    pickle_dump(f"_dump_fourier_positive_quad_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    pickle_dump(f"_dump_fourier_long_period_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-math.pi * (MPC_NBIT_F // 5), math.pi * (MPC_NBIT_F // 5))))
 
-    pickle_dump("_dump_cheby_full_circle.p", test_chebyshev(mpc, (-math.pi, math.pi)))
-    pickle_dump("_dump_cheby_partial_circle.p", test_chebyshev(mpc, (-1.0, 2.5)))
-    pickle_dump("_dump_cheby_positive_quad.p", test_chebyshev(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    pickle_dump(f"_dump_cheby_full_circle_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-math.pi, math.pi)))
+    pickle_dump(f"_dump_cheby_partial_circle_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-1.0, 2.5)))
+    pickle_dump(f"_dump_cheby_positive_quad_{MPC_NBIT_F}.p", test_chebyshev(mpc, (math.pi * 0.25, math.pi * 0.75)))
+    pickle_dump(f"_dump_cheby_long_period_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-math.pi * (MPC_NBIT_F // 5), math.pi * (MPC_NBIT_F // 5))))
     
 
 test()

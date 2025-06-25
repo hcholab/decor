@@ -3,9 +3,29 @@ from sequre import sequre
 from sequre.mpc.arithmetic import MPCArithmetic
 from sequre.mpc.fp import MPCFP
 from sequre.types.builtin import *
+# from sequre.types.internal import InternalMPC
+# from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import double_to_fp
 
 from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expc, df, MASK
+
+
+# @extend
+# class InternalMPC:
+#     def mul(mpc, x, y):
+#         if not isinstance(y, float):
+#             if x.public or y.public:
+#                 modulus = x.modulus if y.public else y.modulus
+#                 c_share = x.share.mul_mod(y.share, modulus)
+                
+#                 if x.is_fp() and y.is_fp():
+#                     c_share = mpc.fp.trunc(c_share, modulus)
+                
+#                 sv = Sharetensor(c_share, modulus)
+#                 sv.fp = x.is_fp() or y.is_fp()
+#                 return sv
+
+#         return superf(mpc, x, y)
 
 
 @extend
@@ -114,7 +134,7 @@ class MPCFP:
 @sequre
 def beaver_exp(mpc, exp_x_r_pub, exp_x_r_p_pub, exp_r, r_frac, x):
     """
-    Note: shared_x must be in fractional ring (over period) and in [0, 1] segment
+    Note: x must be in fractional ring (over period) and in [0, 1] segment
     """
     exp_r = exp_r + 1
     y_exp = exp_r * (exp_x_r_pub + 1) - 1
