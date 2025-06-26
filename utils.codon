@@ -31,6 +31,16 @@ def linspace(a, b, count):
     return [(a + step * i) for i in range(count)]
 
 
+def interval_double_to_fp(value, interval, modulus):
+    a, b = interval
+    return double_to_fp((value - a) * (1 / (b - a)), modulus)
+
+
+def interval_fp_to_double(value, interval, modulus):
+    a, b = interval
+    return fp_to_double(value, modulus) * (b - a) + a
+
+
 def period_double_to_fp(value, period, modulus):
     return double_to_fp(value * (1 / period), modulus)
 

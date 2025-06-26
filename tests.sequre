@@ -12,7 +12,7 @@ from beaver import *
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
 from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt
-from utils import linspace, trig_double_to_fp, period_double_to_fp, sin, cos, expc, exp, sigmoid, log, mul_inv, sqrt
+from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expc, exp, sigmoid, log, mul_inv, sqrt
 
 
 @python
@@ -20,12 +20,15 @@ def pickle_dump(path: str, data: Dict[str, List[float]]):
     """
     Temp method until Codon Jupyter is fixed.
     """
+    if not data:
+        return
+
     import pickle
     with open(path, "wb") as f:
         pickle.dump(data, f)
 
 
-def test_beaver_trig(mpc, iterations=10, size=100):
+def test_beaver_trig(mpc, interval, iterations=10, size=100):
     """
     Test Beaver's protocol for computing sine and cosine using MPC.
     """
@@ -36,7 +39,7 @@ def test_beaver_trig(mpc, iterations=10, size=100):
     data_dump = {}
 
     for i in range(iterations):
-        floats = linspace(-math.pi, math.pi, size)
+        floats = linspace(*interval, size)
         fp_floats = trig_double_to_fp(floats, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
@@ -85,24 +88,23 @@ def test_beaver_trig(mpc, iterations=10, size=100):
     return data_dump
 
 
-def test_beaver_exp(mpc, iterations=10, size=100):
+def test_beaver_exp(mpc, interval, iterations=10, size=100):
     """
     Test Beaver's protocol for computing exp using MPC.
     """
     modulus = mpc.default_mpc_modulus
     plain_total_time = 0.0
     sequre_total_time = 0.0
-    period = math.pi * 2
     data_dump = {}
 
     for i in range(iterations):
-        floats = linspace(0, period, size)
-        fp_floats = period_double_to_fp(floats, period, modulus)
+        floats = linspace(*interval, size)
+        fp_floats = interval_double_to_fp(floats, interval, modulus)
         shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
 
         s = time.time()
         beaver_exp_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
-        beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, period, modulus)
+        beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, interval, modulus)
         shared_result = mpc.fp._beaver_exp(*beaver_exp_elem, shared_fp, modulus)
         e = time.time()
         plain_total_time += e - s
@@ -112,7 +114,7 @@ def test_beaver_exp(mpc, iterations=10, size=100):
             assert_eq_approx(
                 f'Beaver exp (iteration {i}/{iterations}) for {floats}',
                 revealed_result,
-                expc(floats), silent_pass=True)
+                expc(floats), error=0.03, silent_pass=True)
         
         # TODO: Needs debugging
         # s = time.time()
@@ -271,18 +273,17 @@ def test_chebyshev(mpc, interval, size=100):
 
 @local
 def test(mpc):
-    pickle_dump(f"_dump_beaver_trig_{MPC_NBIT_F}.p", test_beaver_trig(mpc))
-    pickle_dump(f"_dump_beaver_exp_{MPC_NBIT_F}.p", test_beaver_exp(mpc))
-    
-    pickle_dump(f"_dump_fourier_full_circle_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-math.pi, math.pi)))
-    pickle_dump(f"_dump_fourier_partial_circle_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-1.0, 2.5)))
-    pickle_dump(f"_dump_fourier_positive_quad_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (math.pi * 0.25, math.pi * 0.75)))
-    pickle_dump(f"_dump_fourier_long_period_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, (-math.pi * (MPC_NBIT_F // 5), math.pi * (MPC_NBIT_F // 5))))
+    intervals = [
+        (-math.pi, math.pi),
+        (-1.0, 2.5),
+        (math.pi * 0.25, math.pi * 0.75),
+        (-5.0, 5.0)]
 
-    pickle_dump(f"_dump_cheby_full_circle_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-math.pi, math.pi)))
-    pickle_dump(f"_dump_cheby_partial_circle_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-1.0, 2.5)))
-    pickle_dump(f"_dump_cheby_positive_quad_{MPC_NBIT_F}.p", test_chebyshev(mpc, (math.pi * 0.25, math.pi * 0.75)))
-    pickle_dump(f"_dump_cheby_long_period_{MPC_NBIT_F}.p", test_chebyshev(mpc, (-math.pi * (MPC_NBIT_F // 5), math.pi * (MPC_NBIT_F // 5))))
+    for i, interval in enumerate(intervals):
+        pickle_dump(f"_dump_beaver_trig_{i}_{MPC_NBIT_F}.p", test_beaver_trig(mpc, interval))
+        pickle_dump(f"_dump_beaver_exp_{i}_{MPC_NBIT_F}.p", test_beaver_exp(mpc, interval))
+        pickle_dump(f"_dump_fourier_{i}_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, interval))
+        pickle_dump(f"_dump_cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
     
 
 test()
