@@ -9,10 +9,11 @@ from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
 from sequre.constants import MPC_NBIT_F
 
 from beaver import *
+from bitween import via_bitween, get_bitween_foo
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
 from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt
-from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expc, exp, sigmoid, log, mul_inv, sqrt
+from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expm1, exp, sigmoid, log, mul_inv, sqrt
 
 
 @python
@@ -93,7 +94,6 @@ def test_beaver_exp(mpc, interval, iterations=10, size=100):
     Test Beaver's protocol for computing exp using MPC.
     """
     modulus = mpc.default_mpc_modulus
-    plain_total_time = 0.0
     sequre_total_time = 0.0
     data_dump = {}
 
@@ -107,51 +107,23 @@ def test_beaver_exp(mpc, interval, iterations=10, size=100):
         beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, interval, modulus)
         shared_result = mpc.fp._beaver_exp(*beaver_exp_elem, shared_fp, modulus)
         e = time.time()
-        plain_total_time += e - s
+        sequre_total_time += e - s
         
         revealed_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
         if mpc.pid != 0:
             assert_eq_approx(
                 f'Beaver exp (iteration {i}/{iterations}) for {floats}',
                 revealed_result,
-                expc(floats), error=0.03, silent_pass=True)
-        
-        # TODO: Needs debugging
-        # s = time.time()
-        # beaver_exp_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
-        # beaver_exp_elem = mpc.arithmetic._beaver_exp(*beaver_exp_partitions, period, modulus)
-        # exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac = beaver_exp_elem
-
-        # stensor_floats = Sharetensor(shared_fp, modulus)
-        # stensor_floats.fp = True
-        # stensor_exp_x_r = Sharetensor(exp_x_r, modulus)
-        # stensor_exp_x_r.fp = True
-        # stensor_exp_x_r.public = True
-        # stensor_exp_x_r_p = Sharetensor(exp_x_r_p, modulus)
-        # stensor_exp_x_r_p.fp = True
-        # stensor_exp_x_r_p.public = True
-        # stensor_exp_r = Sharetensor(shared_exp_r, modulus)
-        # stensor_exp_r.fp = True
-        # stensor_r_frac = Sharetensor(shared_r_frac, modulus)
-        # stensor_r_frac.fp = True
-        
-        # shared_result = beaver_exp(mpc, stensor_exp_x_r, stensor_exp_x_r_p, stensor_exp_r, stensor_r_frac, stensor_floats)
-        # e = time.time()
-        # sequre_total_time += e - s
-        
-        # if mpc.pid != 0:
-        #     assert_eq_approx(
-        #         f'Beaver exp via Sequre (iteration {i}/{iterations}) for {floats}',
-        #         shared_result.reveal(mpc).tolist(), expc(floats), silent_pass=True)
+                expm1(floats), error=0.03, silent_pass=True)
 
         data_dump = {
             'x': floats,
-            'beaver_expc': revealed_result,
-            'beaver_expc_expected': expc(floats)}
+            'beaver_expm1': revealed_result,
+            'beaver_expm1_expected': expm1(floats)}
 
-    avg_time = plain_total_time / iterations
-    print(f'CP{mpc.pid}:\tGeneralized Exp Beaver tests passed.\n\tRuntime per iteration (plain): {avg_time} seconds\n\tRuntime per iteration (Sequre): {sequre_total_time / iterations} seconds')
-    data_dump['beaver_expc_time'] = [avg_time]
+    avg_time = sequre_total_time / iterations
+    print(f'CP{mpc.pid}:\tGeneralized Exp Beaver tests passed.\n\t\n\tRuntime per iteration: {avg_time} seconds')
+    data_dump['beaver_expm1_time'] = [avg_time]
     return data_dump
 
 
@@ -271,6 +243,39 @@ def test_chebyshev(mpc, interval, size=100):
     return data_dump
 
 
+def _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, method: Static[str]):
+    foo = get_bitween_foo(method)[0]
+
+    s = time.time()
+    shared_result = via_bitween(mpc, shared_floats, interval, method=method)
+    e = time.time()
+    
+    revealed_result = shared_result.reveal(mpc).tolist()
+    if mpc.pid != 0:
+        assert_eq_approx(
+            f'Bitween Beaver {method} for {floats}',
+            revealed_result, foo(floats), silent_pass=True)
+
+    data_dump[f'bitween_beaver_{method}'] = revealed_result
+    data_dump[f'bitween_beaver_{method}_expected'] = foo(floats)
+    data_dump[f'bitween_beaver_{method}_time'] = [e - s]
+
+
+def test_bitween_beaver(mpc, interval, size=100):
+    """
+    Test Bitween Beaver.
+    """
+    
+    floats = linspace(*interval, size)
+    shared_floats = Sharetensor.enc(mpc, array(floats))
+    data_dump = {'x': floats}
+
+    _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, "expm1")
+    _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, "sigmoid")
+    
+    return data_dump
+
+
 @local
 def test(mpc):
     intervals = [
@@ -282,6 +287,7 @@ def test(mpc):
     for i, interval in enumerate(intervals):
         pickle_dump(f"_dump_beaver_trig_{i}_{MPC_NBIT_F}.p", test_beaver_trig(mpc, interval))
         pickle_dump(f"_dump_beaver_exp_{i}_{MPC_NBIT_F}.p", test_beaver_exp(mpc, interval))
+        pickle_dump(f"_dump_bitween_beaver_{i}_{MPC_NBIT_F}.p", test_bitween_beaver(mpc, interval))
         pickle_dump(f"_dump_fourier_{i}_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, interval))
         pickle_dump(f"_dump_cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
     

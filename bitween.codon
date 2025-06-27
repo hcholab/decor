@@ -1,0 +1,136 @@
+from sequre import sequre
+from sequre.types.sharetensor import Sharetensor
+from sequre.types.internal import InternalMPC
+
+from utils import double_to_fp, period_fp_to_double, expm1, sigmoid, MASK
+
+
+# @extend
+# class Sharetensor:
+#     def __iadd__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+#         if isinstance(other, List[float]):
+#             raise NotImplementedError("Sharetensors cannot be added by list of floats without IR pass enabled.")
+        
+#         superf(self, other)
+    
+#     def __isub__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+#         if isinstance(other, List[float]):
+#             raise NotImplementedError("Sharetensors cannot be subtracted by list of floats without IR pass enabled.")
+        
+#         superf(self, other)
+    
+#     def __imul__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+#         if isinstance(other, List[float]):
+#             raise NotImplementedError("Sharetensors cannot be multiplied by list of floats without IR pass enabled.")
+        
+#         superf(self, other)
+
+
+@extend
+class InternalMPC:
+    def add(mpc, x, y):
+        if isinstance(y, List[float]):
+            return InternalMPC.__add_public(mpc, y.to_fp(x.modulus), x, False)
+
+        return superf(mpc, x, y)
+
+    def sub(mpc, x, y):
+        if isinstance(y, List[float]):
+            return InternalMPC.__add_public(mpc, (-y).to_fp(x.modulus), x, False)
+
+        return superf(mpc, x, y)
+
+    def mul(mpc, x, y):
+        if isinstance(y, List[float]):
+            y_fp = double_to_fp(y, x.modulus)
+            modulus = x.modulus
+            c_share = x.share.mul_mod(y_fp, modulus)
+            
+            if x.is_fp():
+                c_share = mpc.fp.trunc(c_share, modulus)
+            
+            sv = Sharetensor(c_share, modulus)
+            sv.fp = True
+            sv.public = x.public
+            return sv
+        elif isinstance(y, float):
+            y_fp = double_to_fp(y, x.modulus)
+            sv = x * y_fp
+            if x.is_fp():
+                sv = sv.trunc(mpc.fp)
+            sv.fp = True
+            sv.public = x.public
+            return sv
+        elif isinstance(y, Sharetensor) and (x.public or y.public):
+            modulus = x.modulus if y.public else y.modulus
+            c_share = x.share.mul_mod(y.share, modulus)
+            
+            if x.is_fp() and y.is_fp():
+                c_share = mpc.fp.trunc(c_share, modulus)
+            
+            sv = Sharetensor(c_share, modulus)
+            sv.fp = x.is_fp() or y.is_fp()
+            sv.public = x.public and y.public
+            return sv
+
+        return superf(mpc, x, y)
+    
+
+@sequre
+def bitween_expm1(mpc, foo_x_r, foo_r_share):
+     return foo_r_share * foo_x_r + foo_r_share + foo_x_r
+
+
+@sequre
+def bitween_sigmoid(mpc, foo_x_r, foo_r_share):
+     return foo_r_share * foo_x_r / (foo_r_share * foo_x_r * 2 - foo_r_share - foo_x_r + 1)
+
+
+def get_bitween_foo(method: Static[str]):
+    if method == "expm1":
+        return expm1, bitween_expm1
+    if method == "sigmoid":
+        return sigmoid, bitween_sigmoid
+    
+    compile_error("Bitween Beaver method not supported")
+
+
+@sequre
+def bitween_partition(mpc, x, foo, interval):
+    modulus = x.modulus
+    a, b = interval
+    period = b - a
+
+    # TODO: Conversion to period can be avoided
+    shifted_x = (x - a) / period
+    x_r, r = shifted_x.get_partitions(mpc)
+    
+    frac_r = r & MASK
+    double_r = period_fp_to_double(frac_r, period, modulus)
+    foo_r = double_to_fp(foo(double_r), modulus)
+    
+    r_frac_share = Sharetensor(mpc.comms.share_from_trusted_dealer(frac_r, modulus), modulus)
+    r_frac_share.fp = True
+    foo_r_share = Sharetensor(mpc.comms.share_from_trusted_dealer(foo_r, modulus), modulus)
+    foo_r_share.fp = True
+
+    double_x_r = period_fp_to_double(x_r & MASK, period, modulus)
+    foo_x_r = foo(double_x_r + a)
+    foo_x_r_p = foo(double_x_r - period + a)
+
+    return foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x
+
+
+@sequre
+def bitween_beaver_eval(mpc, bitween_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x):
+    foo_eval = bitween_foo(mpc, foo_x_r, foo_r_share)
+    foo_eval_shifted = bitween_foo(mpc, foo_x_r_p, foo_r_share)
+
+    cond = (r_frac_share - shifted_x) > 0
+    return foo_eval + cond * (foo_eval_shifted - foo_eval)
+
+
+def via_bitween(mpc, x, interval, method: Static[str]):
+    foo, bitween_foo = get_bitween_foo(method=method)
+    bitween_partitions = bitween_partition(mpc, x, foo, interval)
+    return bitween_beaver_eval(mpc, bitween_foo, *bitween_partitions)
