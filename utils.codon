@@ -79,7 +79,7 @@ def tan(value):
     return recursive_reduce(math.tan, value)
 
 
-def expc(value):
+def expm1(value):
     return recursive_reduce(lambda x: x.exp() - 1, value)
 
 
