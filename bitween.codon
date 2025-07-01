@@ -5,6 +5,7 @@ from sequre.types.internal import InternalMPC
 from utils import double_to_fp, period_fp_to_double, expm1, sigmoid, MASK
 
 
+# TODO: Add to Sequre (temporarily added in personal fork)
 # @extend
 # class Sharetensor:
 #     def __iadd__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
@@ -101,7 +102,6 @@ def bitween_partition(mpc, x, foo, interval):
     a, b = interval
     period = b - a
 
-    # TODO: Conversion to period can be avoided
     shifted_x = (x - a) / period
     x_r, r = shifted_x.get_partitions(mpc)
     

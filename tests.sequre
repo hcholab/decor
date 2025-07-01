@@ -282,7 +282,8 @@ def test(mpc):
         (-math.pi, math.pi),
         (-1.0, 2.5),
         (math.pi * 0.25, math.pi * 0.75),
-        (-5.0, 5.0)]
+        (-5.0, 5.0)
+        ]
 
     for i, interval in enumerate(intervals):
         pickle_dump(f"_dump_beaver_trig_{i}_{MPC_NBIT_F}.p", test_beaver_trig(mpc, interval))
