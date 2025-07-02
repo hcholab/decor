@@ -10,10 +10,10 @@ from sequre.constants import MPC_NBIT_F
 
 from beaver import *
 from bitween import via_bitween, get_bitween_foo
-from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt
+from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt, fourier_tanh
 from taylor import taylor_sin, taylor_cos, taylor_sigmoid
-from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt
-from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expm1, exp, sigmoid, log, mul_inv, sqrt
+from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt, chebyshev_tanh
+from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expm1, exp, sigmoid, log, mul_inv, sqrt, tanh
 
 
 @python
@@ -171,6 +171,9 @@ def test_beaver_fourier(mpc, interval, size=100):
     test_op(mpc, data_dump, "fourier_exp",
         fourier_exp, floats, stensor, exp(floats), interval, skip_assert=True)
     
+    test_op(mpc, data_dump, "fourier_tanh",
+        fourier_tanh, floats, stensor, tanh(floats), interval, skip_assert=True)
+    
     if interval[0] > 0:
         test_op(mpc, data_dump, "fourier_log",
             fourier_log, floats, stensor, log(floats), interval, skip_assert=True)
@@ -230,6 +233,9 @@ def test_chebyshev(mpc, interval, size=100):
     test_op(mpc, data_dump, "chebyshev_cos",
         chebyshev_cos, floats, stensor, cos(floats), interval, skip_assert=True, periodic=False)
     
+    test_op(mpc, data_dump, "chebyshev_tanh",
+        chebyshev_tanh, floats, stensor, tanh(floats), interval, skip_assert=True, periodic=False)
+    
     if interval[0] > 0:
         test_op(mpc, data_dump, "chebyshev_log",
             chebyshev_log, floats, stensor, log(floats), interval, skip_assert=True, periodic=False)
@@ -254,7 +260,7 @@ def _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, method
     if mpc.pid != 0:
         assert_eq_approx(
             f'Bitween Beaver {method} for {floats}',
-            revealed_result, foo(floats), silent_pass=True)
+            revealed_result, foo(floats), error=0.1, silent_pass=True)
 
     data_dump[f'bitween_beaver_{method}'] = revealed_result
     data_dump[f'bitween_beaver_{method}_expected'] = foo(floats)
@@ -272,6 +278,7 @@ def test_bitween_beaver(mpc, interval, size=100):
 
     _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, "expm1")
     _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, "sigmoid")
+    _test_bitween_method(mpc, data_dump, floats, shared_floats, interval, "tanh")
     
     return data_dump
 

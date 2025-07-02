@@ -9,3 +9,7 @@ def chebyshev_sin(mpc, x, interval):
 
 def chebyshev_cos(mpc, x, interval):
     return via_chebyshev(mpc, x, math.cos, interval, CHEBYSHEV_DEGREE)
+
+
+def chebyshev_tanh(mpc, x, interval):
+    return via_chebyshev(mpc, x, math.tanh, interval, CHEBYSHEV_DEGREE)

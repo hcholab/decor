@@ -80,6 +80,10 @@ def tan(value):
     return recursive_reduce(math.tan, value)
 
 
+def tanh(value):
+    return recursive_reduce(math.tanh, value)
+
+
 def expm1(value):
     return recursive_reduce(lambda x: x.exp() - 1, value)
 

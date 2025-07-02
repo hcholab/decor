@@ -47,6 +47,10 @@ def fourier_tan(mpc, x, interval):
     return via_fourier(mpc, x, math.tan, interval, FOURIER_DEGREE)
 
 
+def fourier_tanh(mpc, x, interval):
+    return via_fourier(mpc, x, math.tanh, interval, FOURIER_DEGREE)
+
+
 def fourier_sigmoid(mpc, x, interval):
     return via_fourier(mpc, x, lambda x: 1 / (1 + (-x).exp()), interval, FOURIER_DEGREE)
 

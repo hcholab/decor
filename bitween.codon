@@ -2,7 +2,7 @@ from sequre import sequre
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
 
-from utils import double_to_fp, period_fp_to_double, expm1, sigmoid, MASK
+from utils import double_to_fp, period_fp_to_double, expm1, sigmoid, tanh, MASK
 
 
 # TODO: Add to Sequre (temporarily added in personal fork)
@@ -87,11 +87,18 @@ def bitween_sigmoid(mpc, foo_x_r, foo_r_share):
      return foo_r_share * foo_x_r / (foo_r_share * foo_x_r * 2 - foo_r_share - foo_x_r + 1)
 
 
+@sequre
+def bitween_tanh(mpc, foo_x_r, foo_r_share):
+     return (foo_r_share + foo_x_r) / (foo_r_share * foo_x_r + 1)
+
+
 def get_bitween_foo(method: Static[str]):
     if method == "expm1":
         return expm1, bitween_expm1
     if method == "sigmoid":
         return sigmoid, bitween_sigmoid
+    if method == "tanh":
+        return tanh, bitween_tanh
     
     compile_error("Bitween Beaver method not supported")
 
