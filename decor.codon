@@ -2,7 +2,7 @@ from sequre import sequre
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
 
-from utils import double_to_fp, period_fp_to_double, expm1, sigmoid, tanh, MASK
+from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, MASK
 
 
 # TODO: Add to Sequre (temporarily added in personal fork)
@@ -78,33 +78,40 @@ class InternalMPC:
     
 
 @sequre
-def bitween_expm1(mpc, foo_x_r, foo_r_share):
+def decor_exp(mpc, foo_x_r, foo_r_share):
+     return foo_r_share * foo_x_r
+
+
+@sequre
+def decor_expm1(mpc, foo_x_r, foo_r_share):
      return foo_r_share * foo_x_r + foo_r_share + foo_x_r
 
 
 @sequre
-def bitween_sigmoid(mpc, foo_x_r, foo_r_share):
+def decor_sigmoid(mpc, foo_x_r, foo_r_share):
      return foo_r_share * foo_x_r / (foo_r_share * foo_x_r * 2 - foo_r_share - foo_x_r + 1)
 
 
 @sequre
-def bitween_tanh(mpc, foo_x_r, foo_r_share):
+def decor_tanh(mpc, foo_x_r, foo_r_share):
      return (foo_r_share + foo_x_r) / (foo_r_share * foo_x_r + 1)
 
 
-def get_bitween_foo(method: Static[str]):
+def get_decor_foo(method: Static[str]):
+    if method == "exp":
+        return exp, decor_exp
     if method == "expm1":
-        return expm1, bitween_expm1
+        return expm1, decor_expm1
     if method == "sigmoid":
-        return sigmoid, bitween_sigmoid
+        return sigmoid, decor_sigmoid
     if method == "tanh":
-        return tanh, bitween_tanh
+        return tanh, decor_tanh
     
-    compile_error("Bitween Beaver method not supported")
+    compile_error("Decor method not supported")
 
 
 @sequre
-def bitween_partition(mpc, x, foo, interval):
+def decor_partition(mpc, x, foo, interval):
     modulus = x.modulus
     a, b = interval
     period = b - a
@@ -129,15 +136,15 @@ def bitween_partition(mpc, x, foo, interval):
 
 
 @sequre
-def bitween_beaver_eval(mpc, bitween_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x):
-    foo_eval = bitween_foo(mpc, foo_x_r, foo_r_share)
-    foo_eval_shifted = bitween_foo(mpc, foo_x_r_p, foo_r_share)
+def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x):
+    foo_eval = decor_foo(mpc, foo_x_r, foo_r_share)
+    foo_eval_shifted = decor_foo(mpc, foo_x_r_p, foo_r_share)
 
     cond = (r_frac_share - shifted_x) > 0
     return foo_eval + cond * (foo_eval_shifted - foo_eval)
 
 
-def via_bitween(mpc, x, interval, method: Static[str]):
-    foo, bitween_foo = get_bitween_foo(method=method)
-    bitween_partitions = bitween_partition(mpc, x, foo, interval)
-    return bitween_beaver_eval(mpc, bitween_foo, *bitween_partitions)
+def via_decor(mpc, x, interval, method: Static[str]):
+    foo, decor_foo = get_decor_foo(method=method)
+    decor_partitions = decor_partition(mpc, x, foo, interval)
+    return decor_beaver_eval(mpc, decor_foo, *decor_partitions)

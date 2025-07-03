@@ -1,3 +1,5 @@
+import math
+
 from sequre.mpc.arithmetic import MPCArithmetic
 from sequre.mpc.fp import MPCFP
 from sequre.types.builtin import *
@@ -99,7 +101,7 @@ class MPCFP:
 
         return result
 
-    def _beaver_fourier_eval(self, t1s, sin_rs_share, t2s, cos_rs_share, coeffs, modulus, degree: Static[int]):
+    def _beaver_fourier_eval(self, t1s, sin_rs_share, t2s, cos_rs_share, coeffs, modulus):
         ts = self.trunc(cos_rs_share.mul_mod(t1s, modulus).add_mod(sin_rs_share.mul_mod(t2s, modulus), modulus), modulus)
 
         result_share = ts[0]

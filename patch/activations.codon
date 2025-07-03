@@ -1,0 +1,69 @@
+from sequre import sequre, sq
+from sequre.constants import SUPPORTED_ACTIVATIONS, RELU_ACTIVATION, LINEAR_ACTIVATION
+
+
+@sequre
+def linear(mpc, x):
+    return x
+
+
+@sequre
+def dlinear(mpc, x):
+    return x.ones(mpc)
+
+
+@sequre
+def linear_with_derivative(mpc, x):
+    return x, x.ones(mpc)
+
+
+@sequre
+def relu(mpc, x):
+    return x * (x > 0).astype(type(x._internal_type))
+
+
+@sequre
+def drelu(mpc, x):
+    return (x > 0).astype(type(x._internal_type))
+
+
+@sequre
+def relu_with_derivative(mpc, x):
+    is_pos = (x > 0).astype(type(x._internal_type))
+    return x * is_pos, is_pos
+
+
+@sequre
+def asigmoid(mpc, x):
+    return x / sq.sqrt(mpc, x * x + 1)
+
+
+@sequre
+def dasigmoid(mpc, x):
+    return (1 / sq.sqrt(mpc, x * x + 1)) ** 3
+
+
+@sequre
+def asigmoid_with_derivative(mpc, x):
+    denom = 1 / sq.sqrt(mpc, x * x + 1)
+    return x * denom, denom ** 3
+
+
+def activate(mpc, x, activation: str):
+    assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
+    
+    if activation == RELU_ACTIVATION:
+        return relu(mpc, x)
+    
+    if activation == LINEAR_ACTIVATION:
+        return linear(mpc, x)
+
+
+def dactivate(mpc, x, activation: str):
+    assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
+    
+    if activation == RELU_ACTIVATION:
+        return drelu(mpc, x)
+    
+    if activation == LINEAR_ACTIVATION:
+        return dlinear(mpc, x)

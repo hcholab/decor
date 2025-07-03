@@ -195,7 +195,10 @@ cython_debug/
 
 # Project-specific files
 _dump*
+dump/
 .vscode
 .sock*
 temp*
 bitween/
+data/
+secure-dti/

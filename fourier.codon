@@ -20,7 +20,7 @@ def fourier_evaluate(mpc, x, coeffs, period, degree: Static[int]):
     x_r, r = x.get_partitions(mpc)
 
     partitions = mpc.arithmetic._beaver_fourier(x_r, r, coeffs, period, modulus, degree)
-    result = mpc.fp._beaver_fourier_eval(*partitions, coeffs, modulus, degree)
+    result = mpc.fp._beaver_fourier_eval(*partitions, coeffs, modulus)
     stensor = Sharetensor(result, modulus)
     stensor.fp = True
 
