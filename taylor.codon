@@ -32,7 +32,7 @@ def via_taylor(mpc, x, op, interval, method: Static[str], degree: Static[int] = 
     coeffs = taylor_coeffs(op=op, pivot=pivot)
     
     if method == POLY_EVAL_DECOR:
-        return via_decor(mpc, x - pivot, interval, degree, coeffs, method="polynomial")
+        return via_decor(mpc, x - pivot, (interval[0] - pivot, interval[1] - pivot), degree, coeffs, method="polynomial")
     elif method == POLY_EVAL_NAIVE:
         return (array([coeffs]) @ secure_powers(mpc, x - pivot, degree))[0]
     else:
