@@ -1,10 +1,14 @@
-from sequre.types.builtin import *
-from sequre.types.sharetensor import Sharetensor
+from numpy.create import array
 
-from utils import TAYLOR_DEGREE, sin, cos, sigmoid
+from sequre.attributes import sequre
+from patch.constants import TAYLOR_DEGREE, POLY_EVAL_DECOR, POLY_EVAL_NAIVE
+
+from decor import via_decor
+from utils import taylor_df, secure_powers
 
 
-def taylor_evaluate(mpc, x, op, interval, degree: Static[int]):
+def _experimental_taylor_decor(mpc, x, op, interval, degree: Static[int]):
+    from sequre.types.sharetensor import Sharetensor
     modulus = x.modulus
     x_r, r = x.get_partitions(mpc)
 
@@ -16,17 +20,20 @@ def taylor_evaluate(mpc, x, op, interval, degree: Static[int]):
     return stensor
 
 
-def via_taylor(mpc, x, op, interval, degree: Static[int]):
-    return taylor_evaluate(mpc, x, op, interval, degree)
+def taylor_coeffs(op, pivot):
+    coeffs = [0.0 for _ in range(TAYLOR_DEGREE + 1)]
+    taylor_df(op, pivot, coeffs, TAYLOR_DEGREE)
+    return coeffs
 
 
-def taylor_sin(mpc, x, interval):
-    return via_taylor(mpc, x, sin, interval, TAYLOR_DEGREE)
-
-
-def taylor_cos(mpc, x, interval):
-    return via_taylor(mpc, x, cos, interval, TAYLOR_DEGREE)
-
-
-def taylor_sigmoid(mpc, x, interval):
-    return via_taylor(mpc, x, sigmoid, interval, TAYLOR_DEGREE)
+@sequre
+def via_taylor(mpc, x, op, interval, method: Static[str], degree: Static[int] = TAYLOR_DEGREE):
+    pivot = (interval[0] + interval[1]) / 2
+    coeffs = taylor_coeffs(op=op, pivot=pivot)
+    
+    if method == POLY_EVAL_DECOR:
+        return via_decor(mpc, x - pivot, interval, degree, coeffs, method="polynomial")
+    elif method == POLY_EVAL_NAIVE:
+        return (array([coeffs]) @ secure_powers(mpc, x - pivot, degree))[0]
+    else:
+        compile_error("invalid polynomial evaluation method specified")

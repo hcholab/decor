@@ -1,0 +1,60 @@
+from numpy.create import array
+
+from sequre.attributes import sequre
+from sequre.stdlib.chebyshev import chebyshev_coeffs, chebyshev_nodes
+
+from constants import POLY_EVAL_CLENSHAW, POLY_EVAL_DECOR, POLY_EVAL_NAIVE, CHEBYSHEV_DEGREE
+from ..decor import via_decor
+from ..utils import secure_powers
+
+
+@sequre
+def chebyshev_evaluate_clenshaw(mpc, scaled_x, coeffs):
+    n = len(coeffs)
+    
+    w_2 = scaled_x * (coeffs[n - 1] * 2) + coeffs[n - 2]
+    w_1 = scaled_x * w_2 * 2 - (coeffs[n - 1] - coeffs[n - 3])
+    w_0 = scaled_x * w_1 * 2 - w_2 + coeffs[n - 4]
+
+    for i in range(n - 5, -1, -1):
+        w_2, w_1 = w_1, w_0
+        w_0 = scaled_x * w_1 * 2 - w_2 + coeffs[i]
+    
+    return w_0 - scaled_x * w_1
+
+
+@python
+def chebyshev_monomial(coeffs: List[float]) -> List[float]:
+    from numpy.polynomial import Chebyshev, Polynomial
+    cheb_poly = Chebyshev(coeffs)
+    poly = cheb_poly.convert(kind=Polynomial)
+    return poly.coef.tolist()
+
+
+@sequre
+def via_chebyshev(mpc, x, op, interval, validate, method: Static[str], degree: Static[int] = CHEBYSHEV_DEGREE):
+    coeffs = chebyshev_coeffs(
+        op=op,
+        nodes=chebyshev_nodes(degree + 1, interval),
+        interval=interval)
+    
+    a, b = interval
+    scaled_x = x * (2 / (b - a)) - (a + b) / (b - a)
+
+    if validate:
+        print(f"CP{mpc.pid}:\t Evaluating Chebyshev")
+        if mpc.pid:
+            min_val = x.reveal(mpc).min()
+            max_val = x.reveal(mpc).max()
+            assert interval[0] <= min_val <= max_val <= interval[1], f"\tCP{mpc.pid}: Chebyshev interpolation: The input values fall within segment [{min_val}, {max_val}] which is not contained within the Chebyshev interval {interval}."
+
+    if method == POLY_EVAL_CLENSHAW:
+        return chebyshev_evaluate_clenshaw(mpc, scaled_x, coeffs)
+    elif method == POLY_EVAL_DECOR:
+        monomial_coeffs = chebyshev_monomial(coeffs)
+        return via_decor(mpc, scaled_x, (-1.0, 1.0), degree, monomial_coeffs, method="polynomial")
+    elif method == POLY_EVAL_NAIVE:
+        monomial_coeffs = chebyshev_monomial(coeffs)
+        return (array([monomial_coeffs]) @ secure_powers(mpc, scaled_x, degree))[0]
+    else:
+        compile_error("invalid polynomial evaluation method specified")

@@ -3,7 +3,8 @@ import math
 from sequre.types.builtin import *
 from sequre.types.sharetensor import Sharetensor
 
-from utils import recursive_reduce, sin, cos, trapz, linspace, FOURIER_DEGREE
+from patch.constants import FOURIER_DEGREE
+from utils import recursive_reduce, sin, cos, trapz, linspace
 
 
 def fourier_coeffs(op, nodes, period, degree: Static[int]):

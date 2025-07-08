@@ -1,14 +1,9 @@
 import math
 
+from sequre.attributes import sequre
 from sequre.types.utils import double_to_fp, fp_to_double
-from sequre.constants import MPC_NBIT_F
 
-
-MASK: Static[int] = (1 << MPC_NBIT_F) - 1
-FOURIER_DEGREE: Static[int] = 10
-TAYLOR_DEGREE: Static[int] = 5
-TAYLOR_STEP: float = 1e-5
-EPSILON: float = 1e-7
+from patch.constants import TAYLOR_STEP
 
 
 @python
@@ -17,14 +12,17 @@ def trapz(y: list[float], x: list[float]) -> float:
     return np.trapz(y, x)
 
 
-def df(f, x, deg: Static[int]):
+def taylor_df(f, x, memo, deg: Static[int]):
     if deg < 0:
         compile_error("invalid degree for differential")
     
     if deg == 0:
-        return f(x)
+        res = f(x)
+    else:
+        res = (taylor_df(f, x + TAYLOR_STEP, memo, deg - 1) - taylor_df(f, x - TAYLOR_STEP, memo, deg - 1)) * (1 / (deg * TAYLOR_STEP * 2))
     
-    return (df(f, x + TAYLOR_STEP, deg - 1) - df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (TAYLOR_STEP * 2))
+    memo[deg] = res
+    return res
 
 
 def linspace(a, b, count):
@@ -106,3 +104,26 @@ def sqrt(value):
 
 def mul_inv(value):
     return recursive_reduce(lambda x: 1 / x, value)
+
+
+def powers(value: List[float], degree: int) -> List[List[float]]:
+    if degree < 0:
+        raise ValueError("Invalid degree for powers")
+    
+    pows = [[1.0 for _ in range(len(value))] for _ in range(degree + 1)]
+    for i in range(1, degree + 1):
+        pows[i] = pows[i - 1] * value
+
+    return pows
+
+
+@sequre
+def secure_powers(mpc, value, degree: int):
+    if degree < 0:
+        raise ValueError("Invalid degree for powers")
+    
+    pows = value.zeros().expand_dims() + 1.0
+    for i in range(1, degree + 1):
+        pows.append(pows[i - 1] * value)
+
+    return pows

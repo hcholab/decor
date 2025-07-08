@@ -5,7 +5,8 @@ from sequre.mpc.fp import MPCFP
 from sequre.types.builtin import *
 from sequre.types.utils import double_to_fp
 
-from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expm1, df, MASK, EPSILON
+from patch.constants import EPSILON, MASK
+from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expm1, taylor_df
 
 
 @extend
@@ -24,7 +25,7 @@ class MPCArithmetic:
 
         return sin_x_r, sin_r_share, cos_x_r, cos_r_share
     
-    def _beaver_exp(self, x_r, r, interval, modulus):
+    def _decor_exp(self, x_r, r, interval, modulus):
         a, b = interval
         period = b - a
         
@@ -73,7 +74,7 @@ class MPCArithmetic:
         double_r = period_fp_to_double(r & MASK, period, modulus)
         double_x_r = period_fp_to_double(x_r & MASK, period, modulus)
 
-        df_rs = [double_to_fp(df(op, double_r, i), modulus) for i in staticrange(degree)]
+        df_rs = [double_to_fp(taylor_df(op, double_r, i), modulus) for i in staticrange(degree)]
         df_rs_share = self.comms.share_from_trusted_dealer(df_rs, modulus)
 
         return double_x_r, df_rs_share
@@ -81,17 +82,17 @@ class MPCArithmetic:
 
 @extend
 class MPCFP:
-    def _beaver_sin(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    def _decor_sin(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
             sin_x_r.mul_mod(cos_r, modulus).add_mod(
             cos_x_r.mul_mod(sin_r, modulus), modulus), modulus)
     
-    def _beaver_cos(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    def _decor_cos(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
             cos_x_r.mul_mod(cos_r, modulus).sub_mod(
             sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
     
-    def _beaver_exp(self, exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac, shared_x, modulus):
+    def _decor_exp(self, exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac, shared_x, modulus):
         # shared_x must be in fractional ring (over period) and in [0, 1] segment
         y_exp = self.arithmetic.add_public(self.trunc(shared_exp_r.mul_mod(exp_x_r, modulus), modulus).add_mod(shared_exp_r, modulus), exp_x_r, modulus)
         y_exp_shifted = self.arithmetic.add_public(self.trunc(shared_exp_r.mul_mod(exp_x_r_p, modulus), modulus).add_mod(shared_exp_r, modulus), exp_x_r_p, modulus)
@@ -113,7 +114,7 @@ class MPCFP:
     def _beaver_taylor_eval(self, double_x_r, df_rs_share, modulus, degree: Static[int]):
         result_share = df_rs_share[0]
         for i in staticrange(1, degree):
-            coeff = double_to_fp((double_x_r ** i) * (1 / math.factorial(i)), modulus)
+            coeff = double_to_fp(double_x_r ** i, modulus)
             result_share = result_share.add_mod(df_rs_share[i].mul_mod(coeff, modulus), modulus)
 
         return self.trunc(result_share, modulus)
