@@ -1,30 +1,11 @@
+from functools import partial
+
 from sequre import sequre
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
 
-from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, MASK
-
-
-# TODO: Add to Sequre (temporarily added in personal fork)
-# @extend
-# class Sharetensor:
-#     def __iadd__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
-#         if isinstance(other, List[float]):
-#             raise NotImplementedError("Sharetensors cannot be added by list of floats without IR pass enabled.")
-        
-#         superf(self, other)
-    
-#     def __isub__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
-#         if isinstance(other, List[float]):
-#             raise NotImplementedError("Sharetensors cannot be subtracted by list of floats without IR pass enabled.")
-        
-#         superf(self, other)
-    
-#     def __imul__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
-#         if isinstance(other, List[float]):
-#             raise NotImplementedError("Sharetensors cannot be multiplied by list of floats without IR pass enabled.")
-        
-#         superf(self, other)
+from patch.constants import MASK
+from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, powers
 
 
 @extend
@@ -97,7 +78,21 @@ def decor_tanh(mpc, foo_x_r, foo_r_share):
      return (foo_r_share + foo_x_r) / (foo_r_share * foo_x_r + 1)
 
 
-def get_decor_foo(method: Static[str]):
+@sequre
+def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List):
+    assert len(coeffs) == degree + 1, "Number of coefficients must be degree + 1"
+
+    pascal_matrix = mpc.polynomial.get_pascal_matrix(degree)
+    result = r_share_powers[0].zeros()
+
+    for i in range(degree + 1):
+        for j in range(i + 1):
+            result += r_share_powers[j] * (x_r_powers[i - j] * coeffs[i] * pascal_matrix[i][j])
+    
+    return result
+
+
+def get_decor_foo(*args, method: Static[str]):
     if method == "exp":
         return exp, decor_exp
     if method == "expm1":
@@ -106,6 +101,8 @@ def get_decor_foo(method: Static[str]):
         return sigmoid, decor_sigmoid
     if method == "tanh":
         return tanh, decor_tanh
+    if method == "polynomial":
+        return partial(powers, degree=args[0]), decor_polynomial
     
     compile_error("Decor method not supported")
 
@@ -136,15 +133,15 @@ def decor_partition(mpc, x, foo, interval):
 
 
 @sequre
-def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x):
-    foo_eval = decor_foo(mpc, foo_x_r, foo_r_share)
-    foo_eval_shifted = decor_foo(mpc, foo_x_r_p, foo_r_share)
+def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x, *args):
+    foo_eval = decor_foo(mpc, foo_x_r, foo_r_share, *args)
+    foo_eval_shifted = decor_foo(mpc, foo_x_r_p, foo_r_share, *args)
 
     cond = (r_frac_share - shifted_x) > 0
     return foo_eval + cond * (foo_eval_shifted - foo_eval)
 
 
-def via_decor(mpc, x, interval, method: Static[str]):
-    foo, decor_foo = get_decor_foo(method=method)
+def via_decor(mpc, x, interval, *args, method: Static[str]):
+    foo, decor_foo = get_decor_foo(*args, method=method)
     decor_partitions = decor_partition(mpc, x, foo, interval)
-    return decor_beaver_eval(mpc, decor_foo, *decor_partitions)
+    return decor_beaver_eval(mpc, decor_foo, *decor_partitions, *args)

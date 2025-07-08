@@ -1,6 +1,7 @@
 import time, math
 import secure_operator
 
+from functools import partial
 from collections import defaultdict
 from numpy.create import array, loadtxt
 
@@ -8,17 +9,17 @@ from sequre import local
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
-from sequre.constants import MPC_NBIT_F
 
+from patch.constants import MPC_NBIT_F, POLY_EVAL_CLENSHAW, POLY_EVAL_DECOR, POLY_EVAL_NAIVE
 from patch.model import Sequential
 from patch.layers import Input, Dense
 
 from beaver import *
 from decor import via_decor, get_decor_foo
 from fourier import fourier_sin, fourier_cos, fourier_sigmoid, fourier_exp, fourier_log, fourier_mul_inv, fourier_sqrt, fourier_tanh
-from taylor import taylor_sin, taylor_cos, taylor_sigmoid
-from chebyshev import chebyshev_sin, chebyshev_cos, chebyshev_sigmoid, chebyshev_exp, chebyshev_log, chebyshev_mul_inv, chebyshev_sqrt, chebyshev_tanh
-from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expm1, exp, sigmoid, log, mul_inv, sqrt, tanh
+from taylor import via_taylor
+from patch.chebyshev import via_chebyshev
+from utils import linspace, trig_double_to_fp, period_double_to_fp, interval_double_to_fp, sin, cos, expm1, exp, sigmoid, log, mul_inv, sqrt, tanh, powers
 
 
 @python
@@ -192,29 +193,73 @@ def test_beaver_fourier(mpc, interval, size=100):
     return data_dump
 
 
-def test_beaver_taylor(mpc, interval, size=100):
-    period = interval[1] - interval[0]
+def _test_taylor_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
+    test_op(mpc, data_dump, f"taylor_sigmoid_{method}",
+        partial(via_taylor, op=sigmoid, method=method), floats, stensor, sigmoid(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"taylor_exp_{method}",
+        partial(via_taylor, op=exp, method=method), floats, stensor, exp(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"taylor_sin_{method}",
+        partial(via_taylor, op=sin, method=method), floats, stensor, sin(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"taylor_cos_{method}",
+        partial(via_taylor, op=cos, method=method), floats, stensor, cos(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"taylor_tanh_{method}",
+        partial(via_taylor, op=tanh, method=method), floats, stensor, tanh(floats), interval, skip_assert=True, periodic=False)
+    
+    if interval[0] > 0:
+        test_op(mpc, data_dump, f"taylor_log_{method}",
+            partial(via_taylor, op=log, method=method), floats, stensor, log(floats), interval, skip_assert=True, periodic=False)
+        
+        test_op(mpc, data_dump, f"taylor_mul_inv_{method}",
+            partial(via_taylor, op=mul_inv, method=method), floats, stensor, mul_inv(floats), interval, skip_assert=True, periodic=False)
+
+        test_op(mpc, data_dump, f"taylor_sqrt_{method}",
+            partial(via_taylor, op=sqrt, method=method), floats, stensor, sqrt(floats), interval, skip_assert=True, periodic=False)
+
+
+def test_taylor(mpc, interval, size=100):
     modulus = mpc.default_mpc_modulus
     alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Taylor at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Taylor at interval {interval} on {alg_struct} ... \n')
     
     floats = linspace(*interval, size)
-    fp_floats = period_double_to_fp(floats, period, modulus)
-    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
-    stensor = Sharetensor(shared_fp, modulus)
-    stensor.fp = True
+    stensor = Sharetensor.enc(mpc, array(floats), 0, modulus)
     data_dump = {'x': floats}
+    
+    _test_taylor_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
+    _test_taylor_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_NAIVE)
 
-    test_op(mpc, data_dump, "taylor_sin",
-            taylor_sin, floats, stensor, sin(floats), interval)
-    
-    test_op(mpc, data_dump, "taylor_cos",
-            taylor_cos, floats, stensor, cos(floats), interval)
-    
-    test_op(mpc, data_dump, "taylor_sigmoid",
-            taylor_sigmoid, floats, stensor, sigmoid(floats), interval)
-    
     return data_dump
+
+
+def _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
+    test_op(mpc, data_dump, f"chebyshev_sigmoid_{method}",
+        partial(via_chebyshev, op=sigmoid, validate=False, method=method), floats, stensor, sigmoid(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"chebyshev_exp_{method}",
+        partial(via_chebyshev, op=exp, validate=False, method=method), floats, stensor, exp(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"chebyshev_sin_{method}",
+        partial(via_chebyshev, op=sin, validate=False, method=method), floats, stensor, sin(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"chebyshev_cos_{method}",
+        partial(via_chebyshev, op=cos, validate=False, method=method), floats, stensor, cos(floats), interval, skip_assert=True, periodic=False)
+    
+    test_op(mpc, data_dump, f"chebyshev_tanh_{method}",
+        partial(via_chebyshev, op=tanh, validate=False, method=method), floats, stensor, tanh(floats), interval, skip_assert=True, periodic=False)
+    
+    if interval[0] > 0:
+        test_op(mpc, data_dump, f"chebyshev_log_{method}",
+            partial(via_chebyshev, op=log, validate=False, method=method), floats, stensor, log(floats), interval, skip_assert=True, periodic=False)
+        
+        test_op(mpc, data_dump, f"chebyshev_mul_inv_{method}",
+            partial(via_chebyshev, op=mul_inv, validate=False, method=method), floats, stensor, mul_inv(floats), interval, skip_assert=True, periodic=False)
+
+        test_op(mpc, data_dump, f"chebyshev_sqrt_{method}",
+            partial(via_chebyshev, op=sqrt, validate=False, method=method), floats, stensor, sqrt(floats), interval, skip_assert=True, periodic=False)
 
 
 def test_chebyshev(mpc, interval, size=100):
@@ -226,49 +271,33 @@ def test_chebyshev(mpc, interval, size=100):
     stensor = Sharetensor.enc(mpc, array(floats), 0, modulus)
     data_dump = {'x': floats}
     
-    test_op(mpc, data_dump, "chebyshev_sigmoid",
-        chebyshev_sigmoid, floats, stensor, sigmoid(floats), interval, skip_assert=True, periodic=False)
-    
-    test_op(mpc, data_dump, "chebyshev_exp",
-        chebyshev_exp, floats, stensor, exp(floats), interval, skip_assert=True, periodic=False)
-    
-    test_op(mpc, data_dump, "chebyshev_sin",
-        chebyshev_sin, floats, stensor, sin(floats), interval, skip_assert=True, periodic=False)
-    
-    test_op(mpc, data_dump, "chebyshev_cos",
-        chebyshev_cos, floats, stensor, cos(floats), interval, skip_assert=True, periodic=False)
-    
-    test_op(mpc, data_dump, "chebyshev_tanh",
-        chebyshev_tanh, floats, stensor, tanh(floats), interval, skip_assert=True, periodic=False)
-    
-    if interval[0] > 0:
-        test_op(mpc, data_dump, "chebyshev_log",
-            chebyshev_log, floats, stensor, log(floats), interval, skip_assert=True, periodic=False)
-        
-        test_op(mpc, data_dump, "chebyshev_mul_inv",
-            chebyshev_mul_inv, floats, stensor, mul_inv(floats), interval, skip_assert=True, periodic=False)
-
-        test_op(mpc, data_dump, "chebyshev_sqrt",
-            chebyshev_sqrt, floats, stensor, sqrt(floats), interval, skip_assert=True, periodic=False)
+    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_CLENSHAW)
+    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
+    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_NAIVE)
 
     return data_dump
 
 
-def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, method: Static[str]):
-    foo = get_decor_foo(method)[0]
+def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, *args, method: Static[str]):
+    foo = get_decor_foo(*args, method=method)[0]
+    if method == "polynomial":
+        eval_foo = lambda x: ([args[1]].astype(float) @ foo(x))[0]
+    else:
+        eval_foo = foo
 
     s = time.time()
-    shared_result = via_decor(mpc, shared_floats, interval, method=method)
+    shared_result = via_decor(mpc, shared_floats, interval, *args, method=method)
     e = time.time()
     
+    ground_truth = eval_foo(floats)
     revealed_result = shared_result.reveal(mpc).tolist()
     if mpc.pid != 0:
         assert_eq_approx(
             f'Decor {method} for {floats}',
-            revealed_result, foo(floats), error=0.1, silent_pass=True)
+            revealed_result, ground_truth, error=0.1, silent_pass=True)
 
     data_dump[f'decor_{method}'] = revealed_result
-    data_dump[f'decor_{method}_expected'] = foo(floats)
+    data_dump[f'decor_{method}_expected'] = ground_truth
     data_dump[f'decor_{method}_time'] = [e - s]
 
 
@@ -276,14 +305,17 @@ def test_decor(mpc, interval, size=100):
     """
     Test Decor.
     """
+    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
+    print(f'CP{mpc.pid}:\tTesting Decor internal methods at interval {interval} on {alg_struct} ... \n')
     
     floats = linspace(*interval, size)
     shared_floats = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
 
-    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, "exp")
-    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, "sigmoid")
-    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, "tanh")
+    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, method="exp")
+    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, method="sigmoid")
+    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, method="tanh")
+    _test_decor_method(mpc, data_dump, floats, shared_floats, interval, 3, list(range(1, 5)), method="polynomial")
     
     return data_dump
 
@@ -352,6 +384,7 @@ def test(mpc):
         pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}.p", test_decor(mpc, interval))
         pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}.p", test_beaver_fourier(mpc, interval))
         pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
+        pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
     # TODO: Enable decor eval without interval to add support for sigmoid and tanh activations
     # print("DTI accuracies: ", test_dti(mpc))

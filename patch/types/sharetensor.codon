@@ -1,0 +1,22 @@
+from sequre.types.sharetensor import Sharetensor
+
+
+@extend
+class Sharetensor:
+    def __iadd__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+        if isinstance(other, List[float]):
+            raise NotImplementedError("Sharetensors cannot be added by list of floats without IR pass enabled.")
+        
+        superf(self, other)
+    
+    def __isub__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+        if isinstance(other, List[float]):
+            raise NotImplementedError("Sharetensors cannot be subtracted by list of floats without IR pass enabled.")
+        
+        superf(self, other)
+    
+    def __imul__(self: Sharetensor[TP], other) -> Sharetensor[TP]:
+        if isinstance(other, List[float]):
+            raise NotImplementedError("Sharetensors cannot be multiplied by list of floats without IR pass enabled.")
+        
+        superf(self, other)

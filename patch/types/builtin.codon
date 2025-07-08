@@ -1,0 +1,26 @@
+@extend
+class UInt:
+    @llvm
+    def raw_mul_overflow(self: UInt[N], other: UInt[N]) -> Tuple[UInt[N], UInt[1]]:
+        declare {i{=N}, i1} @llvm.umul.with.overflow.i{=N}(i{=N}, i{=N})
+        %res = call {i{=N}, i1} @llvm.umul.with.overflow.i{=N}(i{=N} %self, i{=N} %other)
+        ret {i{=N}, i1} %res
+    
+    @llvm
+    def raw_add_overflow(self: UInt[N], other: UInt[N]) -> Tuple[UInt[N], UInt[1]]:
+        declare {i{=N}, i1} @llvm.uadd.with.overflow.i{=N}(i{=N}, i{=N})
+        %res = call {i{=N}, i1} @llvm.uadd.with.overflow.i{=N}(i{=N} %self, i{=N} %other)
+        ret {i{=N}, i1} %res
+
+    @llvm
+    def bit_reverse(self: UInt[N]) -> UInt[N]:
+        declare i{=N} @llvm.bitreverse.i{=N}(i{=N})
+        %0 = call i{=N} @llvm.bitreverse.i{=N}(i{=N} %self)
+        ret i{=N} %0
+
+    @llvm
+    def bitlen(self: UInt[N]) -> UInt[N]:
+        declare i{=N} @llvm.ctlz.i{=N}(i{=N}, i1)
+        %0 = call i{=N} @llvm.ctlz.i{=N}(i{=N} %self, i1 0)
+        %1 = sub i{=N} {=N}, %0
+        ret i{=N} %1
