@@ -25,7 +25,7 @@ class MPCArithmetic:
 
         return sin_x_r, sin_r_share, cos_x_r, cos_r_share
     
-    def _beaver_exp(self, x_r, r, interval, modulus):
+    def _decor_exp(self, x_r, r, interval, modulus):
         a, b = interval
         period = b - a
         
@@ -82,17 +82,17 @@ class MPCArithmetic:
 
 @extend
 class MPCFP:
-    def _beaver_sin(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    def _decor_sin(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
             sin_x_r.mul_mod(cos_r, modulus).add_mod(
             cos_x_r.mul_mod(sin_r, modulus), modulus), modulus)
     
-    def _beaver_cos(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    def _decor_cos(self, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
         return self.trunc(
             cos_x_r.mul_mod(cos_r, modulus).sub_mod(
             sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
     
-    def _beaver_exp(self, exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac, shared_x, modulus):
+    def _decor_exp(self, exp_x_r, exp_x_r_p, shared_exp_r, shared_r_frac, shared_x, modulus):
         # shared_x must be in fractional ring (over period) and in [0, 1] segment
         y_exp = self.arithmetic.add_public(self.trunc(shared_exp_r.mul_mod(exp_x_r, modulus), modulus).add_mod(shared_exp_r, modulus), exp_x_r, modulus)
         y_exp_shifted = self.arithmetic.add_public(self.trunc(shared_exp_r.mul_mod(exp_x_r_p, modulus), modulus).add_mod(shared_exp_r, modulus), exp_x_r_p, modulus)
