@@ -1,16 +1,16 @@
-import math
+import math, time
 
 from sequre.types.builtin import *
 from sequre.types.sharetensor import Sharetensor
 
 from patch.constants import FOURIER_DEGREE
-from utils import recursive_reduce, sin, cos, trapz, linspace
+from utils import sin, cos, trapz, linspace
 
 
 def fourier_coeffs(op, nodes, period, degree: Static[int]):
-    a0 = trapz(recursive_reduce(op, nodes), nodes) / period
-    an = [(trapz(recursive_reduce(op, nodes) * cos(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]
-    bn = [(trapz(recursive_reduce(op, nodes) * sin(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]
+    a0 = trapz(op(nodes), nodes) / period
+    an = [(trapz(op(nodes) * cos(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]
+    bn = [(trapz(op(nodes) * sin(nodes * (2 * math.pi * i / period)), nodes) * (2 / period)) for i in range(1, degree + 1)]
     cn = [(math.pi * 2 * i / period) for i in range(1, degree + 1)]
 
     return a0, an, bn, cn
@@ -28,45 +28,13 @@ def fourier_evaluate(mpc, x, coeffs, period, degree: Static[int]):
     return stensor
 
 
-def via_fourier(mpc, x, op, interval, degree: Static[int]):
+def via_fourier(mpc, x, op, interval, degree: Static[int] = FOURIER_DEGREE):
     period = interval[1] - interval[0]
     nodes = linspace(*interval, 1000)
+    
+    # TODO: Implement trapz in Codon. Until then, we exclude the time taken to compute Fourier coeffs.
+    s = time.time()
     coeffs = fourier_coeffs(op, nodes, period, degree)
+    e = time.time()
 
-    return fourier_evaluate(mpc, x, coeffs, period, degree)
-
-
-def fourier_sin(mpc, x, interval):
-    return via_fourier(mpc, x, math.sin, interval, FOURIER_DEGREE)
-
-
-def fourier_cos(mpc, x, interval):
-    return via_fourier(mpc, x, math.cos, interval, FOURIER_DEGREE)
-
-
-def fourier_tan(mpc, x, interval):
-    return via_fourier(mpc, x, math.tan, interval, FOURIER_DEGREE)
-
-
-def fourier_tanh(mpc, x, interval):
-    return via_fourier(mpc, x, math.tanh, interval, FOURIER_DEGREE)
-
-
-def fourier_sigmoid(mpc, x, interval):
-    return via_fourier(mpc, x, lambda x: 1 / (1 + (-x).exp()), interval, FOURIER_DEGREE)
-
-
-def fourier_exp(mpc, x, interval):
-    return via_fourier(mpc, x, lambda x: x.exp(), interval, FOURIER_DEGREE)
-
-
-def fourier_log(mpc, x, interval):
-    return via_fourier(mpc, x, math.log, interval, FOURIER_DEGREE)
-
-
-def fourier_mul_inv(mpc, x, interval):
-    return via_fourier(mpc, x, lambda x: 1 / x, interval, FOURIER_DEGREE)
-
-
-def fourier_sqrt(mpc, x, interval):
-    return via_fourier(mpc, x, math.sqrt, interval, FOURIER_DEGREE)
+    return fourier_evaluate(mpc, x, coeffs, period, degree), e - s

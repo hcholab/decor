@@ -12,6 +12,8 @@ from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expm1, taylo
 @extend
 class MPCArithmetic:
     def _beaver_trig(self, x_r, r, modulus):
+        self.stats.partitions_count += 1
+        
         double_r = trig_fp_to_double(r & MASK, modulus)
         sin_r = double_to_fp(sin(double_r), modulus)
         cos_r = double_to_fp(cos(double_r), modulus)
@@ -26,6 +28,8 @@ class MPCArithmetic:
         return sin_x_r, sin_r_share, cos_x_r, cos_r_share
     
     def _decor_exp(self, x_r, r, interval, modulus):
+        self.stats.partitions_count += 1
+        
         a, b = interval
         period = b - a
         
@@ -43,6 +47,8 @@ class MPCArithmetic:
         return exp_x_r, exp_x_r_p, exp_r_share, r_frac_share
     
     def _beaver_fourier(self, x_r, r, coeffs, period, modulus, degree: Static[int]):
+        self.stats.partitions_count += 1
+
         _, an, bn, cn = coeffs
         skip_term = [(-EPSILON < an[i] < EPSILON) and (-EPSILON < bn[i] < EPSILON) for i in staticrange(degree)]
 
@@ -70,6 +76,8 @@ class MPCArithmetic:
         return t1s, sin_rs_share, t2s, cos_rs_share
     
     def _beaver_taylor(self, x_r, r, op, interval, modulus, degree: Static[int]):
+        self.stats.partitions_count += 1
+        
         period = interval[1] - interval[0]
         double_r = period_fp_to_double(r & MASK, period, modulus)
         double_x_r = period_fp_to_double(x_r & MASK, period, modulus)

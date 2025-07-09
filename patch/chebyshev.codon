@@ -1,3 +1,5 @@
+import time
+
 from numpy.create import array
 
 from sequre.attributes import sequre
@@ -46,15 +48,23 @@ def via_chebyshev(mpc, x, op, interval, validate, method: Static[str], degree: S
         if mpc.pid:
             min_val = x.reveal(mpc).min()
             max_val = x.reveal(mpc).max()
-            assert interval[0] <= min_val <= max_val <= interval[1], f"\tCP{mpc.pid}: Chebyshev interpolation: The input values fall within segment [{min_val}, {max_val}] which is not contained within the Chebyshev interval {interval}."
+            assert interval[0] <= min_val <= max_val <= interval[1], (
+                f"\tCP{mpc.pid}: Chebyshev interpolation: The input values fall within segment [{min_val}, {max_val}] "
+                f"which is not contained within the Chebyshev interval {interval}.")
 
+    # TODO: Implement chebyshev_monomial in Codon.
+    # Until then, we exclude the time taken to compute the conversion to monomial coeffs.
     if method == POLY_EVAL_CLENSHAW:
-        return chebyshev_evaluate_clenshaw(mpc, scaled_x, coeffs)
+        return chebyshev_evaluate_clenshaw(mpc, scaled_x, coeffs), 0.0
     elif method == POLY_EVAL_DECOR:
+        s = time.time()
         monomial_coeffs = chebyshev_monomial(coeffs)
-        return via_decor(mpc, scaled_x, (-1.0, 1.0), degree, monomial_coeffs, method="polynomial")
+        e = time.time()
+        return via_decor(mpc, scaled_x, (-1.0, 1.0), degree, monomial_coeffs, method="polynomial"), e - s
     elif method == POLY_EVAL_NAIVE:
+        s = time.time()
         monomial_coeffs = chebyshev_monomial(coeffs)
-        return (array([monomial_coeffs]) @ secure_powers(mpc, scaled_x, degree))[0]
+        e = time.time()
+        return (array([monomial_coeffs]) @ secure_powers(mpc, scaled_x, degree))[0], e - s
     else:
         compile_error("invalid polynomial evaluation method specified")

@@ -109,6 +109,8 @@ def get_decor_foo(*args, method: Static[str]):
 
 @sequre
 def decor_partition(mpc, x, foo, interval):
+    mpc.stats.partitions_count += 1
+
     modulus = x.modulus
     a, b = interval
     period = b - a
