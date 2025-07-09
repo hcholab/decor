@@ -1,5 +1,6 @@
 from sequre.constants import *
 
+
 POLY_EVAL_CLENSHAW: Static[str] = "clenshaw"
 POLY_EVAL_DECOR: Static[str] = "decor"
 POLY_EVAL_NAIVE: Static[str] = "naive"

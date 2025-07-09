@@ -145,32 +145,6 @@ def test_decor_expm1(mpc, interval, size=100):
     return data_dump
 
 
-def _test_fourier_op(
-        mpc, data_dump, msg, op, raw_input, mpc_input,
-        expected_result, interval, error=0.01,
-        skip_assert=False, periodic=True):
-    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
-    period = interval[1] - interval[0]
-    
-    with stats_log(mpc, msg, data_dump):
-        mpc_result, coeffs_compute_time = op(mpc, mpc_input, interval)
-    data_dump[f"{msg}_time"]  -= coeffs_compute_time
-
-    revealed_result = mpc_result.reveal(mpc).tolist()
-    revealed_input = mpc_input.reveal(mpc).tolist()
-    if not skip_assert:
-        assert_distributed_eq_approx(
-            mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC) on {alg_struct}',
-            revealed_result, expected_result, error)
-        assert_distributed_eq_approx(
-            mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}',
-            (revealed_input * period) if periodic else revealed_input,
-            raw_input, error, silent_pass=True)
-
-    data_dump[f"{msg}_result"] = revealed_result
-    data_dump[f"{msg}_expected"] = expected_result
-
-
 def _test_op(
         mpc, data_dump, msg, op, raw_input, mpc_input,
         expected_result, interval, error=0.01,
@@ -179,7 +153,13 @@ def _test_op(
     period = interval[1] - interval[0]
     
     with stats_log(mpc, msg, data_dump):
-        mpc_result = op(mpc, mpc_input, interval)
+        op_result = op(mpc, mpc_input, interval)
+    
+    if isinstance(op_result, tuple):
+        mpc_result, aux_compute_time = op_result
+        data_dump[f"{msg}_time"] -= aux_compute_time
+    else:
+        mpc_result = op_result
 
     revealed_result = mpc_result.reveal(mpc).tolist()
     revealed_input = mpc_input.reveal(mpc).tolist()
@@ -209,36 +189,36 @@ def test_decor_fourier(mpc, interval, size=100):
     stensor.fp = True
     data_dump = {'x': floats}
     
-    _test_fourier_op(mpc, data_dump, "fourier_sin",
+    _test_op(mpc, data_dump, "fourier_sin",
         partial(via_fourier, op=sin), floats, stensor,
         sin(floats), interval, skip_assert=True)
     
-    _test_fourier_op(mpc, data_dump, "fourier_cos",
+    _test_op(mpc, data_dump, "fourier_cos",
         partial(via_fourier, op=cos), floats, stensor,
         cos(floats), interval, skip_assert=True)
     
-    _test_fourier_op(mpc, data_dump, "fourier_sigmoid",
+    _test_op(mpc, data_dump, "fourier_sigmoid",
         partial(via_fourier, op=sigmoid), floats, stensor,
         sigmoid(floats), interval, skip_assert=True)
     
-    _test_fourier_op(mpc, data_dump, "fourier_exp",
+    _test_op(mpc, data_dump, "fourier_exp",
         partial(via_fourier, op=exp), floats, stensor,
         exp(floats), interval, skip_assert=True)
     
-    _test_fourier_op(mpc, data_dump, "fourier_tanh",
+    _test_op(mpc, data_dump, "fourier_tanh",
         partial(via_fourier, op=tanh), floats, stensor,
         tanh(floats), interval, skip_assert=True)
     
     if interval[0] > 0:
-        _test_fourier_op(mpc, data_dump, "fourier_log",
+        _test_op(mpc, data_dump, "fourier_log",
             partial(via_fourier, op=log), floats, stensor,
             log(floats), interval, skip_assert=True)
         
-        _test_fourier_op(mpc, data_dump, "fourier_mul_inv",
+        _test_op(mpc, data_dump, "fourier_mul_inv",
             partial(via_fourier, op=mul_inv), floats, stensor,
             mul_inv(floats), interval, skip_assert=True)
 
-        _test_fourier_op(mpc, data_dump, "fourier_sqrt",
+        _test_op(mpc, data_dump, "fourier_sqrt",
             partial(via_fourier, op=sqrt), floats, stensor,
             sqrt(floats), interval, skip_assert=True)
 
