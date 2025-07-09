@@ -3,19 +3,23 @@ import secure_operator
 
 from functools import partial
 from collections import defaultdict
-from numpy.create import array, loadtxt
+from numpy.create import ones, arange, array, loadtxt
 
 from sequre import local
 from sequre.mpc.env import MPCEnv
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx
+from sequre.utils.utils import random_floats
 
 from patch.constants import (
     MPC_NBIT_F, POLY_EVAL_CLENSHAW,
-    POLY_EVAL_DECOR, POLY_EVAL_NAIVE)
+    POLY_EVAL_DECOR, POLY_EVAL_NAIVE,
+    METHOD_CHEBYSHEV, METHOD_TAYLOR,
+    METHOD_FOURIER, METHOD_DECOR)
 from patch.model import Sequential
 from patch.layers import Input, Dense
+from patch.log_reg import LogReg
 
 from beaver import *
 from decor import via_decor, get_decor_foo
@@ -75,8 +79,7 @@ def test_decor_trig(mpc, interval, size=100):
     Test Decor for computing sin and cos.
     """
     modulus = mpc.default_mpc_modulus
-    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Decor trigonometry at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Decor trigonometry at interval {interval} ... \n')
 
     floats = linspace(*interval, size)
     fp_floats = trig_double_to_fp(floats, modulus)
@@ -120,8 +123,7 @@ def test_decor_expm1(mpc, interval, size=100):
     Test Beaver's protocol for computing exp using MPC.
     """
     modulus = mpc.default_mpc_modulus
-    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
 
     floats = linspace(*interval, size)
     fp_floats = interval_double_to_fp(floats, interval, modulus)
@@ -149,7 +151,6 @@ def _test_op(
         mpc, data_dump, msg, op, raw_input, mpc_input,
         expected_result, interval, error=0.01,
         skip_assert=False, periodic=True):
-    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
     period = interval[1] - interval[0]
     
     with stats_log(mpc, msg, data_dump):
@@ -165,10 +166,10 @@ def _test_op(
     revealed_input = mpc_input.reveal(mpc).tolist()
     if not skip_assert:
         assert_distributed_eq_approx(
-            mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC) on {alg_struct}',
+            mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC)',
             revealed_result, expected_result, error)
         assert_distributed_eq_approx(
-            mpc, f'CP{mpc.pid}:\tMPC input intact post {msg} on {alg_struct}',
+            mpc, f'CP{mpc.pid}:\tMPC input intact post {msg}',
             (revealed_input * period) if periodic else revealed_input,
             raw_input, error, silent_pass=True)
 
@@ -179,8 +180,7 @@ def _test_op(
 def test_decor_fourier(mpc, interval, size=100):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
-    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
     
     floats = linspace(*interval, size)
     fp_floats = period_double_to_fp(floats, period, modulus)
@@ -261,12 +261,10 @@ def _test_taylor_method(mpc, data_dump, floats, stensor, interval, method: Stati
 
 
 def test_taylor(mpc, interval, size=100):
-    modulus = mpc.default_mpc_modulus
-    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Taylor at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Taylor at interval {interval} ... \n')
     
     floats = linspace(*interval, size)
-    stensor = Sharetensor.enc(mpc, array(floats), 0, modulus)
+    stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
     
     _test_taylor_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
@@ -311,12 +309,10 @@ def _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method: St
 
 
 def test_chebyshev(mpc, interval, size=100):
-    modulus = mpc.default_mpc_modulus
-    alg_struct = "ring" if modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} ... \n')
     
     floats = linspace(*interval, size)
-    stensor = Sharetensor.enc(mpc, array(floats), 0, modulus)
+    stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
     
     _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_CLENSHAW)
@@ -351,8 +347,7 @@ def test_decor(mpc, interval, size=100):
     """
     Test Decor.
     """
-    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting Decor internal methods at interval {interval} on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Decor internal methods at interval {interval} ... \n')
     
     floats = linspace(*interval, size)
     shared_floats = Sharetensor.enc(mpc, array(floats))
@@ -400,8 +395,7 @@ def eval_dti_model(
 
 
 def test_dti(mpc):
-    alg_struct = "ring" if mpc.default_mpc_modulus.popcnt() == 1 else "field"
-    print(f'CP{mpc.pid}:\tTesting DTI on {alg_struct} ... \n')
+    print(f'CP{mpc.pid}:\tTesting DTI ... \n')
 
     X = Sharetensor.enc(mpc, loadtxt("data/Xtrain", shape=(150, 6903)))
     y = Sharetensor.enc(mpc, loadtxt("data/ytrain", shape=(150, 1)))
@@ -424,6 +418,61 @@ def test_dti(mpc):
     print({k: (v / number_of_runs) for k,v in accuracies.items()})
 
 
+def _test_log_reg_method(
+        mpc, mpc_X, mpc_y, raw_X, raw_y, raw_initial_w, mpc_initial_w, step_size,
+        epochs, data_dump, variant: Static[str], method: Static[str]):
+    name = f"log_reg_{variant}_{method}"
+    raw_log_reg = LogReg(raw_initial_w, variant=variant).fit(
+        mpc, X=raw_X, y=raw_y, step=step_size, epochs=epochs, verbose=False, method=method)
+
+    with stats_log(mpc, name, data_dump):
+        mpc_log_reg = LogReg(mpc_initial_w, variant=variant).fit(
+            mpc, X=mpc_X, y=mpc_y, step=step_size, epochs=epochs, verbose=False, method=method)
+
+    if mpc.pid > 0:
+        assert_eq_approx(
+            f"CP{mpc.pid}:\tSequre logistic regression for {variant}-{method}",
+            mpc_log_reg.coef_.reveal(mpc), raw_log_reg.coef_, error=1.0)
+    pred = (mpc_log_reg.predict(mpc, mpc_X, method=method).reveal(mpc) > 0.5).astype(int)
+    acc = (pred == mpc_y.reveal(mpc).astype(int)).astype(float).mean()
+    data_dump[f"{name}_accuracy"] = [acc]
+
+
+def test_log_reg(mpc):
+    print(f'CP{mpc.pid}:\tTesting Sequre logistic regression ... \n')
+
+    rows = 16
+    cols = 16
+    with mpc.randomness.seed_switch(-1):
+        X = array(random_floats((rows, cols), scale=3)) - 1.5
+        target_w = arange(1, cols + 1, dtype=float).reshape((cols, 1)) / cols
+        y = ((X @ target_w).sigmoid() > 0.5).astype(float)
+    target_w = target_w.vstack(array([[0.0]]))
+
+    mpc_X = Sharetensor.enc(mpc, X)
+    mpc_y = Sharetensor.enc(mpc, y)
+    
+    step_size = 0.001
+    epochs = 20
+    features_size = cols + 1
+    raw_initial_w = ones((features_size, 1))
+    mpc_initial_w = Sharetensor.enc(mpc, raw_initial_w)
+
+    data_dump: Dict[str, List[float]] = {}
+    for i in staticrange(2):
+        for j in staticrange(4):
+            _test_log_reg_method(
+                mpc, mpc_X, mpc_y, X, y, raw_initial_w,
+                mpc_initial_w, step_size, epochs,
+                data_dump, variant="binary" if i == 0 else "multinomial",
+                # Codon does not support static tuples yet it seems
+                method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_TAYLOR if j == 2 else METHOD_CHEBYSHEV)
+    
+    print(f'CP{mpc.pid}:\tSequre logistic regression tests passed.\n')
+
+    return data_dump
+
+
 @local
 def test(mpc):
     intervals = [
@@ -441,6 +490,7 @@ def test(mpc):
         pickle_dump(mpc.pid, f"dump/cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
         pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
+    pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
     # TODO: Enable decor eval without interval to add support for sigmoid and tanh activations
     # print("DTI accuracies: ", test_dti(mpc))
 

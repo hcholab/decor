@@ -1,5 +1,9 @@
 from sequre.constants import *
 
+METHOD_CHEBYSHEV: Static[str] = "chebyshev"
+METHOD_TAYLOR: Static[str] = "taylor"
+METHOD_FOURIER: Static[str] = "fourier"
+METHOD_DECOR: Static[str] = "decor"
 
 POLY_EVAL_CLENSHAW: Static[str] = "clenshaw"
 POLY_EVAL_DECOR: Static[str] = "decor"
