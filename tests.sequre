@@ -465,7 +465,7 @@ def test_log_reg(mpc):
                 mpc, mpc_X, mpc_y, X, y, raw_initial_w,
                 mpc_initial_w, step_size, epochs,
                 data_dump, variant="binary" if i == 0 else "multinomial",
-                # Codon does not support static tuples yet it seems
+                # Codon does not support static tuples yet
                 method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_TAYLOR if j == 2 else METHOD_CHEBYSHEV)
     
     print(f'CP{mpc.pid}:\tSequre logistic regression tests passed.\n')
