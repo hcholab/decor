@@ -3,7 +3,7 @@ import secure_operator
 
 from functools import partial
 from collections import defaultdict
-from numpy.create import ones, arange, array, loadtxt
+from numpy.create import zeros, ones, arange, array, loadtxt
 
 from sequre import local
 from sequre.mpc.env import MPCEnv
@@ -433,8 +433,14 @@ def _test_log_reg_method(
         assert_eq_approx(
             f"CP{mpc.pid}:\tSequre logistic regression for {variant}-{method}",
             mpc_log_reg.coef_.reveal(mpc), raw_log_reg.coef_, error=1.0)
-    pred = (mpc_log_reg.predict(mpc, mpc_X, method=method).reveal(mpc) > 0.5).astype(int)
-    acc = (pred == mpc_y.reveal(mpc).astype(int)).astype(float).mean()
+    if variant == "binary":
+        pred = (mpc_log_reg.predict(mpc, mpc_X, method=method).reveal(mpc) > 0.5).astype(int)
+        ground_truth = mpc_y.reveal(mpc).astype(int)
+    elif variant == "multinomial":
+        pred = mpc_log_reg.predict(mpc, mpc_X, method=method).reveal(mpc).argmax(axis=1).astype(int)
+        ground_truth = mpc_y.reveal(mpc).astype(int).argmax(axis=1)
+    
+    acc = (pred == ground_truth).astype(float).mean()
     data_dump[f"{name}_accuracy"] = [acc]
 
 
@@ -445,27 +451,40 @@ def test_log_reg(mpc):
     cols = 16
     with mpc.randomness.seed_switch(-1):
         X = array(random_floats((rows, cols), scale=3)) - 1.5
-        target_w = arange(1, cols + 1, dtype=float).reshape((cols, 1)) / cols
-        y = ((X @ target_w).sigmoid() > 0.5).astype(float)
-    target_w = target_w.vstack(array([[0.0]]))
+        target_w_binary = arange(1, cols + 1, dtype=float).reshape((cols, 1)) / cols
+        y_binary = ((X @ target_w_binary).sigmoid() > 0.5).astype(float)
+        
+        classes = 3
+        categories = (X @ target_w_binary).astype(int).abs().flatten()
+
+        y_multinomial = zeros((rows, classes))
+        for i in range(rows):
+            if categories[i] > classes - 1:
+                categories[i] = classes - 1
+            y_multinomial[i, categories[i]] = 1.0
 
     mpc_X = Sharetensor.enc(mpc, X)
-    mpc_y = Sharetensor.enc(mpc, y)
+    mpc_y_binary = Sharetensor.enc(mpc, y_binary)
+    mpc_y_multinomial = Sharetensor.enc(mpc, y_multinomial)
     
     step_size = 0.001
     epochs = 20
     features_size = cols + 1
-    raw_initial_w = ones((features_size, 1))
-    mpc_initial_w = Sharetensor.enc(mpc, raw_initial_w)
+    raw_initial_w_binary = ones((features_size, 1))
+    mpc_initial_w_binary = Sharetensor.enc(mpc, raw_initial_w_binary)
+    raw_initial_w_multinomial = ones((features_size, classes)) / classes
+    mpc_initial_w_multinomial = Sharetensor.enc(mpc, raw_initial_w_multinomial)
 
     data_dump: Dict[str, List[float]] = {}
     for i in staticrange(2):
         for j in staticrange(4):
+            # Codon does not support static tuples yet; using static ternaries below
             _test_log_reg_method(
-                mpc, mpc_X, mpc_y, X, y, raw_initial_w,
-                mpc_initial_w, step_size, epochs,
-                data_dump, variant="binary" if i == 0 else "multinomial",
-                # Codon does not support static tuples yet
+                mpc, mpc_X, mpc_y_binary if i == 0 else mpc_y_multinomial,
+                X, y_binary if i == 0 else y_multinomial,
+                raw_initial_w_binary if i == 0 else raw_initial_w_multinomial,
+                mpc_initial_w_binary if i == 0 else mpc_initial_w_multinomial,
+                step_size, epochs, data_dump, variant="binary" if i == 0 else "multinomial",
                 method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_TAYLOR if j == 2 else METHOD_CHEBYSHEV)
     
     print(f'CP{mpc.pid}:\tSequre logistic regression tests passed.\n')
