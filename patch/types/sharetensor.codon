@@ -1,3 +1,5 @@
+""" TODO: Integrate to sequre.types.sharetensor """
+
 from sequre.types.sharetensor import Sharetensor
 
 
@@ -20,3 +22,14 @@ class Sharetensor:
             raise NotImplementedError("Sharetensors cannot be multiplied by list of floats without IR pass enabled.")
         
         superf(self, other)
+    
+    def itrunc(self, mpc):
+        self.share = mpc.fp.trunc(self.share, self.modulus)
+        self.x_r = TP(0)  # TODO: #61 Resolve #61 and calculate x_r here
+        self.r = TP(0)  # TODO: #61 Resolve #61 and calculate x_r here
+        self.modulus = self.modulus
+        self.sqrt = mpc.fp.trunc(self.sqrt, self.modulus) if self.sqrt else self.sqrt
+        self.sqrt_inv = mpc.fp.trunc(self.sqrt_inv, self.modulus) if self.sqrt_inv else self.sqrt_inv
+        self.fp = self.fp
+        self.public = self.public
+        self.diagonal = self.diagonal

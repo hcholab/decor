@@ -3,9 +3,44 @@ from functools import partial
 from sequre import sequre
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
+from sequre.mpc.env import MPCEnv
+from sequre.mpc.fp import MPCFP
 
-from patch.constants import MASK, MPC_NBIT_F
+from patch.constants import MASK, MPC_NBIT_F, MPC_NBIT_K
 from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, powers
+
+
+@extend
+class MPCFP:
+    def trunc(self, a, modulus, k = MPC_NBIT_K + MPC_NBIT_F, m = MPC_NBIT_F):
+        if not self.default_truncation_allowed:
+            return a.copy()
+        
+        return superf(self, a, modulus, k, m)
+
+
+class NoTruncation[TP, T]:
+    mpc: MPCEnv[TP]
+    arg: Sharetensor[T]
+
+    def __init__(self, mpc: MPCEnv[TP], arg: Sharetensor[T]):
+        self.mpc = mpc
+        self.arg = arg
+
+    def __enter__(self):
+        self.mpc.fp.default_truncation_allowed = False
+
+    def __exit__(self):
+        self.mpc.fp.default_truncation_allowed = True
+        self.arg.itrunc(self.mpc)
+
+
+@extend
+class MPCEnv:
+    # TODO: Remember to add default_truncation_allowed attribute to MPCFP when integrating back into Sequre
+    def no_truncation(self, arg):
+        """ Dissalows SMC truncation and truncates arg on exit """
+        return NoTruncation(self, arg)
 
 
 @extend
@@ -76,7 +111,8 @@ def decor_expm1(mpc, foo_x_r, foo_r_share):
 
 @sequre
 def decor_sigmoid(mpc, foo_x_r, foo_r_share):
-     return foo_r_share * foo_x_r / (foo_r_share * foo_x_r * 2 - foo_r_share - foo_x_r + 1)
+     prod = foo_r_share * foo_x_r
+     return prod / (prod * 2 - foo_r_share - foo_x_r + 1)
 
 
 @sequre
@@ -91,9 +127,10 @@ def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List)
     pascal_matrix = mpc.polynomial.get_pascal_matrix(degree)
     result = r_share_powers[0].zeros()
 
-    for i in range(degree + 1):
-        for j in range(i + 1):
-            result += r_share_powers[j] * (x_r_powers[i - j] * coeffs[i] * pascal_matrix[i][j])
+    with mpc.no_truncation(result):
+        for i in range(degree + 1):
+            for j in range(i + 1):
+                result += r_share_powers[j] * (x_r_powers[i - j] * coeffs[i] * pascal_matrix[i][j])
     
     return result
 
