@@ -32,10 +32,10 @@ class Sequential[L]:
         if self.optimizer == BGD_OPTIMIZER:
             self._bgd(mpc, X, y, step, epochs, momentum, verbose, method=method)
         elif self.optimizer == MBGD_OPTIMIZER:
-            assert batch_size > 0, "Sequential neural net: postive batch_size parameter should be passed to fit method for mini-batch gradient descent optimizer."
+            assert batch_size > 0, "Sequential neural net: positive batch_size parameter should be passed to fit method for mini-batch gradient descent optimizer."
             self._mbgd(mpc, X, y, step, epochs, momentum, batch_size, verbose, method=method)
         else:
-            raise ValueError(f"Sequential neural net: non-supported optimizer: {self.optimizer}. Supported optimizers: {SUPPORTED_OPTIMIZERS}")
+            raise ValueError(f"Sequential neural net: unsupported optimizer: {self.optimizer}. Supported optimizers: {SUPPORTED_OPTIMIZERS}")
     
     def get_loss(self, mpc, X, y, method: Static[str] = METHOD_CHEBYSHEV):
         self._forward(mpc, X, method=method)
