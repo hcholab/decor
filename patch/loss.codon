@@ -1,5 +1,9 @@
 from sequre import sequre
-from sequre.constants import SUPPORTED_LOSSES, HINGE_LOSS
+
+from constants import (
+    SUPPORTED_LOSSES, HINGE_LOSS, BINARY_CROSSENTROPY_LOSS,
+    MEAN_SQUARED_ERROR_LOSS, METHOD_CHEBYSHEV, METHOD_DECOR)
+from ..builtin import approx_log
 
 
 @sequre
@@ -14,11 +18,42 @@ def dhinge_loss(mpc, y, output):
 
 
 @sequre
-def loss(mpc, y, output, loss: str):
+def binary_crossentropy_loss(
+        mpc, y, output, interval=(0.0, 1.0), method: Static[str] = METHOD_CHEBYSHEV):
+    return (y - 1) * approx_log(
+        mpc, 1 - output, interval, method=method) - y * approx_log(
+            mpc, output, interval, method=method)
+
+
+@sequre
+def dbinary_crossentropy_loss(mpc, y, output):
+    return (output - y) / (output * (1 - output))
+
+
+@sequre
+def mean_squared_error_loss(mpc, y, output):
+    dist = y - output
+    return dist * dist / 2
+
+
+@sequre
+def dmean_squared_error_loss(mpc, y, output):
+    return output - y
+
+
+@sequre
+def loss(mpc, y, output, loss: str, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
     assert loss in SUPPORTED_LOSSES, f"Neural net: loss {loss} is not supported"
     
     if loss == HINGE_LOSS:
         _loss = hinge_loss(mpc, y, output)
+    if loss == BINARY_CROSSENTROPY_LOSS:
+        if method == METHOD_DECOR:
+            raise ValueError("Cannot compute binary_crossentropy loss via Decor yet.")
+        else:
+            _loss = binary_crossentropy_loss(mpc, y, output, interval, method=method)
+    if loss == MEAN_SQUARED_ERROR_LOSS:
+        _loss = mean_squared_error_loss(mpc, y, output)
 
     # Pre-normalize for downstream computation
     return _loss / len(y)
@@ -30,6 +65,10 @@ def dloss(mpc, y, output, loss: str):
     
     if loss == HINGE_LOSS:
         _dloss = dhinge_loss(mpc, y, output)
+    if loss == BINARY_CROSSENTROPY_LOSS:
+        _dloss = dbinary_crossentropy_loss(mpc, y, output)
+    if loss == MEAN_SQUARED_ERROR_LOSS:
+        _dloss = dmean_squared_error_loss(mpc, y, output)
 
     # Pre-normalize for downstream computation
     return _dloss / len(y)

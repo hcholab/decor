@@ -366,32 +366,40 @@ def test_decor(mpc, interval, size=100):
 
 
 def eval_dti_model(
-        mpc, X, y, X_test, y_test, act_1, act_2, loss,
-        epochs=50, batch_size=50, learning_rate=0.2, momentum=0.9):
+        mpc, data_dump, X, y, X_test, y_test, act_1, act_2, loss,
+        epochs=50, batch_size=50, learning_rate=0.2, momentum=0.9,
+        method: Static[str] = METHOD_CHEBYSHEV):
+    name = f"dti_{act_2}_{method}"
     input_dim = X.shape[1]
     
     if act_2 == "tanh" or loss == "hinge":
         y_final = secure_operator.sub(mpc, secure_operator.mul(mpc, y, 2), 1)
         y_test_final = y_test * 2 - 1
+    else:
+        y_final = y
+        y_test_final = y_test
     
     layers = (
         Input[type(X)](input_dim),
         Dense[type(X)](act_1, 100, "normal", "zeros"),
         Dense[type(X)](act_2, 1, "normal", "zeros"))
 
-    model = Sequential(layers).compile(mpc, loss=loss, optimizer="bgd")
-    model.fit(
-        mpc, X=X, y=y_final,
-        batch_size=batch_size, step=learning_rate,
-        epochs=epochs, momentum=momentum, verbose=True)
+    with stats_log(mpc, name, data_dump):
+        model = Sequential(layers).compile(mpc, loss=loss, optimizer="bgd")
+        model.fit(
+            mpc, X=X, y=y_final,
+            batch_size=batch_size, step=learning_rate,
+            epochs=epochs, momentum=momentum, verbose=False,
+            method=method)
 
-    preds = model.predict(mpc, X_test).reveal(mpc)
-    if act_2 == "sigmoid":
-        preds = (preds >= 0.5).astype(float)
-    else:
-        preds = preds.sign()
+        preds = model.predict(mpc, X_test, method=method).reveal(mpc)
+        if act_2 == "sigmoid":
+            preds = (preds >= 0.5).astype(float)
+        else:
+            preds = preds.sign()
     
-    return (preds == y_test_final).mean()
+    accuracy = (preds == y_test_final).mean()
+    data_dump[f"{name}_accuracy"] = [accuracy]
 
 
 def test_dti(mpc):
@@ -402,20 +410,33 @@ def test_dti(mpc):
     X_test = Sharetensor.enc(mpc, loadtxt("data/Xtest", shape=(48, 6903)))
     y_test = loadtxt("data/ytest", shape=(48, 1))
 
-    number_of_runs = 1
-    # TODO: Enable decor eval without interval to add support for sigmoid and tanh activations
     combinations = [
         ("relu", "linear", "hinge"),
-        # ("relu", "tanh", "mean_squared_error"),
-        # ("relu", "sigmoid", "binary_crossentropy")
+        ("relu", "tanh", "mean_squared_error"),
+        ("relu", "sigmoid", "binary_crossentropy")
     ]
 
-    accuracies = defaultdict(float)
-    for _ in range(number_of_runs):
-        for comb in combinations:
-            accuracies[comb] += eval_dti_model(mpc, X, y, X_test, y_test, *comb)
+    epochs = 20
+    data_dump: Dict[str, List[float]] = {}
+    for comb in combinations:
+        eval_dti_model(
+            mpc, data_dump, X, y, X_test, y_test, *comb,
+            epochs=epochs, method=METHOD_CHEBYSHEV)
+        
+        if comb[1] == "tanh" or comb[1] == "sigmoid":
+            eval_dti_model(
+                mpc, data_dump, X, y, X_test, y_test, *comb,
+                epochs=epochs, method=METHOD_DECOR)
+            eval_dti_model(
+                mpc, data_dump, X, y, X_test, y_test, *comb,
+                epochs=epochs, method=METHOD_FOURIER)
+            eval_dti_model(
+                mpc, data_dump, X, y, X_test, y_test, *comb,
+                epochs=epochs, method=METHOD_TAYLOR)
+    
+    print(f'CP{mpc.pid}:\tDTI tests passed.\n')
 
-    print({k: (v / number_of_runs) for k,v in accuracies.items()})
+    return data_dump
 
 
 def _test_log_reg_method(
@@ -440,8 +461,8 @@ def _test_log_reg_method(
         pred = mpc_log_reg.predict(mpc, mpc_X, method=method).reveal(mpc).argmax(axis=1).astype(int)
         ground_truth = mpc_y.reveal(mpc).astype(int).argmax(axis=1)
     
-    acc = (pred == ground_truth).astype(float).mean()
-    data_dump[f"{name}_accuracy"] = [acc]
+    accuracy = (pred == ground_truth).astype(float).mean()
+    data_dump[f"{name}_accuracy"] = [accuracy]
 
 
 def test_log_reg(mpc):
@@ -510,8 +531,7 @@ def test(mpc):
         pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
     pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
-    # TODO: Enable decor eval without interval to add support for sigmoid and tanh activations
-    # print("DTI accuracies: ", test_dti(mpc))
+    pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
 
 
 test()

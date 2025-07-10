@@ -26,7 +26,7 @@ def _discern_approx_call(mpc, value, op, interval, method: Static[str]):
     elif isinstance(value, ndarray):
         result = value._propagate_call(op)
     elif method == METHOD_DECOR:
-        result = via_decor(mpc, value, interval, method=op.__name__[:3])  # TODO: Change to op.__unmangled_name__ when Ibrahim answers
+        result = via_decor(mpc, value, interval, method=op.__name__[:3])
     elif method == METHOD_FOURIER:
         result = via_fourier(mpc, value, op, interval)[0]
     elif method == METHOD_CHEBYSHEV:

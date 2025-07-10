@@ -1,6 +1,6 @@
 from sequre import sequre
 
-from sequre.constants import SUPPORTED_ACTIVATIONS
+from constants import SUPPORTED_ACTIVATIONS, METHOD_CHEBYSHEV
 from activations import activate, dactivate
 
 
@@ -22,7 +22,7 @@ class Input[ctype]:
     def initialize(self, *args):
         return
 
-    def evaluate(self, mpc, last_output: ctype):
+    def evaluate(self, mpc, last_output: ctype, method: Static[str] = METHOD_CHEBYSHEV):
         self.output = last_output
 
 
@@ -45,8 +45,12 @@ class Dense[ctype]:
     vw: ctype
     vb: ctype
 
-    def __init__(self, activation: str, size: int, kernel_initializer: str = "uniform", bias_initializer: str = "uniform"):
-        assert activation in SUPPORTED_ACTIVATIONS, f"Dense neural net layer: {activation} activation is not supported. Supported activations: {SUPPORTED_ACTIVATIONS}"
+    def __init__(
+            self, activation: str, size: int,
+            kernel_initializer: str = "uniform",
+            bias_initializer: str = "uniform"):
+        assert activation in SUPPORTED_ACTIVATIONS, (
+            f"Dense neural net layer: {activation} activation is not supported. Supported activations: {SUPPORTED_ACTIVATIONS}")
         self.activation = activation
         self.size = size
         self.kernel_initializer = kernel_initializer
@@ -68,15 +72,18 @@ class Dense[ctype]:
     def is_evaluated(self):
         return not self.output.is_empty()
     
-    def evaluate(self, mpc, last_output: ctype):
-        Dense[ctype]._evaluate(mpc, self, last_output)
+    def evaluate(self, mpc, last_output: ctype, method: Static[str] = METHOD_CHEBYSHEV):
+        Dense[ctype]._evaluate(mpc, self, last_output, method=method)
     
-    def activate(self, mpc) -> ctype:
-        return activate(mpc, self.input, self.activation)
+    def activate(self, mpc, method: Static[str] = METHOD_CHEBYSHEV) -> ctype:
+        return activate(mpc, self.input, self.activation, method=method)
     
-    def derive(self, mpc, prev_output: ctype, dhidden: ctype, LAYER_IDX: Static[int]) -> ctype:
-        dact = dactivate(mpc, self.input, self.activation)
-        return Dense[ctype]._derive(mpc, self, prev_output, dhidden, dact, LAYER_IDX=LAYER_IDX)
+    def derive(
+            self, mpc, prev_output: ctype, dhidden: ctype,
+            LAYER_IDX: Static[int], method: Static[str] = METHOD_CHEBYSHEV) -> ctype:
+        dact = dactivate(mpc, self.input, self.activation, method=method)
+        return Dense[ctype]._derive(
+            mpc, self, prev_output, dhidden, dact, LAYER_IDX=LAYER_IDX)
     
     def update(self, mpc, step: float, momentum: float):
         Dense[ctype]._nesterov_update(mpc, self, step, momentum)
@@ -94,7 +101,9 @@ class Dense[ctype]:
         layer.bias += layer.vb * (momentum + 1) - vb_prev * momentum
     
     @sequre
-    def _derive(mpc, layer: Dense, prev_output: ctype, dhidden: ctype, dact: ctype, LAYER_IDX: Static[int]) -> ctype:
+    def _derive(
+            mpc, layer: Dense, prev_output: ctype, dhidden: ctype,
+            dact: ctype, LAYER_IDX: Static[int]) -> ctype:
         # Apply derivative of activation
         dhidden = dhidden * dact
         # Compute derivative of weights
@@ -107,6 +116,6 @@ class Dense[ctype]:
         return dhidden @ layer.weights.T
     
     @sequre
-    def _evaluate(mpc, layer: Dense, last_output: ctype):
+    def _evaluate(mpc, layer: Dense, last_output: ctype, method: Static[str]):
         layer.input = last_output @ layer.weights + layer.bias
-        layer.output = layer.activate(mpc)
+        layer.output = layer.activate(mpc, method=method)

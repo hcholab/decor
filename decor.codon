@@ -105,7 +105,7 @@ def get_decor_foo(*args, method: Static[str]):
         return expm1, decor_expm1
     if method == "sigmoid" or method == "sig":
         return sigmoid, decor_sigmoid
-    if method == "tanh":
+    if method == "tanh" or method == "tan":
         return tanh, decor_tanh
     if method == "polynomial":
         return partial(powers, degree=args[0]), decor_polynomial
