@@ -1,5 +1,10 @@
 from sequre import sequre, sq
-from sequre.constants import SUPPORTED_ACTIVATIONS, RELU_ACTIVATION, LINEAR_ACTIVATION
+
+from constants import (
+    SUPPORTED_ACTIVATIONS, RELU_ACTIVATION,
+    LINEAR_ACTIVATION, SIGMOID_ACTIVATION,
+    TANH_ACTIVATION, METHOD_CHEBYSHEV)
+from ..builtin import approx_sigmoid, approx_tanh
 
 
 @sequre
@@ -49,21 +54,63 @@ def asigmoid_with_derivative(mpc, x):
     return x * denom, denom ** 3
 
 
-def activate(mpc, x, activation: str):
+@sequre
+def sigmoid(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    # Scale x to increase the chance of falling within the interval
+    return approx_sigmoid(mpc, x / len(x), interval, method=method)
+
+
+@sequre
+def dsigmoid(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    s = sigmoid(mpc, x, interval, method=method)
+    return s * (1 - s) / len(x)
+
+
+@sequre
+def sigmoid_with_derivative(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    s = sigmoid(mpc, x, interval, method=method)
+    return s, s * (1 - s) / len(x)
+
+
+@sequre
+def tanh(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    # Scale x to increase the chance of falling within the interval
+    return approx_tanh(mpc, x / len(x), interval, method=method)
+
+
+@sequre
+def dtanh(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    t = tanh(mpc, x, interval, method=method)
+    return (1 - t * t) / len(x)
+
+
+@sequre
+def tanh_with_derivative(mpc, x, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    t = tanh(mpc, x, interval, method=method)
+    return t, (1 - t * t) / len(x)
+
+
+def activate(mpc, x, activation: str, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
     assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
-    
-    if activation == RELU_ACTIVATION:
-        return relu(mpc, x)
     
     if activation == LINEAR_ACTIVATION:
         return linear(mpc, x)
-
-
-def dactivate(mpc, x, activation: str):
-    assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
-    
     if activation == RELU_ACTIVATION:
-        return drelu(mpc, x)
+        return relu(mpc, x)
+    if activation == SIGMOID_ACTIVATION:
+        return sigmoid(mpc, x, interval, method=method)
+    if activation == TANH_ACTIVATION:
+        return tanh(mpc, x, interval, method=method)
+
+
+def dactivate(mpc, x, activation: str, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+    assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
     
     if activation == LINEAR_ACTIVATION:
         return dlinear(mpc, x)
+    if activation == RELU_ACTIVATION:
+        return drelu(mpc, x)
+    if activation == SIGMOID_ACTIVATION:
+        return dsigmoid(mpc, x, interval, method=method)
+    if activation == TANH_ACTIVATION:
+        return dtanh(mpc, x, interval, method=method)
