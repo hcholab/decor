@@ -122,7 +122,7 @@ def decor_tanh(mpc, foo_x_r, foo_r_share):
 
 @sequre
 def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List):
-    assert len(coeffs) == degree + 1, "Number of coefficients must be degree + 1"
+    assert len(coeffs) == degree + 1, f"Number of coefficients must be degree + 1 ({len(coeffs)} != {degree + 1})"
 
     pascal_matrix = mpc.polynomial.get_pascal_matrix(degree)
     result = r_share_powers[0].zeros()

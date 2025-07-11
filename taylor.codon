@@ -1,10 +1,13 @@
+import math
+
 from numpy.create import array
 
 from sequre.attributes import sequre
 from patch.constants import TAYLOR_DEGREE, POLY_EVAL_DECOR, POLY_EVAL_NAIVE
 
 from decor import via_decor
-from utils import taylor_df, secure_powers
+from derivatives import derive, taylor_df
+from utils import secure_powers
 
 
 def _experimental_taylor_decor(mpc, x, op, interval, degree: Static[int]):
@@ -12,28 +15,35 @@ def _experimental_taylor_decor(mpc, x, op, interval, degree: Static[int]):
     modulus = x.modulus
     x_r, r = x.get_partitions(mpc)
 
-    partitions = mpc.arithmetic._beaver_taylor(x_r, r, op, interval, modulus, degree)
-    result = mpc.fp._beaver_taylor_eval(*partitions, modulus, degree)
+    partitions = mpc.arithmetic._experimental_beaver_taylor(x_r, r, op, interval, modulus, degree)
+    result = mpc.fp._experimental_beaver_taylor_eval(*partitions, modulus, degree)
     stensor = Sharetensor(result, modulus)
     stensor.fp = True
 
     return stensor
 
 
-def taylor_coeffs(op, pivot):
-    coeffs = [0.0 for _ in range(TAYLOR_DEGREE + 1)]
-    taylor_df(op, pivot, coeffs, TAYLOR_DEGREE)
-    return coeffs
+def taylor_coeffs(op, pivot, degree: Static[int] = TAYLOR_DEGREE):
+    # Compute discrete derivatives limited to degree 3 for sigmoid and tanh
+    # due to numerical instability
+    if op.__name__[:7] == "sigmoid" or op.__name__[:4] == "tanh":
+        stable_degree: Static[int] = 3
+        return [taylor_df(op, pivot, deg=deg) for deg in staticrange(stable_degree + 1)], stable_degree
+
+    coeffs = derive(op, pivot, degree)
+    return [c / math.factorial(i) for i, c in enumerate(coeffs)], degree
 
 
 @sequre
 def via_taylor(mpc, x, op, interval, method: Static[str], degree: Static[int] = TAYLOR_DEGREE):
     pivot = (interval[0] + interval[1]) / 2
-    coeffs = taylor_coeffs(op=op, pivot=pivot)
+    coeffs, clipped_degree = taylor_coeffs(op=op, pivot=pivot, degree=degree)
     
     if method == POLY_EVAL_DECOR:
-        return via_decor(mpc, x - pivot, (interval[0] - pivot, interval[1] - pivot), degree, coeffs, method="polynomial")
+        return via_decor(
+            mpc, x - pivot, (interval[0] - pivot, interval[1] - pivot),
+            clipped_degree, coeffs, method="polynomial")
     elif method == POLY_EVAL_NAIVE:
-        return (array([coeffs]) @ secure_powers(mpc, x - pivot, degree))[0]
+        return (array([coeffs]) @ secure_powers(mpc, x - pivot, clipped_degree))[0]
     else:
         compile_error("invalid polynomial evaluation method specified")

@@ -6,7 +6,7 @@ from sequre.types.builtin import *
 from sequre.types.utils import double_to_fp
 
 from patch.constants import EPSILON, MASK
-from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expm1, taylor_df
+from utils import period_fp_to_double, trig_fp_to_double, sin, cos, expm1
 
 
 @extend
@@ -75,7 +75,8 @@ class MPCArithmetic:
 
         return t1s, sin_rs_share, t2s, cos_rs_share
     
-    def _beaver_taylor(self, x_r, r, op, interval, modulus, degree: Static[int]):
+    def _experimental_beaver_taylor(self, x_r, r, op, interval, modulus, degree: Static[int]):
+        from derivatives import taylor_df
         self.stats.partitions_count += 1
         
         period = interval[1] - interval[0]
@@ -119,7 +120,7 @@ class MPCFP:
 
         return self.arithmetic.add_public(result_share, double_to_fp(coeffs[0], modulus), modulus)
 
-    def _beaver_taylor_eval(self, double_x_r, df_rs_share, modulus, degree: Static[int]):
+    def _experimental_beaver_taylor_eval(self, double_x_r, df_rs_share, modulus, degree: Static[int]):
         result_share = df_rs_share[0]
         for i in staticrange(1, degree):
             coeff = double_to_fp(double_x_r ** i, modulus)
