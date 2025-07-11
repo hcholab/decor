@@ -1,0 +1,131 @@
+from patch.constants import TAYLOR_DEGREE, TAYLOR_STEP
+
+from utils import sin, cos, exp, log, sqrt, mul_inv
+
+
+def df(f, x, deg: Static[int]):
+    if deg < 0:
+        compile_error("invalid degree for differential")
+    
+    if deg == 0:
+        res = f(x)
+    else:
+        res = (df(f, x + TAYLOR_STEP, deg - 1) - df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (TAYLOR_STEP * 2))
+    
+    return res
+
+
+def taylor_df(f, x, deg: Static[int]):
+    if deg < 0:
+        compile_error("invalid degree for differential")
+    
+    if deg == 0:
+        res = f(x)
+    else:
+        res = (taylor_df(f, x + TAYLOR_STEP, deg - 1) - taylor_df(f, x - TAYLOR_STEP, deg - 1)) * (1 / (deg * TAYLOR_STEP * 2))
+    
+    return res
+
+
+def dsin(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = []
+
+    for i in staticrange(degree + 1):
+        if i % 4 == 0:
+            d.append(sin(x))
+        elif i % 4 == 1:
+            d.append(cos(x))
+        elif i % 4 == 2:
+            d.append(-sin(x))
+        else:
+            d.append(-cos(x))
+
+    return d
+
+
+def dcos(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = []
+
+    for i in staticrange(degree + 1):
+        if i % 4 == 0:
+            d.append(cos(x))
+        elif i % 4 == 1:
+            d.append(-sin(x))
+        elif i % 4 == 2:
+            d.append(-cos(x))
+        else:
+            d.append(sin(x))
+
+    return d
+
+
+def dexp(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = [exp(x)]
+    
+    if degree == 0:
+        return d
+
+    for _ in staticrange(1, degree + 1):
+        d.append(d[0])
+    
+    return d
+
+
+def dmul_inv(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = [mul_inv(x)]
+    coeff = 1
+    sign = -1
+    
+    for n in range(1, degree + 1):
+        coeff *= n
+        deriv = sign * coeff * mul_inv(x) ** (n + 1)
+        d.append(deriv)
+        sign *= -1
+    
+    return d
+
+
+def dlog(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = [log(x)]
+    
+    if degree == 0:
+        return d
+
+    mul_inv_derivs = dmul_inv(x, degree - 1)
+    for i in staticrange(degree):
+        d.append(mul_inv_derivs[i])
+
+    return d
+
+
+def dsqrt(x, degree: Static[int] = TAYLOR_DEGREE):
+    d = [sqrt(x)]
+    
+    if degree == 0:
+        return d
+
+    d.append(mul_inv(2 * sqrt(x)))
+    if degree == 1:
+        return d
+
+    for _ in staticrange(2, degree + 1):
+        d.append(-d[-1] * mul_inv(4 * x ** (3 / 2)))
+    
+    return d
+
+
+def derive(op, x, degree: Static[int] = TAYLOR_DEGREE):
+    if op.__name__[:3] == "sin":
+        return dsin(x, degree)
+    elif op.__name__[:3] == "cos":
+        return dcos(x, degree)
+    elif op.__name__[:3] == "exp":
+        return dexp(x, degree)
+    elif op.__name__[:3] == "log":
+        return dlog(x, degree)
+    elif op.__name__[:4] == "sqrt":
+        return dsqrt(x, degree)
+    elif op.__name__[:7] == "mul_inv":
+        return dmul_inv(x, degree)
+    else:
+        compile_error("unsupported operation")

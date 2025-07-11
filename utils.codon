@@ -3,26 +3,11 @@ import math
 from sequre.attributes import sequre
 from sequre.types.utils import double_to_fp, fp_to_double
 
-from patch.constants import TAYLOR_STEP
-
 
 @python
 def trapz(y: list[float], x: list[float]) -> float:
     import numpy as np
     return np.trapz(y, x)
-
-
-def taylor_df(f, x, memo, deg: Static[int]):
-    if deg < 0:
-        compile_error("invalid degree for differential")
-    
-    if deg == 0:
-        res = f(x)
-    else:
-        res = (taylor_df(f, x + TAYLOR_STEP, memo, deg - 1) - taylor_df(f, x - TAYLOR_STEP, memo, deg - 1)) * (1 / (deg * TAYLOR_STEP * 2))
-    
-    memo[deg] = res
-    return res
 
 
 def linspace(a, b, count):
@@ -81,6 +66,11 @@ def tan(value):
 def tanh(value):
     return recursive_reduce(math.tanh, value)
 
+
+def sech(value):
+    t = tanh(value)
+    return -(t * t - 1)
+    
 
 def expm1(value):
     return recursive_reduce(lambda x: x.exp() - 1, value)
