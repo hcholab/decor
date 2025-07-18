@@ -11,6 +11,7 @@ POLY_EVAL_NAIVE: Static[str] = "naive"
 
 MASK: Static[int] = (1 << MPC_NBIT_F) - 1
 FOURIER_DEGREE: Static[int] = 10
+CHEBYSHEV_DEGREE: Static[int] = 8
 TAYLOR_DEGREE: Static[int] = 6
 TAYLOR_STEP: float = 1e-5
 EPSILON: float = 1e-7
