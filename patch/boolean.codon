@@ -1,0 +1,353 @@
+from sequre.mpc.boolean import MPCBoolean
+from sequre.utils.utils import zeros_vec, zeros_mat
+
+from constants import MPC_MODULUS_BITS, mpc_uint
+
+
+PACKING_SIZE: Static[int] = 64  # Fixed to standard register length
+size_t = UInt[PACKING_SIZE]
+
+
+@extend
+class UInt:
+    @llvm
+    def llvm_add(self: UInt[N], other: UInt[N]) -> UInt[N]:
+        %0 = add i{=N} %self, %other
+        ret i{=N} %0
+    
+    def __add__(self: UInt[N], other: u64) -> UInt[N]:
+        if N == 64:
+            return self.llvm_add(other)
+
+        return self + UInt[N].upcast(other)
+    
+    def _shl_no_wrap(self: UInt[N], shift: int) -> UInt[N]:
+        if shift >= N:
+            return UInt[N](0)
+        
+        return self << shift
+    
+
+@extend
+class List:
+    def __iand__(self: list[T], other: list[T]) -> list[T]:
+        for i in range(len(self)):
+            self[i] &= other[i]
+        return self
+    
+    def __iand__(self: list[T], scalar: size_t) -> list[T]:
+        for i in range(len(self)):
+            self[i] &= scalar
+        return self
+    
+    def __and__(self: list[T], other: list[T]) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] & other[i])
+        return l
+
+    def __and__(self: list[T], scalar: size_t) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] & scalar)
+        return l
+    
+    def __ixor__(self: list[T], other: list[T]) -> list[T]:
+        for i in range(len(self)):
+            self[i] ^= other[i]
+        return self
+    
+    def __ixor__(self: list[T], scalar: size_t) -> list[T]:
+        for i in range(len(self)):
+            self[i] ^= scalar
+        return self
+    
+    def __xor__(self: list[T], other: list[T]) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] ^ other[i])
+        return l
+    
+    def __or__(self: list[T], scalar: size_t) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] | scalar)
+        return l
+    
+    def __or__(self: list[T], other: list[T]) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] | other[i])
+        return l
+    
+    def get_bit(self: List[T], bit: Static[int]) -> list[T]:
+        if isinstance(T, list):
+            return [x.get_bit(bit) for x in self]
+        
+        mask = size_t(1) << bit
+        return [((x & mask) >> bit) for x in self]
+
+
+def num_to_bits_packed[TP](a: list[TP], bitlen: Static[int]) -> list[list[size_t]]:
+    b = list[list[size_t]](len(a))
+
+    size = 1 + ((bitlen - 1) // PACKING_SIZE)
+    for i in range(len(a)):
+        row = list[size_t](size)
+        a_ = a[i]
+        for _ in range(size):
+            row.append(a_.trunc_to(PACKING_SIZE))
+            a_ >>= PACKING_SIZE
+        row.reverse()
+        b.append(row)
+    
+    return b
+
+
+@extend
+class MPCBoolean:
+    def land(self, a, b):
+        x_1_r, r_1 = self._beaver_partition(a)
+        x_2_r, r_2 = self._beaver_partition(b)
+
+        c = self._beaver_land(x_1_r, r_1, x_2_r, r_2)
+        c = self._beaver_reconstruct(c)
+
+        return c
+    
+    def carry_out_aux(self, d_prop, d_gen, num_bits: int):
+        if num_bits == 1:
+            rv = d_gen[-1]
+            for i in range(len(rv)):
+                rv[i] &= 1
+            return rv
+        
+        num_bits_head = num_bits % 64
+        # Mask leading bits (set secret bits to 1 for d_prop and 0 for d_gen)
+        if num_bits_head > 0:
+            tip_mask = size_t(-1) << num_bits_head  # 11..1100..00
+            tip_mask_inv = tip_mask ^ size_t(-1)
+
+            if self.pid == self.comms.hub_pid:
+                d_prop[0] |= tip_mask
+            else:
+                d_prop[0] &= tip_mask_inv
+
+            d_gen[0] &= tip_mask_inv
+
+        d_prop_shift = d_prop >> 1
+        d_gen_shift = d_gen >> 1
+
+        d_prop_out = self.land(d_prop_shift, d_prop)
+        d_gen_out = self.land(d_prop_shift, d_gen) ^ d_gen_shift
+
+        # 01010101 -> 00001111 (Collect all odd position bits in the second half of the integer)
+        for i in staticrange(1, 6):  # TODO: Make this dynamic
+            mask_1 = (size_t(-1) // ((size_t(1)._shl_no_wrap(1 << (i + 1))) - 1)) * (((size_t(1) << (1 << i)) - 1) << (1 << i))
+            mask_2 = size_t(-1) ^ ((size_t(-1) // ((size_t(1) << (1 << i)) - 1)) * (((size_t(1) << (1 << (i - 1))) - 1) << (1 << (i - 1))))
+            mask_move = mask_1 & mask_2
+            mask_keep = (size_t(-1) ^ mask_1) & mask_2
+
+            d_prop_out = ((d_prop_out & mask_move) >> (1 << (i - 1))) | (d_prop_out & mask_keep)
+            d_gen_out = ((d_gen_out & mask_move) >> (1 << (i - 1))) | (d_gen_out & mask_keep)
+
+        # Pack adjacent pairs of integers into a single integer: (00001111, 00001111) -> (00000000, 11111111)
+        half_bits = PACKING_SIZE // 2
+        half_mask = (size_t(1) << half_bits) - 1
+
+        num_bits_out = (num_bits + 1) // 2
+        nelem_out = 1 + ((num_bits_out - 1) // PACKING_SIZE)
+        nelem_in = 1 + ((num_bits - 1) // PACKING_SIZE)
+
+        n = len(d_gen[0])
+        start_idx = 0
+        out_idx = 0
+        d_prop_out_halved = zeros_mat(nelem_out, n, TP=size_t)
+        d_gen_out_halved = zeros_mat(nelem_out, n, TP=size_t)
+
+        if nelem_in % 2 != 0:
+            start_idx += 1
+            out_idx += 1
+            
+            for k in range(n):
+                d_prop_out_halved[0][k] = d_prop_out[0][k]
+                d_gen_out_halved[0][k] = d_gen_out[0][k]
+
+        for i in range(start_idx, nelem_in, 2):
+            for k in range(n):
+                d_prop_out_halved[out_idx][k] = d_prop_out[i + 1][k]
+                d_gen_out_halved[out_idx][k] = d_gen_out[i + 1][k]
+
+            for k in range(n):
+                d_prop_out_halved[out_idx][k] = ((d_prop_out[i][k] & half_mask) << half_bits) | (d_prop_out[i + 1][k] & half_mask)
+                d_gen_out_halved[out_idx][k] = ((d_gen_out[i][k] & half_mask) << half_bits) | (d_gen_out[i + 1][k] & half_mask)
+
+            out_idx += 1
+
+        return self.carry_out_aux(d_prop_out_halved, d_gen_out_halved, num_bits_out)
+
+    # Each column of aPub and b encodes a bitwise-shared number (mpc_core.BElem) with length num_bits
+    # Outputs the final carry bit of the binary addition of each pair of columns (as LSB of mpc_core.BElem)
+    # Reference: https://faui1-files.cs.fau.de/filepool/publications/octavian_securescm/SecureSCM-D.9.2.pdf
+    def carry_out_public(self, a_pub, b, num_bits):
+        # Carry propagation bits
+        d_prop = b.copy()
+        if self.pid == self.comms.hub_pid:
+            d_prop ^= a_pub
+
+        # Carry generation bits
+        d_gen = b & a_pub
+
+        return self.carry_out_aux(d_prop, d_gen, num_bits)
+
+    def reveal(self, value):
+        if self.pid == 0:
+            return value
+        
+        if self.pid == 1:
+            for i in range(2, self.comms.number_of_parties):
+                value = value ^ self.comms.receive_as_jar(i, type(value))
+
+            for i in range(2, self.comms.number_of_parties):
+                self.comms.send_as_jar(value, i)
+            
+            return value
+        
+        self.comms.send_as_jar(value, 1)
+        return self.comms.receive_as_jar(1, type(value))
+
+    def is_positive_ring(self, a, modulus, operational_modulus, op_mod_bitlen: Static[int] = MPC_MODULUS_BITS):
+        if isinstance(a, mpc_uint):
+            return self._is_positive_ring([a], modulus, operational_modulus, op_mod_bitlen=op_mod_bitlen)[0]
+        elif isinstance(a, list[mpc_uint]):
+            return self._is_positive_ring(a, modulus, operational_modulus, op_mod_bitlen=op_mod_bitlen)
+        elif isinstance(a, list[list[mpc_uint]]):
+            return self._is_positive_ring(a.flatten(), modulus, operational_modulus, op_mod_bitlen=op_mod_bitlen).reshape(a.shape)
+        else:
+            compile_error("invalid type")
+
+    def _is_positive_ring(self, x, modulus, operational_modulus, op_mod_bitlen: Static[int] = MPC_MODULUS_BITS):
+        msb_pos: Static[int] = (op_mod_bitlen - 1) % PACKING_SIZE
+        r, r_bits = self._share_boolean_random_bits(len(x), operational_modulus, bitlen=op_mod_bitlen)
+        r_bits = r_bits.transpose()
+
+        # Reveal a = x + r
+        a = self.comms.reveal(x.add_mod(r, operational_modulus), operational_modulus)
+
+        # Compute bitwise -(r + 1)
+        if self.pid == self.comms.hub_pid:
+            r_bits ^= UInt[PACKING_SIZE](-1)
+
+        # Get bit representation of x + r + 1
+        a = a.add_mod(1, operational_modulus)
+        a_bits = num_to_bits_packed(a, bitlen=op_mod_bitlen)
+        a_bits = a_bits.transpose()
+
+        # Bit-add aBits and rBits to obtain the incoming carry bit at the MSB position
+        carry_msb = self.carry_out_public(a_bits, r_bits, op_mod_bitlen - 1)
+        
+        a_msb = a_bits[0].get_bit(msb_pos)
+        r_msb = r_bits[0].get_bit(msb_pos)
+
+        msb = carry_msb ^ r_msb
+        if self.pid == self.comms.hub_pid:
+            msb ^= a_msb
+
+        # Flip MSB so that positive result becomes 1
+        if self.pid == self.comms.hub_pid:
+            msb ^= size_t(1)
+
+        r_conv, r_conv_bit = self._share_boolean_random_bits(len(x), modulus, bitlen=1)
+        r_conv_bit = r_conv_bit.transpose()
+
+        msb ^= r_conv_bit[0]
+        v = self.reveal(msb)
+        r_conv = r_conv.sub_mod(r_conv.mul_mod(v * 2, modulus), modulus)
+        if self.pid == self.comms.hub_pid:
+            r_conv = r_conv.add_mod(v, modulus)
+
+        return r_conv
+    
+    def _beaver_partition(self, value):
+        self.stats.partitions_count += 1
+
+        if self.pid == 0:
+            r = value.zeros()
+            
+            for i in range(1, self.comms.number_of_parties):
+                with self.randomness.seed_switch(i):
+                    r = r ^ value.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
+
+            return value.zeros(), r
+        else:
+            with self.randomness.seed_switch(0):
+                r = value.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
+            
+            x_r = value ^ r
+            x_r = self.reveal(x_r)
+
+            return x_r, r
+    
+    def _beaver_land(self, x_r, r_1, y_r, r_2):
+        if self.pid == 0:
+            return r_1 & r_2
+
+        xy = x_r & r_2 ^ y_r & r_1
+        if self.pid == 1:
+            xy ^= x_r & y_r
+
+        return xy
+    
+    def _beaver_reconstruct(self, value):
+        self.stats.reconstructs_count += 1
+
+        if self.pid == 0:
+            mask = value.zeros()
+
+            for i in range(2, self.comms.number_of_parties):
+                with self.randomness.seed_switch(i):
+                    mask = mask ^ value.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
+
+            r = value ^ mask
+            self.comms.send(r, 1)
+            
+            return r
+        elif self.pid == 1:
+            return value ^ self.comms.receive(0, T=type(value))
+        else:
+            with self.randomness.seed_switch(0):
+                return value ^ value.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
+
+    def _share_boolean_random_bits(
+            self, n: int, modulus: TP, bitlen: Static[int]) -> tuple[list[TP], list[list[size_t]]]:
+        r = zeros_vec(n, TP=TP)
+        rbits = num_to_bits_packed(r, bitlen=bitlen)
+        
+        if self.pid == 0:
+            r = r.rand_bits(bitlen)
+            rbits = num_to_bits_packed(r, bitlen=bitlen)
+
+            r_mask = r.zeros()
+            rbits_mask = rbits.zeros()
+            
+            for p in range(2, self.comms.number_of_parties):
+                with self.randomness.seed_switch(p):
+                    r_mask = r_mask.add_mod(r.rand(modulus, "uniform"), modulus)
+                    rbits_mask ^= rbits.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
+            
+            r = r.sub_mod(r_mask, modulus)
+            rbits ^= rbits_mask
+
+            self.comms.send(r, 1)
+            self.comms.send(rbits, 1)
+            
+            return r, rbits
+        
+        if self.pid == 1:
+            r = self.comms.receive(0, T=type(r))
+            rbits = self.comms.receive(0, T=type(rbits))
+        
+            return r, rbits
+
+        with self.randomness.seed_switch(0):
+            return r.rand(modulus, "uniform"), rbits.rand(size_t(1) << 62, "uniform")  # TODO: Enable random numbers for size_t
