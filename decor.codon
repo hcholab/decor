@@ -1,3 +1,5 @@
+import secure_operator
+
 from functools import partial
 
 from sequre import sequre
@@ -6,8 +8,34 @@ from sequre.types.internal import InternalMPC
 from sequre.mpc.env import MPCEnv
 from sequre.mpc.fp import MPCFP
 
-from patch.constants import MASK, MPC_NBIT_F, MPC_NBIT_K
+from patch.boolean import MPCBoolean
+from patch.constants import MASK, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
 from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, powers
+
+
+MPC_DECOR_MODULUS_BITS: Static[int] = MPC_NBIT_F + 1
+MPC_DECOR_RING_SIZE = mpc_uint(1) << mpc_uint(MPC_DECOR_MODULUS_BITS)
+
+
+# TODO: This should be a method of Sharetensor when integrating back into Sequre
+def switch_ring(stensor, new_ring_size):
+    st = stensor.copy()
+    st.share = stensor.share % new_ring_size
+    st.x_r = (stensor.x_r % new_ring_size) if stensor.x_r else stensor.x_r
+    st.r = (stensor.r % new_ring_size) if stensor.r else stensor.r
+    st.modulus = new_ring_size
+    st.sqrt = (stensor.sqrt % new_ring_size) if stensor.sqrt else stensor.sqrt
+    st.sqrt_inv = (stensor.sqrt_inv % new_ring_size) if stensor.sqrt_inv else stensor.sqrt_inv
+    return st
+
+
+# TODO: Figure out a better placement for this function when integrating back into Sequre
+def _decor_gt(mpc, x, y):
+    if x.modulus.popcnt() == 1:
+        diff = secure_operator.sub(mpc, switch_ring(x, MPC_DECOR_RING_SIZE), switch_ring(y, MPC_DECOR_RING_SIZE))
+        return type(x)(mpc.boolean.is_positive_ring(diff.share, x.modulus, diff.modulus, op_mod_bitlen=MPC_DECOR_MODULUS_BITS), x.modulus)
+    
+    return secure_operator.gt(mpc, x, y)
 
 
 @extend
@@ -17,7 +45,7 @@ class MPCFP:
             return a.copy()
         
         return superf(self, a, modulus, k, m)
-
+    
 
 class NoTruncation[TP, T]:
     mpc: MPCEnv[TP]
@@ -38,7 +66,7 @@ class NoTruncation[TP, T]:
 @extend
 class MPCEnv:
     # TODO: Remember to add default_truncation_allowed attribute to MPCFP when integrating back into Sequre
-    def no_truncation(self, arg):
+    def delayed_truncation(self, arg):
         """ Dissalows SMC truncation and truncates arg on exit """
         return NoTruncation(self, arg)
 
@@ -98,6 +126,14 @@ class InternalMPC:
 
         return superf(mpc, x, y)
     
+    def gt(mpc, x, y):
+        modulus = x.modulus
+        if modulus.popcnt() == 1:
+            diff = secure_operator.sub(mpc, x, y)
+            return Sharetensor(mpc.boolean.is_positive_ring(diff.share, modulus, modulus), modulus)
+        
+        return superf(mpc, x, y)
+
 
 @sequre
 def decor_exp(mpc, foo_x_r, foo_r_share):
@@ -127,7 +163,7 @@ def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List)
     pascal_matrix = mpc.polynomial.get_pascal_matrix(degree)
     result = r_share_powers[0].zeros()
 
-    with mpc.no_truncation(result):
+    with mpc.delayed_truncation(result):
         for i in range(degree + 1):
             for j in range(i + 1):
                 result += r_share_powers[j] * (x_r_powers[i - j] * coeffs[i] * pascal_matrix[i][j])
@@ -158,8 +194,8 @@ def decor_partition(mpc, x, foo, interval):
     a, b = interval
     period = b - a
 
-    shifted_x = (x - a) / period
-    x_r, r = shifted_x.get_partitions(mpc)
+    scaled_x = (x - a) / period
+    x_r, r = scaled_x.get_partitions(mpc)
     
     frac_r = r & MASK
     double_r = period_fp_to_double(frac_r, period, modulus)
@@ -174,15 +210,15 @@ def decor_partition(mpc, x, foo, interval):
     foo_x_r = foo(double_x_r + a)
     foo_x_r_p = foo(double_x_r - period + a)
 
-    return foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x
+    return foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, scaled_x
 
 
 @sequre
-def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, shifted_x, *args):
+def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, scaled_x, *args):
     foo_eval = decor_foo(mpc, foo_x_r, foo_r_share, *args)
     foo_eval_shifted = decor_foo(mpc, foo_x_r_p, foo_r_share, *args)
 
-    cond = (r_frac_share - shifted_x) > 0
+    cond = _decor_gt(mpc, r_frac_share, scaled_x)
     return foo_eval + cond * (foo_eval_shifted - foo_eval)
 
 

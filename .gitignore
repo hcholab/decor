@@ -198,7 +198,7 @@ _dump*
 dump/
 .vscode
 .sock*
-temp*
+*temp*
 bitween/
 data/
 secure-dti/
