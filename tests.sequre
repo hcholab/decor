@@ -557,7 +557,7 @@ def test(mpc):
         pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
     pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
-    # pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
+    pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
 
 
 test()
