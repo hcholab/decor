@@ -26,8 +26,7 @@ from fourier import via_fourier
 from taylor import via_taylor
 from patch.chebyshev import via_chebyshev
 from utils import (
-    linspace, trig_double_to_fp,
-    period_double_to_fp,
+    linspace, trig_double_to_fp, period_double_to_fp,
     sin, cos, exp, sigmoid, log,
     mul_inv, sqrt, tanh)
 
@@ -559,6 +558,7 @@ def test(mpc):
         pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
     pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
+    # Skipping DTI test for now due to its long runtime
     # pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
 
 
