@@ -10,7 +10,7 @@ from sequre.mpc.fp import MPCFP
 
 from patch.boolean import MPCBoolean
 from patch.constants import MASK, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
-from utils import double_to_fp, period_fp_to_double, exp, expm1, sigmoid, tanh, powers
+from utils import double_to_fp, period_fp_to_double, exp, sigmoid, tanh, powers
 
 
 MPC_DECOR_MODULUS_BITS: Static[int] = MPC_NBIT_F + 1
@@ -29,13 +29,83 @@ def switch_ring(stensor, new_ring_size):
     return st
 
 
-# TODO: Figure out a better placement for this function when integrating back into Sequre
+# TODO: Figure out a better placement for the _decor functions when integrating back into Sequre
 def _decor_gt(mpc, x, y):
     if x.modulus.popcnt() == 1:
-        diff = secure_operator.sub(mpc, switch_ring(x, MPC_DECOR_RING_SIZE), switch_ring(y, MPC_DECOR_RING_SIZE))
-        return type(x)(mpc.boolean.is_positive_ring(diff.share, x.modulus, diff.modulus, op_mod_bitlen=MPC_DECOR_MODULUS_BITS), x.modulus)
+        if isinstance(y, Sharetensor):
+            diff = secure_operator.sub(
+                mpc, switch_ring(x, MPC_DECOR_RING_SIZE),
+                switch_ring(y, MPC_DECOR_RING_SIZE))
+        elif isinstance(y, ByVal):
+            if y == 0:
+                diff = switch_ring(x, MPC_DECOR_RING_SIZE)
+            else:
+                diff =  secure_operator.sub(mpc, switch_ring(x, MPC_DECOR_RING_SIZE), y)
+        else:
+            compile_error("decor_gt: y must be Sharetensor or ByVal")
+        
+        return Sharetensor(
+            mpc.boolean.is_positive_ring(
+                diff.share, x.modulus, diff.modulus,
+                op_mod_bitlen=MPC_DECOR_MODULUS_BITS),
+            x.modulus)
     
     return secure_operator.gt(mpc, x, y)
+
+@sequre
+def _decor_mul_inv_newton(mpc, b, init_val, niter):
+    x = (2 - b * init_val) * init_val
+    for _ in range(niter):
+        x = (2 - b * x) * x
+
+    return x
+
+@sequre
+def _decor_mul_inv_goldschmidt(mpc, b, init_val, niter):
+    x = 1 - b * init_val
+    y = (x + 1) * init_val
+    x = x * x
+
+    for _ in range(niter - 1):
+        y = y * (x + 1)
+        x = x * x
+    
+    return y * (x + 1)
+
+@sequre
+def _decor_mul_inv(mpc, b, init_val, niter, sign_check, method: Static[str]):
+    if not b.fp:
+        b = b.to_fp()
+
+    if sign_check:
+        denominator_sign = (b > 0) * 2 - 1
+        b = b * denominator_sign
+
+    if method == "newton":
+        x = _decor_mul_inv_newton(mpc, b, init_val, niter)
+    elif method == "goldschmidt":
+        x = _decor_mul_inv_goldschmidt(mpc, b, init_val, niter)
+    else:
+        compile_error("unknown method for decor_mul_inv " + method)
+
+    if sign_check:
+        return x * denominator_sign
+    
+    return x
+
+@sequre
+def _decor_div(mpc, x, y, init_val=None, niter=15, sign_check=False, method: Static[str] = "newton"):
+    if init_val is None:
+        return x / y
+
+    if isinstance(y, float) or isinstance(y, int):
+        sv = x * double_to_fp(1.0 / y, x.modulus)
+        if x.is_fp():
+            sv = sv.trunc(mpc.fp)
+        sv.fp = True
+        return sv
+
+    return _decor_mul_inv(mpc, y, init_val, niter=niter, sign_check=sign_check, method=method) * x
 
 
 @extend
@@ -137,18 +207,13 @@ class InternalMPC:
 
 @sequre
 def decor_exp(mpc, foo_x_r, foo_r_share):
-     return foo_r_share * foo_x_r
-
-
-@sequre
-def decor_expm1(mpc, foo_x_r, foo_r_share):
-     return foo_r_share * foo_x_r + foo_r_share + foo_x_r
+    return foo_r_share * foo_x_r
 
 
 @sequre
 def decor_sigmoid(mpc, foo_x_r, foo_r_share):
-     prod = foo_r_share * foo_x_r
-     return prod / (prod * 2 - foo_r_share - foo_x_r + 1)
+    prod = foo_r_share * foo_x_r
+    return _decor_div(mpc, prod, prod * 2 - foo_r_share - foo_x_r + 1, init_val=1.9)
 
 
 @sequre
@@ -174,8 +239,6 @@ def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List)
 def get_decor_foo(*args, method: Static[str]):
     if method == "exp":
         return exp, decor_exp
-    if method == "expm1":
-        return expm1, decor_expm1
     if method == "sigmoid" or method == "sig":
         return sigmoid, decor_sigmoid
     if method == "tanh" or method == "tan":

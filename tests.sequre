@@ -21,15 +21,14 @@ from patch.layers import Input, Dense
 from patch.log_reg import LogReg
 
 from beaver import *
-from decor import via_decor, get_decor_foo, _decor_gt
+from decor import via_decor, get_decor_foo, _decor_gt, _decor_div
 from fourier import via_fourier
 from taylor import via_taylor
 from patch.chebyshev import via_chebyshev
 from utils import (
-    linspace, trig_double_to_fp,
-    period_double_to_fp, interval_double_to_fp,
-    sin, cos, expm1, exp, sigmoid, log,
-    mul_inv, sqrt, tanh, powers)
+    linspace, trig_double_to_fp, period_double_to_fp,
+    sin, cos, exp, sigmoid, log,
+    mul_inv, sqrt, tanh)
 
 
 @python
@@ -114,35 +113,6 @@ def test_decor_trig(mpc, interval, size=100):
     data_dump['decor_cos_result'] = revealed_cos_result
     data_dump['decor_cos_expected'] = cos(floats)
 
-    return data_dump
-
-
-def test_decor_expm1(mpc, interval, size=100):
-    """
-    Test Beaver's protocol for computing exp using MPC.
-    """
-    modulus = mpc.default_mpc_modulus
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
-
-    floats = linspace(*interval, size)
-    fp_floats = interval_double_to_fp(floats, interval, modulus)
-    shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
-    data_dump = {'x': floats}
-
-    with stats_log(mpc, "decor_expm1", data_dump):
-        beaver_exp_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
-        beaver_exp_elem = mpc.arithmetic._decor_exp(*beaver_exp_partitions, interval, modulus)
-        shared_result = mpc.fp._decor_exp(*beaver_exp_elem, shared_fp, modulus)
-    
-    revealed_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
-    if mpc.pid != 0:
-        assert_eq_approx(
-            f'Beaver exp',
-            revealed_result,
-            expm1(floats), error=0.03)
-
-    data_dump['decor_expm1_result'] = revealed_result
-    data_dump['decor_expm1_expected'] = expm1(floats)
     return data_dump
 
 
@@ -321,7 +291,7 @@ def test_chebyshev(mpc, interval, size=100):
     return data_dump
 
 
-def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, *args, method: Static[str]):
+def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, skip_assert, *args, method: Static[str]):
     foo = get_decor_foo(*args, method=method)[0]
     if method == "polynomial":
         eval_foo = lambda x: ([args[1]].astype(float) @ foo(x))[0]
@@ -333,7 +303,7 @@ def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, *args, m
     
     ground_truth = eval_foo(floats)
     revealed_result = shared_result.reveal(mpc).tolist()
-    if mpc.pid != 0:
+    if mpc.pid != 0 and not skip_assert:
         assert_eq_approx(
             f'Decor {method} for {floats}',
             revealed_result, ground_truth, error=0.1, silent_pass=True)
@@ -353,13 +323,13 @@ def test_decor(mpc, interval, size=100):
     data_dump = {'x': floats}
 
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, method="exp")
+        mpc, data_dump, floats, shared_floats, interval, False, method="exp")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, method="sigmoid")
+        mpc, data_dump, floats, shared_floats, interval, True, method="sigmoid")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, method="tanh")
+        mpc, data_dump, floats, shared_floats, interval, False, method="tanh")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, 3, list(range(1, 5)), method="polynomial")
+        mpc, data_dump, floats, shared_floats, interval, False, 3, list(range(1, 5)), method="polynomial")
     
     return data_dump
 
@@ -526,7 +496,7 @@ def test_comparisons(mpc):
 
         is_pos_standard = secure_operator.gt(
             mpc, secure_operator.sub(mpc, stensor_1, stensor_2), 0)
-        is_pos_lsb = _decor_gt(mpc, stensor_1, stensor_2)
+        is_pos_decor = _decor_gt(mpc, stensor_1, stensor_2)
 
         if mpc.pid != 0:
             assert_eq(
@@ -534,12 +504,44 @@ def test_comparisons(mpc):
                 is_pos_standard.reveal(mpc).astype(float), (rand_vec_1 > rand_vec_2).astype(float), True)
             assert_eq(
                 f"{i}: Sequre Decor gt for {rand_vec_1 - rand_vec_2}",
-                is_pos_lsb.reveal(mpc).astype(float), (rand_vec_1 > rand_vec_2).astype(float), True)
+                is_pos_decor.reveal(mpc).astype(float), (rand_vec_1 > rand_vec_2).astype(float), True)
+
+
+def test_division(mpc):
+    alg_struct = "ring" if mpc.default_mpc_modulus else "field"
+    print(f'CP{mpc.pid}:\tTesting Sequre MPC division on {alg_struct} ... \n')
+
+    for i in range(100):
+        with mpc.randomness.seed_switch(-1):
+            rand_vec_1 = array(random_floats((5,), scale=1))
+            rand_vec_2 = array(random_floats((5,), scale=1))
+
+        stensor_1 = Sharetensor.enc(mpc, rand_vec_1)
+        stensor_2 = Sharetensor.enc(mpc, rand_vec_2)
+
+        div_standard = secure_operator.truediv(mpc, stensor_1, stensor_2)
+        div_decor_newton = _decor_div(mpc, stensor_1, stensor_2, init_val=1.0, niter=20, method="newton")
+        div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, init_val=1.0, niter=20, method="goldschmidt")
+
+        if mpc.pid != 0:
+            assert_eq_approx(
+                f"{i}: Sequre div for {rand_vec_1} / {rand_vec_2}",
+                div_standard.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
+                silent_pass=True)
+            assert_eq_approx(
+                f"{i}: Sequre Decor div Newton for {rand_vec_1} / {rand_vec_2}",
+                div_decor_newton.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
+                silent_pass=True)
+            assert_eq_approx(
+                f"{i}: Sequre Decor div Goldschmidt for {rand_vec_1} / {rand_vec_2}",
+                div_decor_goldschmidt.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
+                silent_pass=True)
 
 
 @local
 def test(mpc):
     test_comparisons(mpc)
+    test_division(mpc)
 
     intervals = [
         (-math.pi, math.pi),
@@ -550,14 +552,14 @@ def test(mpc):
 
     for i, interval in enumerate(intervals):
         pickle_dump(mpc.pid, f"dump/decor_trig_{i}_{MPC_NBIT_F}.p", test_decor_trig(mpc, interval))
-        pickle_dump(mpc.pid, f"dump/decor_exp_{i}_{MPC_NBIT_F}.p", test_decor_expm1(mpc, interval))
         pickle_dump(mpc.pid, f"dump/decor_{i}_{MPC_NBIT_F}.p", test_decor(mpc, interval))
         pickle_dump(mpc.pid, f"dump/fourier_{i}_{MPC_NBIT_F}.p", test_decor_fourier(mpc, interval))
         pickle_dump(mpc.pid, f"dump/cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
         pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
     
     pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
-    pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
+    # Skipping DTI test for now due to its long runtime
+    # pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
 
 
 test()

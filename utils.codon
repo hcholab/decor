@@ -72,10 +72,6 @@ def sech(value):
     return -(t * t - 1)
     
 
-def expm1(value):
-    return recursive_reduce(lambda x: x.exp() - 1, value)
-
-
 def exp(value):
     return recursive_reduce(lambda x: x.exp(), value)
 
