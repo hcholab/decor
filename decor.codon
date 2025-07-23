@@ -7,14 +7,26 @@ from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
 from sequre.mpc.env import MPCEnv
 from sequre.mpc.fp import MPCFP
+from sequre.mpc.comms import MPCComms
 
 from patch.boolean import MPCBoolean
-from patch.constants import MASK, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
+from patch.constants import MASK, NETWORK_DELAY_TIME, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
 from utils import double_to_fp, period_fp_to_double, exp, sigmoid, tanh, powers
+
+from C import usleep(int) -> int
 
 
 MPC_DECOR_MODULUS_BITS: Static[int] = MPC_NBIT_F + 1
 MPC_DECOR_RING_SIZE = mpc_uint(1) << mpc_uint(MPC_DECOR_MODULUS_BITS)
+
+
+@extend
+class MPCComms:
+    def receive_as_jar[T](self, from_pid: int) -> T:
+        if NETWORK_DELAY_TIME > 0:
+            usleep(NETWORK_DELAY_TIME)
+        
+        return superf(self, from_pid, T=T)
 
 
 # TODO: This should be a method of Sharetensor when integrating back into Sequre
@@ -40,7 +52,7 @@ def _decor_gt(mpc, x, y):
             if y == 0:
                 diff = switch_ring(x, MPC_DECOR_RING_SIZE)
             else:
-                diff =  secure_operator.sub(mpc, switch_ring(x, MPC_DECOR_RING_SIZE), y)
+                diff = secure_operator.sub(mpc, switch_ring(x, MPC_DECOR_RING_SIZE), y)
         else:
             compile_error("decor_gt: y must be Sharetensor or ByVal")
         

@@ -32,11 +32,11 @@ from utils import (
 
 
 @python
-def pickle_dump(pid: int, path: str, data: Dict[str, List[float]]):
+def pickle_dump(path: str, data: Dict[str, List[float]]):
     """
     Temp method until Codon Jupyter is fixed.
     """
-    if not data or pid != 1:
+    if not data:
         return
 
     import pickle
@@ -551,15 +551,15 @@ def test(mpc):
         ]
 
     for i, interval in enumerate(intervals):
-        pickle_dump(mpc.pid, f"dump/decor_trig_{i}_{MPC_NBIT_F}.p", test_decor_trig(mpc, interval))
-        pickle_dump(mpc.pid, f"dump/decor_{i}_{MPC_NBIT_F}.p", test_decor(mpc, interval))
-        pickle_dump(mpc.pid, f"dump/fourier_{i}_{MPC_NBIT_F}.p", test_decor_fourier(mpc, interval))
-        pickle_dump(mpc.pid, f"dump/cheby_{i}_{MPC_NBIT_F}.p", test_chebyshev(mpc, interval))
-        pickle_dump(mpc.pid, f"dump/taylor_{i}_{MPC_NBIT_F}.p", test_taylor(mpc, interval))
-    
-    pickle_dump(mpc.pid, f"dump/log_reg_{MPC_NBIT_F}.p", test_log_reg(mpc))
+        pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(mpc, interval))
+        pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(mpc, interval))
+        pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(mpc, interval))
+        pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(mpc, interval))
+        pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(mpc, interval))
+
+    pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
     # Skipping DTI test for now due to its long runtime
-    # pickle_dump(mpc.pid, f"dump/dti_{MPC_NBIT_F}.p", test_dti(mpc))
+    # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
 
 
 test()
