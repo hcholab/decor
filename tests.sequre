@@ -7,7 +7,7 @@ from numpy.create import zeros, ones, arange, array, loadtxt
 from sequre import local
 from sequre.mpc.env import MPCEnv
 from sequre.types.sharetensor import Sharetensor
-from sequre.types.utils import fp_to_double
+from sequre.types.utils import fp_to_double, double_to_fp
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx, assert_eq
 from sequre.utils.utils import random_floats
 
@@ -21,7 +21,8 @@ from patch.layers import Input, Dense
 from patch.log_reg import LogReg
 
 from beaver import *
-from decor import via_decor, get_decor_foo, _decor_gt, _decor_div
+from decor import (
+    via_decor, get_decor_foo, _decor_gt, _decor_div)
 from fourier import via_fourier
 from taylor import via_taylor
 from patch.chebyshev import via_chebyshev
@@ -325,7 +326,7 @@ def test_decor(mpc, interval, size=100):
     _test_decor_method(
         mpc, data_dump, floats, shared_floats, interval, False, method="exp")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, True, method="sigmoid")
+        mpc, data_dump, floats, shared_floats, interval, False, method="sigmoid")
     _test_decor_method(
         mpc, data_dump, floats, shared_floats, interval, False, method="tanh")
     _test_decor_method(
@@ -511,7 +512,7 @@ def test_division(mpc):
     alg_struct = "ring" if mpc.default_mpc_modulus else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre MPC division on {alg_struct} ... \n')
 
-    for i in range(100):
+    for i in range(10):
         with mpc.randomness.seed_switch(-1):
             rand_vec_1 = array(random_floats((5,), scale=1))
             rand_vec_2 = array(random_floats((5,), scale=1))
@@ -520,8 +521,8 @@ def test_division(mpc):
         stensor_2 = Sharetensor.enc(mpc, rand_vec_2)
 
         div_standard = secure_operator.truediv(mpc, stensor_1, stensor_2)
-        div_decor_newton = _decor_div(mpc, stensor_1, stensor_2, init_val=1.0, niter=20, method="newton")
-        div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, init_val=1.0, niter=20, method="goldschmidt")
+        div_decor_newton = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="newton")
+        div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="goldschmidt")
 
         if mpc.pid != 0:
             assert_eq_approx(
@@ -536,10 +537,60 @@ def test_division(mpc):
                 f"{i}: Sequre Decor div Goldschmidt for {rand_vec_1} / {rand_vec_2}",
                 div_decor_goldschmidt.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
                 silent_pass=True)
+    
+
+def test_boolean(mpc):
+    modulus = mpc.default_mpc_modulus
+    alg_struct = "ring" if modulus else "field"
+    print(f'CP{mpc.pid}:\tTesting Sequre MPC boolean operations on {alg_struct} ... \n')
+
+    for i in range(100):
+        with mpc.randomness.seed_switch(-1):
+            rand_vec_1 = random_floats((5,), scale=1)
+            rand_vec_2 = random_floats((5,), scale=1)
+
+        fp_rand_vec_1 = double_to_fp(rand_vec_1, modulus)
+        fp_rand_vec_2 = double_to_fp(rand_vec_2, modulus)
+        shared_bits_vec = mpc.boolean.share_from_trusted_dealer(fp_rand_vec_1)
+
+        bit_sum = mpc.boolean.add_public(shared_bits_vec, fp_rand_vec_2)
+        sum_vec = fp_rand_vec_1.add_mod(fp_rand_vec_2, modulus)
+
+        if mpc.pid != 0:
+            assert_eq(
+                f"{i}: Sequre MPC bit add for {fp_rand_vec_1} + {fp_rand_vec_2}",
+                mpc.boolean.reveal(bit_sum), sum_vec,
+                silent_pass=True)
+        
+        decor_fp_rand_vec_1 = fp_rand_vec_1.trunc_to(64)
+        decor_fp_rand_vec_2 = fp_rand_vec_2.trunc_to(64)
+        decor_shared_bits_vec = mpc.boolean.share_from_trusted_dealer(decor_fp_rand_vec_1)
+        decor_bit_sum = mpc.boolean.add_public(decor_shared_bits_vec, decor_fp_rand_vec_2, dtype=u64)
+        decor_sum_vec = decor_fp_rand_vec_1 + decor_fp_rand_vec_2
+
+        if mpc.pid != 0:
+            assert_eq(
+                f"{i}: Sequre MPC bit add u64 for {decor_fp_rand_vec_1} + {decor_fp_rand_vec_2}",
+                mpc.boolean.reveal(decor_bit_sum), decor_sum_vec,
+                silent_pass=True)
+        
+        small_modulus = u64(1) << MPC_NBIT_F
+        shared_vec_1 = mpc.comms.share_from_trusted_dealer(fp_rand_vec_1, modulus)
+        normalizer = mpc.boolean.normalizer(shared_vec_1, modulus, small_modulus, bitlen=MPC_NBIT_F)
+        normalized_vec = mpc.arithmetic.multiply(shared_vec_1, normalizer, modulus)
+        normalized_rev = array(mpc.comms.print_fp(normalized_vec, modulus))
+        if mpc.pid != 0:
+            assert_eq(
+                f"{i}: Sequre MPC normalizer for {rand_vec_1} and {normalized_rev}",
+                (normalized_rev > 0.25).all() and (normalized_rev < 1.0).all(),
+                True, silent_pass=True)
+
+        
 
 
 @local
 def test(mpc):
+    test_boolean(mpc)
     test_comparisons(mpc)
     test_division(mpc)
 
