@@ -65,27 +65,44 @@ def _decor_gt(mpc, x, y):
     return secure_operator.gt(mpc, x, y)
 
 @sequre
-def _decor_mul_inv_newton(mpc, b, init_val, niter):
-    x = (2 - b * init_val) * init_val
-    for _ in range(niter):
-        x = (2 - b * x) * x
+def _decor_mul_inv_newton(mpc, b, niter):
+    assert niter > 0, "niter must be greater than 0 for Newton's method"
+    
+    modulus = b.modulus
+    s = Sharetensor(
+        mpc.boolean.normalizer(
+            b.share, modulus, u64(1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
+    b_scaled = b * s
 
-    return x
+    # Assuming init_val = 1.0 after normalization: x = (2 - b_scaled * init_val) * init_val
+    x = 2 - b_scaled
+    for _ in range(niter):
+        x = (2 - b_scaled * x) * x
+
+    return x * s
 
 @sequre
-def _decor_mul_inv_goldschmidt(mpc, b, init_val, niter):
-    x = 1 - b * init_val
-    y = (x + 1) * init_val
-    x = x * x
+def _decor_mul_inv_goldschmidt(mpc, b, niter):
+    modulus = b.modulus
+    if niter == 0:
+        niter = 2 * (MPC_NBIT_K // 3).bitlen() + 1
+    
+    s = Sharetensor(
+        mpc.boolean.normalizer(
+            b.share, modulus, u64(1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
+    estimate = b * s
+    estimate = estimate * estimate * 5 - estimate * 10 + 5.9430
+    x = 1 - b * estimate
+    y = estimate
 
     for _ in range(niter - 1):
         y = y * (x + 1)
         x = x * x
-    
+
     return y * (x + 1)
 
 @sequre
-def _decor_mul_inv(mpc, b, init_val, niter, sign_check, method: Static[str]):
+def _decor_mul_inv(mpc, b, niter, sign_check, method: Static[str]):
     if not b.fp:
         b = b.to_fp()
 
@@ -94,9 +111,9 @@ def _decor_mul_inv(mpc, b, init_val, niter, sign_check, method: Static[str]):
         b = b * denominator_sign
 
     if method == "newton":
-        x = _decor_mul_inv_newton(mpc, b, init_val, niter)
+        x = _decor_mul_inv_newton(mpc, b, niter)
     elif method == "goldschmidt":
-        x = _decor_mul_inv_goldschmidt(mpc, b, init_val, niter)
+        x = _decor_mul_inv_goldschmidt(mpc, b, niter)
     else:
         compile_error("unknown method for decor_mul_inv " + method)
 
@@ -106,18 +123,17 @@ def _decor_mul_inv(mpc, b, init_val, niter, sign_check, method: Static[str]):
     return x
 
 @sequre
-def _decor_div(mpc, x, y, init_val=None, niter=15, sign_check=False, method: Static[str] = "newton"):
-    if init_val is None:
-        return x / y
-
+def _decor_div(mpc, x, y, niter=0, sign_check=False, method: Static[str] = "newton"):
     if isinstance(y, float) or isinstance(y, int):
         sv = x * double_to_fp(1.0 / y, x.modulus)
         if x.is_fp():
             sv = sv.trunc(mpc.fp)
         sv.fp = True
         return sv
-
-    return _decor_mul_inv(mpc, y, init_val, niter=niter, sign_check=sign_check, method=method) * x
+    
+    return _decor_mul_inv(
+        mpc, y, niter=niter,
+        sign_check=sign_check, method=method) * x
 
 
 @extend
@@ -156,19 +172,19 @@ class MPCEnv:
 @extend
 class InternalMPC:
     def add(mpc, x, y):
-        if isinstance(y, List[float]):
+        if isinstance(y, List[float]) or isinstance(y, List[List[float]]):
             return InternalMPC.__add_public(mpc, y.to_fp(x.modulus), x, False)
 
         return superf(mpc, x, y)
 
     def sub(mpc, x, y):
-        if isinstance(y, List[float]):
+        if isinstance(y, List[float]) or isinstance(y, List[List[float]]):
             return InternalMPC.__add_public(mpc, (-y).to_fp(x.modulus), x, False)
 
         return superf(mpc, x, y)
 
     def mul(mpc, x, y):
-        if isinstance(y, List[float]):
+        if isinstance(y, List[float]) or isinstance(y, List[List[float]]):
             y_fp = double_to_fp(y, x.modulus)
             modulus = x.modulus
             c_share = x.share.mul_mod(y_fp, modulus)
@@ -225,7 +241,7 @@ def decor_exp(mpc, foo_x_r, foo_r_share):
 @sequre
 def decor_sigmoid(mpc, foo_x_r, foo_r_share):
     prod = foo_r_share * foo_x_r
-    return _decor_div(mpc, prod, prod * 2 - foo_r_share - foo_x_r + 1, init_val=1.9)
+    return _decor_div(mpc, prod, prod * 2 - foo_r_share - foo_x_r + 1, niter=5)
 
 
 @sequre
