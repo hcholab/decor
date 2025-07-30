@@ -22,11 +22,12 @@ MPC_DECOR_RING_SIZE = mpc_uint(1) << mpc_uint(MPC_DECOR_MODULUS_BITS)
 
 @extend
 class MPCComms:
-    def receive_as_jar[T](self, from_pid: int) -> T:
+    def reveal(self, value, modulus):
         if NETWORK_DELAY_TIME > 0:
-            usleep(NETWORK_DELAY_TIME)
+            if self.pid > 0:
+                usleep(NETWORK_DELAY_TIME)
         
-        return superf(self, from_pid, T=T)
+        return superf(self, value, modulus)
 
 
 # TODO: This should be a method of Sharetensor when integrating back into Sequre
