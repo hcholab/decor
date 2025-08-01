@@ -5,13 +5,14 @@ from functools import partial
 from sequre import sequre
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.internal import InternalMPC
+from sequre.types.utils import double_to_fp
 from sequre.mpc.env import MPCEnv
 from sequre.mpc.fp import MPCFP
 from sequre.mpc.comms import MPCComms
 
 from patch.boolean import MPCBoolean
-from patch.constants import MASK, NETWORK_DELAY_TIME, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
-from utils import double_to_fp, period_fp_to_double, exp, sigmoid, tanh, powers
+from patch.constants import FBITS_MASK, NETWORK_DELAY_TIME, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
+from utils import period_fp_to_double, exp, sigmoid, tanh, powers
 
 from C import usleep(int) -> int
 
@@ -72,7 +73,7 @@ def _decor_mul_inv_newton(mpc, b, niter):
     modulus = b.modulus
     s = Sharetensor(
         mpc.boolean.normalizer(
-            b.share, modulus, u64(1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
+            b.share, modulus, UInt[MPC_NBIT_K](1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
     b_scaled = b * s
 
     # Assuming init_val = 1.0 after normalization: x = (2 - b_scaled * init_val) * init_val
@@ -90,7 +91,7 @@ def _decor_mul_inv_goldschmidt(mpc, b, niter):
     
     s = Sharetensor(
         mpc.boolean.normalizer(
-            b.share, modulus, u64(1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
+            b.share, modulus, UInt[MPC_NBIT_K](1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
     estimate = b * s
     estimate = estimate * estimate * 5 - estimate * 10 + 5.9430
     x = 1 - b * estimate
@@ -241,13 +242,13 @@ def decor_exp(mpc, foo_x_r, foo_r_share):
 
 @sequre
 def decor_sigmoid(mpc, foo_x_r, foo_r_share):
-    prod = foo_r_share * foo_x_r
-    return _decor_div(mpc, prod, prod * 2 - foo_r_share - foo_x_r + 1, niter=5)
+    num = foo_r_share * foo_x_r
+    return _decor_div(mpc, num, num * 2 - foo_r_share - foo_x_r + 1, niter=5)
 
 
 @sequre
 def decor_tanh(mpc, foo_x_r, foo_r_share):
-     return (foo_r_share + foo_x_r) / (foo_r_share * foo_x_r + 1)
+    return _decor_div(mpc, foo_r_share + foo_x_r, foo_r_share * foo_x_r + 1, niter=5)
 
 
 @sequre
@@ -289,7 +290,7 @@ def decor_partition(mpc, x, foo, interval):
     scaled_x = (x - a) / period
     x_r, r = scaled_x.get_partitions(mpc)
     
-    frac_r = r & MASK
+    frac_r = r & FBITS_MASK
     double_r = period_fp_to_double(frac_r, period, modulus)
     foo_r = double_to_fp(foo(double_r), modulus)
     
@@ -298,7 +299,7 @@ def decor_partition(mpc, x, foo, interval):
     foo_r_share = Sharetensor(mpc.comms.share_from_trusted_dealer(foo_r, modulus), modulus)
     foo_r_share.fp = True
 
-    double_x_r = period_fp_to_double(x_r & MASK, period, modulus)
+    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus)
     foo_x_r = foo(double_x_r + a)
     foo_x_r_p = foo(double_x_r - period + a)
 
