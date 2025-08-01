@@ -1,6 +1,6 @@
-from sequre.constants import BGD_OPTIMIZER, MBGD_OPTIMIZER
-
-from constants import SUPPORTED_OPTIMIZERS, SUPPORTED_LOSSES, METHOD_CHEBYSHEV
+from constants import (
+    SUPPORTED_OPTIMIZERS, SUPPORTED_LOSSES, METHOD_CHEBYSHEV,
+    BGD_OPTIMIZER, MBGD_OPTIMIZER)
 from loss import loss, dloss
 from sequre.stdlib.learn.utils import batch
 

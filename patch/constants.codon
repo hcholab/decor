@@ -11,9 +11,7 @@ POLY_EVAL_CLENSHAW: Static[str] = "clenshaw"
 POLY_EVAL_DECOR: Static[str] = "decor"
 POLY_EVAL_NAIVE: Static[str] = "naive"
 
-MASK: Static[int] = (1 << MPC_NBIT_F) - 1
 FOURIER_DEGREE: Static[int] = 10
-CHEBYSHEV_DEGREE: Static[int] = 10
 TAYLOR_DEGREE: Static[int] = 6
 TAYLOR_STEP: float = 1e-5
 EPSILON: float = 1e-7
@@ -39,3 +37,5 @@ SUPPORTED_LOSSES = [
     BINARY_CROSSENTROPY_LOSS,
     MEAN_SQUARED_ERROR_LOSS
     ]
+
+FBITS_MASK = (mpc_uint(1) << MPC_NBIT_F) - 1

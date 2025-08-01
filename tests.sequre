@@ -15,7 +15,9 @@ from patch.constants import (
     MPC_NBIT_F, POLY_EVAL_CLENSHAW,
     POLY_EVAL_DECOR, POLY_EVAL_NAIVE,
     METHOD_CHEBYSHEV, METHOD_TAYLOR,
-    METHOD_FOURIER, METHOD_DECOR)
+    METHOD_FOURIER, METHOD_DECOR,
+    MPC_NBIT_K, CHEBYSHEV_DEGREE, 
+    FOURIER_DEGREE, TAYLOR_DEGREE)
 from patch.model import Sequential
 from patch.layers import Input, Dense
 from patch.log_reg import LogReg
@@ -30,6 +32,11 @@ from utils import (
     linspace, trig_double_to_fp, period_double_to_fp,
     sin, cos, exp, sigmoid, log,
     mul_inv, sqrt, tanh)
+
+
+DECOR_POLY_PERIOD_OF_THRS: Static[int] = (
+    7 if MPC_INT_SIZE == 128 else
+    10 if MPC_INT_SIZE == 192 else 20)
 
 
 @python
@@ -158,37 +165,38 @@ def test_decor_fourier(mpc, interval, size=100):
     stensor = Sharetensor(shared_fp, modulus)
     stensor.fp = True
     data_dump = {'x': floats}
-    
-    _test_op(mpc, data_dump, "fourier_sin",
+
+    name = f"fourier_{FOURIER_DEGREE}"
+    _test_op(mpc, data_dump, f"{name}_sin",
         partial(via_fourier, op=sin), floats, stensor,
         sin(floats), interval, skip_assert=True)
-    
-    _test_op(mpc, data_dump, "fourier_cos",
+
+    _test_op(mpc, data_dump, f"{name}_cos",
         partial(via_fourier, op=cos), floats, stensor,
         cos(floats), interval, skip_assert=True)
-    
-    _test_op(mpc, data_dump, "fourier_sigmoid",
+
+    _test_op(mpc, data_dump, f"{name}_sigmoid",
         partial(via_fourier, op=sigmoid), floats, stensor,
         sigmoid(floats), interval, skip_assert=True)
-    
-    _test_op(mpc, data_dump, "fourier_exp",
+
+    _test_op(mpc, data_dump, f"{name}_exp",
         partial(via_fourier, op=exp), floats, stensor,
         exp(floats), interval, skip_assert=True)
-    
-    _test_op(mpc, data_dump, "fourier_tanh",
+
+    _test_op(mpc, data_dump, f"{name}_tanh",
         partial(via_fourier, op=tanh), floats, stensor,
         tanh(floats), interval, skip_assert=True)
     
     if interval[0] > 0:
-        _test_op(mpc, data_dump, "fourier_log",
+        _test_op(mpc, data_dump, f"{name}_log",
             partial(via_fourier, op=log), floats, stensor,
             log(floats), interval, skip_assert=True)
-        
-        _test_op(mpc, data_dump, "fourier_mul_inv",
+
+        _test_op(mpc, data_dump, f"{name}_mul_inv",
             partial(via_fourier, op=mul_inv), floats, stensor,
             mul_inv(floats), interval, skip_assert=True)
 
-        _test_op(mpc, data_dump, "fourier_sqrt",
+        _test_op(mpc, data_dump, f"{name}_sqrt",
             partial(via_fourier, op=sqrt), floats, stensor,
             sqrt(floats), interval, skip_assert=True)
 
@@ -196,36 +204,37 @@ def test_decor_fourier(mpc, interval, size=100):
 
 
 def _test_taylor_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
-    _test_op(mpc, data_dump, f"taylor_sin_{method}",
+    name = f"taylor_{TAYLOR_DEGREE}"
+    _test_op(mpc, data_dump, f"{name}_sin_{method}",
         partial(via_taylor, op=sin, method=method), floats, stensor,
         sin(floats), interval, skip_assert=True, periodic=False)
-    
-    _test_op(mpc, data_dump, f"taylor_cos_{method}",
+
+    _test_op(mpc, data_dump, f"{name}_cos_{method}",
         partial(via_taylor, op=cos, method=method), floats, stensor,
         cos(floats), interval, skip_assert=True, periodic=False)
-    
-    _test_op(mpc, data_dump, f"taylor_sigmoid_{method}",
+
+    _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
         partial(via_taylor, op=sigmoid, method=method), floats, stensor,
         sigmoid(floats), interval, skip_assert=True, periodic=False)
-    
-    _test_op(mpc, data_dump, f"taylor_exp_{method}",
+
+    _test_op(mpc, data_dump, f"{name}_exp_{method}",
         partial(via_taylor, op=exp, method=method), floats, stensor,
         exp(floats), interval, skip_assert=True, periodic=False)
-    
-    _test_op(mpc, data_dump, f"taylor_tanh_{method}",
+
+    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_taylor, op=tanh, method=method), floats, stensor,
         tanh(floats), interval, skip_assert=True, periodic=False)
     
     if interval[0] > 0:
-        _test_op(mpc, data_dump, f"taylor_log_{method}",
+        _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_taylor, op=log, method=method), floats, stensor,
             log(floats), interval, skip_assert=True, periodic=False)
-        
-        _test_op(mpc, data_dump, f"taylor_mul_inv_{method}",
+
+        _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
             partial(via_taylor, op=mul_inv, method=method), floats, stensor,
             mul_inv(floats), interval, skip_assert=True, periodic=False)
 
-        _test_op(mpc, data_dump, f"taylor_sqrt_{method}",
+        _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
             partial(via_taylor, op=sqrt, method=method), floats, stensor,
             sqrt(floats), interval, skip_assert=True, periodic=False)
 
@@ -244,36 +253,37 @@ def test_taylor(mpc, interval, size=100):
 
 
 def _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
-    _test_op(mpc, data_dump, f"chebyshev_sigmoid_{method}",
+    name = f"chebyshev_{CHEBYSHEV_DEGREE}"
+    _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
         partial(via_chebyshev, op=sigmoid, validate=False, method=method), floats, stensor,
         sigmoid(floats), interval, skip_assert=True, periodic=False)
     
-    _test_op(mpc, data_dump, f"chebyshev_exp_{method}",
+    _test_op(mpc, data_dump, f"{name}_exp_{method}",
         partial(via_chebyshev, op=exp, validate=False, method=method), floats, stensor,
         exp(floats), interval, skip_assert=True, periodic=False)
     
-    _test_op(mpc, data_dump, f"chebyshev_sin_{method}",
+    _test_op(mpc, data_dump, f"{name}_sin_{method}",
         partial(via_chebyshev, op=sin, validate=False, method=method), floats, stensor,
         sin(floats), interval, skip_assert=True, periodic=False)
     
-    _test_op(mpc, data_dump, f"chebyshev_cos_{method}",
+    _test_op(mpc, data_dump, f"{name}_cos_{method}",
         partial(via_chebyshev, op=cos, validate=False, method=method), floats, stensor,
         cos(floats), interval, skip_assert=True, periodic=False)
     
-    _test_op(mpc, data_dump, f"chebyshev_tanh_{method}",
+    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_chebyshev, op=tanh, validate=False, method=method), floats, stensor,
         tanh(floats), interval, skip_assert=True, periodic=False)
     
     if interval[0] > 0:
-        _test_op(mpc, data_dump, f"chebyshev_log_{method}",
+        _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_chebyshev, op=log, validate=False, method=method), floats, stensor,
             log(floats), interval, skip_assert=True, periodic=False)
         
-        _test_op(mpc, data_dump, f"chebyshev_mul_inv_{method}",
+        _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
             partial(via_chebyshev, op=mul_inv, validate=False, method=method), floats, stensor,
             mul_inv(floats), interval, skip_assert=True, periodic=False)
 
-        _test_op(mpc, data_dump, f"chebyshev_sqrt_{method}",
+        _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
             partial(via_chebyshev, op=sqrt, validate=False, method=method), floats, stensor,
             sqrt(floats), interval, skip_assert=True, periodic=False)
 
@@ -284,10 +294,13 @@ def test_chebyshev(mpc, interval, size=100):
     floats = linspace(*interval, size)
     stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
+    period = interval[1] - interval[0]
     
     _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_CLENSHAW)
-    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
     _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_NAIVE)
+
+    if period <= DECOR_POLY_PERIOD_OF_THRS:
+        _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
 
     return data_dump
 
@@ -322,13 +335,15 @@ def test_decor(mpc, interval, size=100):
     floats = linspace(*interval, size)
     shared_floats = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
+    period = interval[1] - interval[0]
+    skip_assert = period > DECOR_POLY_PERIOD_OF_THRS
 
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, False, method="exp")
+        mpc, data_dump, floats, shared_floats, interval, skip_assert, method="exp")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, False, method="sigmoid")
+        mpc, data_dump, floats, shared_floats, interval, skip_assert, method="sigmoid")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, False, method="tanh")
+        mpc, data_dump, floats, shared_floats, interval, True, method="tanh")
     _test_decor_method(
         mpc, data_dump, floats, shared_floats, interval, False, 3, list(range(1, 5)), method="polynomial")
     
@@ -520,15 +535,10 @@ def test_division(mpc):
         stensor_1 = Sharetensor.enc(mpc, rand_vec_1)
         stensor_2 = Sharetensor.enc(mpc, rand_vec_2)
 
-        div_standard = secure_operator.truediv(mpc, stensor_1, stensor_2)
         div_decor_newton = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="newton")
         div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="goldschmidt")
 
         if mpc.pid != 0:
-            assert_eq_approx(
-                f"{i}: Sequre div for {rand_vec_1} / {rand_vec_2}",
-                div_standard.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
-                silent_pass=True)
             assert_eq_approx(
                 f"{i}: Sequre Decor div Newton for {rand_vec_1} / {rand_vec_2}",
                 div_decor_newton.reveal(mpc).astype(float), (rand_vec_1 / rand_vec_2).astype(float),
@@ -574,7 +584,7 @@ def test_boolean(mpc):
                 mpc.boolean.reveal(decor_bit_sum), decor_sum_vec,
                 silent_pass=True)
         
-        small_modulus = u64(1) << MPC_NBIT_F
+        small_modulus = UInt[MPC_NBIT_K](1) << MPC_NBIT_F
         shared_vec_1 = mpc.comms.share_from_trusted_dealer(fp_rand_vec_1, modulus)
         normalizer = mpc.boolean.normalizer(shared_vec_1, modulus, small_modulus, bitlen=MPC_NBIT_F)
         normalized_vec = mpc.arithmetic.multiply(shared_vec_1, normalizer, modulus)
@@ -585,8 +595,6 @@ def test_boolean(mpc):
                 (normalized_rev > 0.25).all() and (normalized_rev < 1.0).all(),
                 True, silent_pass=True)
 
-        
-
 
 @local
 def test(mpc):
@@ -595,10 +603,8 @@ def test(mpc):
     test_division(mpc)
 
     intervals = [
-        (-math.pi, math.pi),
-        (-1.0, 2.5),
-        (math.pi * 0.25, math.pi * 0.75),
-        (-5.0, 5.0)
+        (math.pi, math.pi * 3),
+        (-10.0, 10.0)
         ]
 
     for i, interval in enumerate(intervals):

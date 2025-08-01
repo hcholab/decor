@@ -6,10 +6,10 @@ from sequre.utils.utils import zeros_vec, zeros_mat
 
 from constants import (
     MPC_MODULUS_BITS, MPC_INT_SIZE, MPC_FIELD_SIZE,
-    MPC_RING_SIZE, DEBUG, mpc_uint)
+    MPC_RING_SIZE, MPC_NBIT_K, DEBUG, mpc_uint)
 
 
-PACKING_SIZE: Static[int] = 64  # Fixed to standard register length
+PACKING_SIZE: Static[int] = MPC_NBIT_K  # Fixed to standard register length
 size_t = UInt[PACKING_SIZE]
 
 
@@ -28,14 +28,32 @@ class UInt:
         %0 = add i{=N} %self, %other
         ret i{=N} %0
     
-    def __add__(self: UInt[N], other: u64) -> UInt[N]:
-        if N == 64:
-            return self.llvm_add(other)
+    @pure
+    @llvm
+    def llvm_mul(self: UInt[N], other: UInt[N]) -> UInt[N]:
+        %0 = mul i{=N} %self, %other
+        ret i{=N} %0
 
-        return self + UInt[N].upcast(other)
+    def __add__(self: UInt[N], other: UInt[M], M: Static[int]) -> UInt[N]:
+        if N > M:
+            return self + other.ext_to(N)
+        if N < M:
+            compile_error("cannot add UInt of larger size to UInt of smaller size")
+
+        return self.llvm_add(other)
+    
+    def __mul__(self: UInt[N], other: UInt[M], M: Static[int]) -> UInt[N]:
+        if N > M:
+            return self * other.ext_to(N)
+        if N < M:
+            compile_error("cannot add UInt of larger size to UInt of smaller size")
+
+        return self.llvm_mul(other)
     
     def __mod__(self: UInt[N], other: UInt[N]) -> UInt[N]:
-        if N <= 64:
+        if N <= 128:
+            # TODO: Perf issue when MPC_RING_SIZE or MPC_FIELD_SIZE is of 128 bits
+            # Reconsider when integrating back into Sequre
             return self.__naive_mod(other)
         elif other == MPC_RING_SIZE:
             return self.__fast_mod_ring()
@@ -46,12 +64,12 @@ class UInt:
         else:
             compile_error("invalid modulus for UInt")
     
-    def mul_mod(self, other, modulus) -> UInt[N]:
-        if N <= 64:
+    def mul_mod(self, other: UInt[M], modulus, M: Static[int]) -> UInt[N]:
+        if M < N:
             if modulus.popcnt() == 1:
                 return (self * other) & (modulus - 1)
 
-            raise NotImplementedError("mul_mod on fields for N <= 64 is not implemented")
+            raise NotImplementedError("Ring modulus is temporarily enforced for mul_mod by smaller UInt")
             return self  # Avoiding typechecker error
         
         return superf(self, other, modulus)
@@ -80,7 +98,7 @@ class List:
             self[i] &= other[i]
         return self
     
-    def __iand__(self: list[T], scalar: size_t) -> list[T]:
+    def __iand__(self: list[T], scalar: UInt) -> list[T]:
         for i in range(len(self)):
             self[i] &= scalar
         return self
@@ -91,7 +109,7 @@ class List:
             l.append(self[i] & other[i])
         return l
 
-    def __and__(self: list[T], scalar: size_t) -> list[T]:
+    def __and__(self: list[T], scalar: UInt) -> list[T]:
         l = list[T](len(self))
         for i in range(len(self)):
             l.append(self[i] & scalar)
@@ -102,12 +120,7 @@ class List:
             self[i] ^= other[i]
         return self
 
-    def __ixor__(self: list[T], scalar: mpc_uint) -> list[T]:
-        for i in range(len(self)):
-            self[i] ^= scalar
-        return self
-    
-    def __ixor__(self: list[T], scalar: size_t) -> list[T]:
+    def __ixor__(self: list[T], scalar: UInt) -> list[T]:
         for i in range(len(self)):
             self[i] ^= scalar
         return self
@@ -117,17 +130,17 @@ class List:
         for i in range(len(self)):
             l.append(self[i] ^ other[i])
         return l
-    
-    def __or__(self: list[T], scalar: size_t) -> list[T]:
-        l = list[T](len(self))
-        for i in range(len(self)):
-            l.append(self[i] | scalar)
-        return l
-    
+
     def __or__(self: list[T], other: list[T]) -> list[T]:
         l = list[T](len(self))
         for i in range(len(self)):
             l.append(self[i] | other[i])
+        return l
+    
+    def __or__(self: list[T], scalar: UInt) -> list[T]:
+        l = list[T](len(self))
+        for i in range(len(self)):
+            l.append(self[i] | scalar)
         return l
     
     def get_bit(self: List[T], bit: Static[int]) -> list[T]:
@@ -151,6 +164,8 @@ class List:
             return self.rand(MPC_FIELD_SIZE, distribution)
         elif isinstance(T, list[size_t]) or isinstance(T, size_t):
             return self.rand(size_t(1) << 62, distribution)
+        elif isinstance(T, list[u64]) or isinstance(T, u64):
+            return self.rand(u64(1) << 62, distribution)
         else:
             compile_error("unsupported type for rand")
     
@@ -639,21 +654,21 @@ class MPCBoolean:
         return s
 
     def normalizer(
-            self, x, modulus: UInt[M], operational_modulus: UInt[N],
-            bitlen: Static[int], M: Static[int], N: Static[int]):
+            self, x, modulus: UInt[N], operational_modulus: UInt[M],
+            bitlen: Static[int], N: Static[int], M: Static[int]):
         """ Assumes 0 < x < 1 """
-        if M <= N:
+        if N <= M:
             compile_error("modulus must be of greater size than operational modulus for normalizer")
         
         r, r_bits = self._share_random_bits(len(x), operational_modulus, bitlen=bitlen)
         x_r = self.comms.reveal(
-            (x % (operational_modulus.ext_to(M))).trunc_to(N).sub_mod(r, operational_modulus),
+            (x % (operational_modulus.ext_to(N))).trunc_to(M).sub_mod(r, operational_modulus),
             operational_modulus)
         x_bits = self.add_public(
-            r_bits, x_r, bitlen=N, dtype=UInt[N]) & ((UInt[N](1) << bitlen) - 1)
+            r_bits, x_r, bitlen=M, dtype=UInt[M]) & ((UInt[M](1) << bitlen) - 1)
 
         prefix_or_bits = self.prefix_op(
-            x_bits, lambda a, b: self.lor(a, b), bitlen=bitlen, dtype=UInt[N])
+            x_bits, lambda a, b: self.lor(a, b), bitlen=bitlen, dtype=UInt[M])
         smallest_pow_2 = prefix_or_bits ^ (prefix_or_bits >> 1)
         normalizer = smallest_pow_2.bit_reverse_subset(bitlen)
         
@@ -663,7 +678,7 @@ class MPCBoolean:
             normalizer >>= 2
 
         r_conv, r_conv_bits = self._share_random_bits(len(x), modulus, bitlen=bitlen // 2)
-        sqrt_diff = self.reveal(normalizer_sqrt ^ r_conv_bits.trunc_to(N)).ext_to(M)
+        sqrt_diff = self.reveal(normalizer_sqrt ^ r_conv_bits.trunc_to(M)).ext_to(N)
         sqrt_norm = r_conv.copy()
         if self.pid == self.comms.hub_pid:
             sqrt_norm = sqrt_norm.sub_mod(sqrt_diff, modulus)
