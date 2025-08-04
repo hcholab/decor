@@ -1,10 +1,10 @@
-import time, math
+import sys, time, math
 import secure_operator
 
 from functools import partial
 from numpy.create import zeros, ones, arange, array, loadtxt
 
-from sequre import local
+from sequre import local, mpc
 from sequre.mpc.env import MPCEnv
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import fp_to_double, double_to_fp
@@ -596,7 +596,6 @@ def test_boolean(mpc):
                 True, silent_pass=True)
 
 
-@local
 def test(mpc):
     test_boolean(mpc)
     test_comparisons(mpc)
@@ -619,4 +618,11 @@ def test(mpc):
     # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
 
 
-test()
+@local
+def _local_run(mpc):
+    test(mpc)
+
+if "--local" in sys.argv:
+    _local_run()
+else:
+    test(mpc())
