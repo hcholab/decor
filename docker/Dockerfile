@@ -9,6 +9,7 @@ RUN \
     curl openssl vim time git \
     patch python3 python3-pip
 
+ENV CODON_PYTHON=/usr/lib/x86_64-linux-gnu/libpython3.12.so
 ENV SEQURE_GMP_PATH=/sequre/external/GMP/lib/libgmp.so
 
 # Install Sequre
@@ -25,3 +26,6 @@ RUN echo 'alias sequre="/.codon/bin/codon run --disable-opt=\"core-pythonic-list
 # Copy Decor
 COPY . /decor
 WORKDIR /decor
+
+# Install py deps
+RUN apt install -y python3-numpy python3-sklearn
