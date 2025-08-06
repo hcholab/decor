@@ -362,7 +362,7 @@ def test_comparisons(mpc):
     alg_struct = "ring" if mpc.default_mpc_modulus else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre MPC comparison on {alg_struct} ... \n')
 
-    for i in range(10):
+    for i in range(100):
         with mpc.randomness.seed_switch(-1):
             rand_vec_1 = array(random_floats((5,), scale=1))
             rand_vec_2 = array(random_floats((5,), scale=1))
@@ -387,7 +387,7 @@ def test_division(mpc):
     alg_struct = "ring" if mpc.default_mpc_modulus else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre MPC division on {alg_struct} ... \n')
 
-    for i in range(10):
+    for i in range(100):
         with mpc.randomness.seed_switch(-1):
             rand_vec_1 = array(random_floats((5,), scale=1))
             rand_vec_2 = array(random_floats((5,), scale=1))
@@ -649,9 +649,10 @@ def test_dti(mpc):
 
 
 def test(mpc):
-    test_boolean(mpc)
-    test_comparisons(mpc)
-    test_division(mpc)
+    if "--skip-primitives" not in sys.argv:
+        test_boolean(mpc)
+        test_comparisons(mpc)
+        test_division(mpc)
 
     sample_size = 500
     intervals = [
