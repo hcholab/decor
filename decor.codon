@@ -12,7 +12,10 @@ from sequre.mpc.comms import MPCComms
 
 from patch.boolean import MPCBoolean
 from patch.constants import FBITS_MASK, NETWORK_DELAY_TIME, MPC_NBIT_F, MPC_NBIT_K, mpc_uint
-from utils import period_fp_to_double, exp, sigmoid, tanh, powers
+from utils import (
+    period_fp_to_double, trig_fp_to_double,
+    exp, sigmoid, tanh, powers, sin, cos, tan, cot,
+    sinh, cosh)
 
 from C import usleep(int) -> int
 
@@ -235,52 +238,132 @@ class InternalMPC:
         return superf(mpc, x, y)
 
 
-@sequre
-def decor_exp(mpc, foo_x_r, foo_r_share):
-    return foo_r_share * foo_x_r
+def decor_sin(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    return mpc.fp.trunc(
+        sin_x_r.mul_mod(cos_r, modulus).add_mod(
+        cos_x_r.mul_mod(sin_r, modulus), modulus), modulus)
+
+
+def decor_cos(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    return mpc.fp.trunc(
+        cos_x_r.mul_mod(cos_r, modulus).sub_mod(
+        sin_x_r.mul_mod(sin_r, modulus), modulus), modulus)
+
+
+def decor_tan(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    sin_ = decor_sin(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus)
+    cos_ = decor_cos(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus)
+
+    numerator = Sharetensor(sin_, modulus)
+    denominator = Sharetensor(cos_, modulus)
+    numerator.fp = True
+    denominator.fp = True
+    
+    return _decor_div(mpc, numerator, denominator, niter=5).share
+
+
+def decor_cot(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus):
+    sin_ = decor_sin(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus)
+    cos_ = decor_cos(mpc, sin_x_r, sin_r, cos_x_r, cos_r, modulus)
+
+    numerator = Sharetensor(cos_, modulus)
+    denominator = Sharetensor(sin_, modulus)
+    numerator.fp = True
+    denominator.fp = True
+    
+    return _decor_div(mpc, numerator, denominator, niter=5).share
 
 
 @sequre
-def decor_sigmoid(mpc, foo_x_r, foo_r_share):
+def decor_exp(mpc, foo_x_rs, foo_r_shares):
+    return foo_r_shares[0] * foo_x_rs[0]
+
+
+@sequre
+def decor_sigmoid(mpc, foo_x_rs, foo_r_shares):
+    foo_x_r, foo_r_share = foo_x_rs[0], foo_r_shares[0]
     num = foo_r_share * foo_x_r
     return _decor_div(mpc, num, num * 2 - foo_r_share - foo_x_r + 1, niter=5)
 
 
 @sequre
-def decor_tanh(mpc, foo_x_r, foo_r_share):
+def decor_tanh(mpc, foo_x_rs, foo_r_shares):
+    foo_x_r, foo_r_share = foo_x_rs[0], foo_r_shares[0]
     return _decor_div(mpc, foo_r_share + foo_x_r, foo_r_share * foo_x_r + 1, niter=5)
+
+
+@sequre
+def decor_sinh(mpc, foo_x_rs, foo_r_shares):
+    foo_x_r_sinh, foo_x_r_cosh = foo_x_rs
+    foo_r_share_sinh, foo_r_share_cosh = foo_r_shares
+    sinh_eval = foo_r_share_sinh.zeros()
+    
+    with mpc.delayed_truncation(sinh_eval):
+        sinh_eval = foo_r_share_sinh * foo_x_r_sinh + foo_r_share_cosh * foo_x_r_cosh
+    
+    return sinh_eval
+
+
+@sequre
+def decor_cosh(mpc, foo_x_rs, foo_r_shares):
+    foo_x_r_cosh, foo_x_r_sinh = foo_x_rs
+    foo_r_share_cosh, foo_r_share_sinh = foo_r_shares
+    cosh_eval = foo_r_share_cosh.zeros()
+
+    with mpc.delayed_truncation(cosh_eval):
+        cosh_eval = foo_r_share_cosh * foo_x_r_cosh + foo_r_share_sinh * foo_x_r_sinh
+
+    return cosh_eval
 
 
 @sequre
 def decor_polynomial(mpc, x_r_powers, r_share_powers, degree: int, coeffs: List):
     assert len(coeffs) == degree + 1, f"Number of coefficients must be degree + 1 ({len(coeffs)} != {degree + 1})"
+    x_r_powers_, r_share_powers_ = x_r_powers[0], r_share_powers[0]
 
     pascal_matrix = mpc.polynomial.get_pascal_matrix(degree)
-    result = r_share_powers[0].zeros()
+    result = r_share_powers_[0].zeros()
 
     with mpc.delayed_truncation(result):
         for i in range(degree + 1):
             for j in range(i + 1):
-                result += r_share_powers[j] * (x_r_powers[i - j] * coeffs[i] * pascal_matrix[i][j])
-    
+                result += r_share_powers_[j] * (x_r_powers_[i - j] * coeffs[i] * pascal_matrix[i][j])
+
     return result
 
 
-def get_decor_foo(*args, method: Static[str]):
+def get_decor_trig_foo(*args, method: Static[str]):
+    if method == "sin":
+        return sin, decor_sin
+    if method == "cos":
+        return cos, decor_cos
+    if method == "tan":
+        return tan, decor_tan
+    if method == "cot":
+        return cot, decor_cot
+
+    compile_error("Decor trig method not supported")
+
+
+def get_decor_foos(*args, method: Static[str]):
     if method == "exp":
-        return exp, decor_exp
+        return (exp,), decor_exp
     if method == "sigmoid" or method == "sig":
-        return sigmoid, decor_sigmoid
+        return (sigmoid,), decor_sigmoid
+    if method == "sinh":
+        return (sinh, cosh), decor_sinh
+    if method == "cosh":
+        return (cosh, sinh), decor_cosh
     if method == "tanh" or method == "tan":
-        return tanh, decor_tanh
+        return (tanh,), decor_tanh
     if method == "polynomial":
-        return partial(powers, degree=args[0]), decor_polynomial
-    
+        return (partial(powers, degree=args[0]),), decor_polynomial
+
     compile_error("Decor method not supported")
 
 
 @sequre
-def decor_partition(mpc, x, foo, interval):
+def decor_partition(mpc, x, foos, interval):
     mpc.stats.partitions_count += 1
 
     modulus = x.modulus
@@ -292,30 +375,64 @@ def decor_partition(mpc, x, foo, interval):
     
     frac_r = r & FBITS_MASK
     double_r = period_fp_to_double(frac_r, period, modulus)
-    foo_r = double_to_fp(foo(double_r), modulus)
+    foo_rs = [double_to_fp(foo(double_r), modulus) for foo in foos]
     
     r_frac_share = Sharetensor(mpc.comms.share_from_trusted_dealer(frac_r, modulus), modulus)
     r_frac_share.fp = True
-    foo_r_share = Sharetensor(mpc.comms.share_from_trusted_dealer(foo_r, modulus), modulus)
-    foo_r_share.fp = True
+    foo_r_shares = [Sharetensor(mpc.comms.share_from_trusted_dealer(foo_r, modulus), modulus) for foo_r in foo_rs]
+    for foo_r_share in foo_r_shares:
+        foo_r_share.fp = True
 
     double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus)
-    foo_x_r = foo(double_x_r + a)
-    foo_x_r_p = foo(double_x_r - period + a)
+    foo_x_rs = [foo(double_x_r + a) for foo in foos]
+    foo_x_r_ps = [foo(double_x_r - period + a) for foo in foos]
 
-    return foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, scaled_x
+    return foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x
+
+
+def decor_trig_partition(mpc, x_r, r, modulus):
+    mpc.stats.partitions_count += 1
+
+    double_r = trig_fp_to_double(r & FBITS_MASK, modulus)
+    sin_r = double_to_fp(sin(double_r), modulus)
+    cos_r = double_to_fp(cos(double_r), modulus)
+
+    sin_r_share = mpc.comms.share_from_trusted_dealer(sin_r, modulus)
+    cos_r_share = mpc.comms.share_from_trusted_dealer(cos_r, modulus)
+
+    double_x_r = trig_fp_to_double(x_r & FBITS_MASK, modulus)
+    sin_x_r = double_to_fp(sin(double_x_r), modulus)
+    cos_x_r = double_to_fp(cos(double_x_r), modulus)
+
+    return sin_x_r, sin_r_share, cos_x_r, cos_r_share
 
 
 @sequre
-def decor_beaver_eval(mpc, decor_foo, foo_x_r, foo_x_r_p, foo_r_share, r_frac_share, scaled_x, *args):
-    foo_eval = decor_foo(mpc, foo_x_r, foo_r_share, *args)
-    foo_eval_shifted = decor_foo(mpc, foo_x_r_p, foo_r_share, *args)
+def decor_eval(mpc, decor_foo, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x, *args):
+    foo_eval = decor_foo(mpc, foo_x_rs, foo_r_shares, *args)
+    foo_eval_shifted = decor_foo(mpc, foo_x_r_ps, foo_r_shares, *args)
 
     cond = _decor_gt(mpc, r_frac_share, scaled_x)
     return foo_eval + cond * (foo_eval_shifted - foo_eval)
 
 
 def via_decor(mpc, x, interval, *args, method: Static[str]):
-    foo, decor_foo = get_decor_foo(*args, method=method)
-    decor_partitions = decor_partition(mpc, x, foo, interval)
-    return decor_beaver_eval(mpc, decor_foo, *decor_partitions, *args)
+    foos, decor_foo = get_decor_foos(*args, method=method)
+    decor_partitions = decor_partition(mpc, x, foos, interval)
+    return decor_eval(mpc, decor_foo, *decor_partitions, *args)
+
+
+def via_decor_trig(mpc, x, method: Static[str]):
+    # Expects x to be shared wrt period
+    modulus = x.modulus
+    decor_foo = get_decor_trig_foo(method=method)[1]
+
+    beaver_partitions = x.get_partitions(mpc)
+    trig_partitions = decor_trig_partition(
+        mpc, *beaver_partitions, modulus)
+    shared_result = decor_foo(mpc, *trig_partitions, modulus)
+    
+    stensor = Sharetensor(shared_result, modulus)
+    stensor.fp = True
+
+    return stensor

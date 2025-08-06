@@ -63,6 +63,18 @@ def tan(value):
     return recursive_reduce(math.tan, value)
 
 
+def cot(value):
+    return recursive_reduce(lambda x: 1 / math.tan(x), value)
+
+
+def sinh(value):
+    return recursive_reduce(math.sinh, value)
+
+
+def cosh(value):
+    return recursive_reduce(math.cosh, value)
+
+
 def tanh(value):
     return recursive_reduce(math.tanh, value)
 
