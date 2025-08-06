@@ -195,7 +195,7 @@ cython_debug/
 
 # Project-specific files
 _dump*
-dump/
+dump*
 .vscode
 .sock*
 *temp*

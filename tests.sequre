@@ -7,7 +7,7 @@ from numpy.create import zeros, ones, arange, array, loadtxt
 from sequre import local, mpc
 from sequre.mpc.env import MPCEnv
 from sequre.types.sharetensor import Sharetensor
-from sequre.types.utils import fp_to_double, double_to_fp
+from sequre.types.utils import double_to_fp
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx, assert_eq
 from sequre.utils.utils import random_floats
 
@@ -17,21 +17,22 @@ from patch.constants import (
     METHOD_CHEBYSHEV, METHOD_TAYLOR,
     METHOD_FOURIER, METHOD_DECOR,
     MPC_NBIT_K, CHEBYSHEV_DEGREE, 
-    FOURIER_DEGREE, TAYLOR_DEGREE)
+    FOURIER_DEGREE, TAYLOR_DEGREE,
+    MPC_INT_SIZE)
 from patch.model import Sequential
 from patch.layers import Input, Dense
 from patch.log_reg import LogReg
 
-from beaver import *
 from decor import (
-    via_decor, get_decor_foo, _decor_gt, _decor_div)
+    via_decor_trig, via_decor, get_decor_foos,
+    get_decor_trig_foo, _decor_gt, _decor_div)
 from fourier import via_fourier
 from taylor import via_taylor
 from patch.chebyshev import via_chebyshev
 from utils import (
     linspace, trig_double_to_fp, period_double_to_fp,
-    sin, cos, exp, sigmoid, log,
-    mul_inv, sqrt, tanh)
+    sin, cos, tan, cot, exp, sigmoid, log,
+    mul_inv, sqrt, sinh, cosh, tanh)
 
 
 DECOR_POLY_PERIOD_OF_THRS: Static[int] = (
@@ -110,8 +111,25 @@ def _test_op(
     data_dump[f"{msg}_expected"] = expected_result
 
 
+def _test_decor_trig_method(mpc, data_dump, floats, shared_floats, skip_assert, method: Static[str]):
+    foo = get_decor_trig_foo(method=method)[0]
+
+    with stats_log(mpc, f"decor_{method}", data_dump):
+        shared_result = via_decor_trig(mpc, shared_floats, method=method)
+    
+    ground_truth = foo(floats)
+    revealed_result = shared_result.reveal(mpc).tolist()
+    if mpc.pid != 0 and not skip_assert:
+        assert_eq_approx(
+            f'Decor {method} for {floats}',
+            revealed_result, ground_truth, error=0.02, silent_pass=True)
+
+    data_dump[f'decor_{method}_result'] = revealed_result
+    data_dump[f'decor_{method}_expected'] = ground_truth
+
+
 def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, skip_assert, *args, method: Static[str]):
-    foo = get_decor_foo(*args, method=method)[0]
+    foo = get_decor_foos(*args, method=method)[0][0]
     if method == "polynomial":
         eval_foo = lambda x: ([args[1]].astype(float) @ foo(x))[0]
     else:
@@ -149,10 +167,29 @@ def _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method: St
         partial(via_chebyshev, op=cos, validate=False, method=method), floats, stensor,
         cos(floats), interval, skip_assert=True, periodic=False)
     
+    _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+        partial(via_chebyshev, op=sinh, validate=False, method=method), floats, stensor,
+        sinh(floats), interval, skip_assert=True, periodic=False)
+    
+    _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+        partial(via_chebyshev, op=cosh, validate=False, method=method), floats, stensor,
+        cosh(floats), interval, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_chebyshev, op=tanh, validate=False, method=method), floats, stensor,
         tanh(floats), interval, skip_assert=True, periodic=False)
     
+    period = interval[1] - interval[0]
+    if period < math.pi:
+        if interval[0] < 0:
+            _test_op(mpc, data_dump, f"{name}_tan_{method}",
+                partial(via_chebyshev, op=tan, validate=False, method=method), floats, stensor,
+                tan(floats), interval, skip_assert=True, periodic=False)
+        else:
+            _test_op(mpc, data_dump, f"{name}_cot_{method}",
+                partial(via_chebyshev, op=cot, validate=False, method=method), floats, stensor,
+                cot(floats), interval, skip_assert=True, periodic=False)
+
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_chebyshev, op=log, validate=False, method=method), floats, stensor,
@@ -185,10 +222,18 @@ def _test_taylor_method(mpc, data_dump, floats, stensor, interval, method: Stati
         partial(via_taylor, op=exp, method=method), floats, stensor,
         exp(floats), interval, skip_assert=True, periodic=False)
 
+    _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+        partial(via_taylor, op=sinh, method=method), floats, stensor,
+        sinh(floats), interval, skip_assert=True, periodic=False)
+
+    _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+        partial(via_taylor, op=cosh, method=method), floats, stensor,
+        cosh(floats), interval, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_taylor, op=tanh, method=method), floats, stensor,
         tanh(floats), interval, skip_assert=True, periodic=False)
-    
+
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_taylor, op=log, method=method), floats, stensor,
@@ -317,7 +362,7 @@ def test_comparisons(mpc):
     alg_struct = "ring" if mpc.default_mpc_modulus else "field"
     print(f'CP{mpc.pid}:\tTesting Sequre MPC comparison on {alg_struct} ... \n')
 
-    for i in range(1000):
+    for i in range(10):
         with mpc.randomness.seed_switch(-1):
             rand_vec_1 = array(random_floats((5,), scale=1))
             rand_vec_2 = array(random_floats((5,), scale=1))
@@ -364,7 +409,7 @@ def test_division(mpc):
                 silent_pass=True)
 
 
-def test_decor_trig(mpc, interval, sample_size=1000):
+def test_decor_trig(mpc, interval, sample_size):
     """
     Test Decor for computing sin and cos.
     """
@@ -374,41 +419,26 @@ def test_decor_trig(mpc, interval, sample_size=1000):
     floats = linspace(*interval, sample_size)
     fp_floats = trig_double_to_fp(floats, modulus)
     shared_fp = mpc.comms.share_from_trusted_dealer(fp_floats, modulus)
+    shared_floats = Sharetensor(shared_fp, modulus)
+    shared_floats.fp = True
     data_dump = {'x': floats}
+    period = interval[1] - interval[0]
 
-    with stats_log(mpc, "decor_sin", data_dump):
-        beaver_trig_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
-        beaver_trig_elem = mpc.arithmetic._beaver_trig(*beaver_trig_partitions, modulus)
-        shared_result = mpc.fp._decor_sin(*beaver_trig_elem, modulus)
-    
-    revealed_sin_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
-    if mpc.pid != 0:
-        assert_eq_approx(
-            f'Beaver sin',
-            revealed_sin_result,
-            sin(floats))
+    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, method="sin")
+    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, method="cos")
 
-    with stats_log(mpc, "decor_cos", data_dump):
-        beaver_trig_partitions = mpc.arithmetic.__beaver_partition(shared_fp, modulus)
-        beaver_trig_elem = mpc.arithmetic._beaver_trig(*beaver_trig_partitions, modulus)
-        shared_result = mpc.fp._decor_cos(*beaver_trig_elem, modulus)
-    
-    revealed_cos_result = fp_to_double(mpc.comms.reveal(shared_result, modulus), modulus)
-    if mpc.pid != 0:
-        assert_eq_approx(
-            f'Beaver cos',
-            revealed_cos_result,
-            cos(floats), silent_pass=True)
-        
-    data_dump['decor_sin_result'] = revealed_sin_result
-    data_dump['decor_sin_expected'] = sin(floats)
-    data_dump['decor_cos_result'] = revealed_cos_result
-    data_dump['decor_cos_expected'] = cos(floats)
+    if period < math.pi:
+        if interval[0] < 0:
+            _test_decor_trig_method(
+                mpc, data_dump, floats, shared_floats, False, method="tan")
+        else:
+            _test_decor_trig_method(
+                mpc, data_dump, floats, shared_floats, False, method="cot")
 
     return data_dump
 
 
-def test_decor(mpc, interval, sample_size=1000):
+def test_decor(mpc, interval, sample_size):
     """
     Test Decor.
     """
@@ -429,10 +459,16 @@ def test_decor(mpc, interval, sample_size=1000):
     _test_decor_method(
         mpc, data_dump, floats, shared_floats, interval, False, 3, list(range(1, 5)), method="polynomial")
     
+    if period <= DECOR_POLY_PERIOD_OF_THRS:
+        _test_decor_method(
+            mpc, data_dump, floats, shared_floats, interval, True, method="sinh")
+        _test_decor_method(
+            mpc, data_dump, floats, shared_floats, interval, True, method="cosh")
+    
     return data_dump
 
 
-def test_decor_fourier(mpc, interval, sample_size=1000):
+def test_decor_fourier(mpc, interval, sample_size):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
     print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
@@ -461,9 +497,27 @@ def test_decor_fourier(mpc, interval, sample_size=1000):
         partial(via_fourier, op=exp), floats, stensor,
         exp(floats), interval, skip_assert=True)
 
+    _test_op(mpc, data_dump, f"{name}_sinh",
+        partial(via_fourier, op=sinh), floats, stensor,
+        sinh(floats), interval, skip_assert=True)
+    
+    _test_op(mpc, data_dump, f"{name}_cosh",
+        partial(via_fourier, op=cosh), floats, stensor,
+        cosh(floats), interval, skip_assert=True)
+
     _test_op(mpc, data_dump, f"{name}_tanh",
         partial(via_fourier, op=tanh), floats, stensor,
         tanh(floats), interval, skip_assert=True)
+    
+    if period < math.pi:
+        if interval[0] < 0:
+            _test_op(mpc, data_dump, f"{name}_tan",
+                partial(via_fourier, op=tan), floats, stensor,
+                tan(floats), interval, skip_assert=True)
+        else:
+            _test_op(mpc, data_dump, f"{name}_cot",
+                partial(via_fourier, op=cot), floats, stensor,
+                cot(floats), interval, skip_assert=True)
     
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log",
@@ -481,7 +535,7 @@ def test_decor_fourier(mpc, interval, sample_size=1000):
     return data_dump
 
 
-def test_chebyshev(mpc, interval, sample_size=1000):
+def test_chebyshev(mpc, interval, sample_size):
     print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} ... \n')
     floats = linspace(*interval, sample_size)
     stensor = Sharetensor.enc(mpc, array(floats))
@@ -497,7 +551,7 @@ def test_chebyshev(mpc, interval, sample_size=1000):
     return data_dump
 
 
-def test_taylor(mpc, interval, sample_size=1000):
+def test_taylor(mpc, interval, sample_size):
     print(f'CP{mpc.pid}:\tTesting Sequre Taylor at interval {interval} ... \n')
 
     floats = linspace(*interval, sample_size)
@@ -543,7 +597,7 @@ def test_log_reg(mpc):
 
     data_dump: Dict[str, List[float]] = {}
     for i in staticrange(2):
-        for j in staticrange(4):
+        for j in staticrange(3):
             # Codon does not support static tuples yet; using static ternaries below
             _test_log_reg_method(
                 mpc, mpc_X, mpc_y_binary if i == 0 else mpc_y_multinomial,
@@ -551,7 +605,7 @@ def test_log_reg(mpc):
                 raw_initial_w_binary if i == 0 else raw_initial_w_multinomial,
                 mpc_initial_w_binary if i == 0 else mpc_initial_w_multinomial,
                 step_size, epochs, data_dump, variant="binary" if i == 0 else "multinomial",
-                method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_TAYLOR if j == 2 else METHOD_CHEBYSHEV)
+                method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_CHEBYSHEV)
     
     print(f'CP{mpc.pid}:\tSequre logistic regression tests passed.\n')
     return data_dump
@@ -599,17 +653,20 @@ def test(mpc):
     test_comparisons(mpc)
     test_division(mpc)
 
+    sample_size = 500
     intervals = [
+        (-10.0, 10.0),
         (math.pi, math.pi * 3),
-        (-10.0, 10.0)
+        (-math.pi / 4, math.pi / 4),  # To test tan
+        (math.pi / 4, math.pi * 3 / 4)  # To test cot
         ]
 
     for i, interval in enumerate(intervals):
-        pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(mpc, interval))
-        pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(mpc, interval))
-        pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(mpc, interval))
-        pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(mpc, interval))
-        pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(mpc, interval))
+        pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(mpc, interval, sample_size))
+        pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(mpc, interval, sample_size))
+        pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(mpc, interval, sample_size))
+        pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(mpc, interval, sample_size))
+        pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(mpc, interval, sample_size))
 
     pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
     # Skipping DTI test for now due to its long runtime

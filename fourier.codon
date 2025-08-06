@@ -2,9 +2,11 @@ import math, time
 
 from sequre.types.builtin import *
 from sequre.types.sharetensor import Sharetensor
+from sequre.types.utils import double_to_fp
 
-from patch.constants import FOURIER_DEGREE
-from utils import sin, cos, trapz, linspace
+from patch.constants import FOURIER_DEGREE, EPSILON, FBITS_MASK
+from utils import (
+    period_fp_to_double, sin, cos, trapz, linspace)
 
 
 def fourier_coeffs(op, nodes, period, degree: Static[int]):
@@ -16,12 +18,52 @@ def fourier_coeffs(op, nodes, period, degree: Static[int]):
     return a0, an, bn, cn
 
 
+def decor_fourier_partition(mpc, x_r, r, coeffs, period, modulus, degree: Static[int]):
+    mpc.stats.partitions_count += 1
+
+    _, an, bn, cn = coeffs
+    skip_term = [(-EPSILON < an[i] < EPSILON) and (-EPSILON < bn[i] < EPSILON) for i in staticrange(degree)]
+
+    all_skipped = True
+    for i in staticrange(degree):
+        all_skipped &= skip_term[i]
+
+    if all_skipped:
+        return [x_r.zeros()], [x_r.zeros()], [x_r.zeros()], [x_r.zeros()]
+
+    double_r = period_fp_to_double(r & FBITS_MASK, period, modulus)
+    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus)
+
+    sin_rs = [double_to_fp(sin(double_r * cn[i]), modulus) for i in range(degree) if not skip_term[i]]
+    cos_rs = [double_to_fp(cos(double_r * cn[i]), modulus) for i in range(degree) if not skip_term[i]]
+
+    sin_rs_share = mpc.comms.share_from_trusted_dealer(sin_rs, modulus)
+    cos_rs_share = mpc.comms.share_from_trusted_dealer(cos_rs, modulus)
+
+    sin_x_rs = [sin(double_x_r * cn[i]) for i in range(degree)]
+    cos_x_rs = [cos(double_x_r * cn[i]) for i in range(degree)]
+    t1s = [double_to_fp(cos_x_rs[i] * an[i] + sin_x_rs[i] * bn[i], modulus) for i in range(degree) if not skip_term[i]]
+    t2s = [double_to_fp(cos_x_rs[i] * bn[i] - sin_x_rs[i] * an[i], modulus) for i in range(degree) if not skip_term[i]]
+
+    return t1s, sin_rs_share, t2s, cos_rs_share
+
+
+def decor_fourier(mpc, t1s, sin_rs_share, t2s, cos_rs_share, coeffs, modulus):
+    ts = mpc.fp.trunc(cos_rs_share.mul_mod(t1s, modulus).add_mod(sin_rs_share.mul_mod(t2s, modulus), modulus), modulus)
+
+    result_share = ts[0]
+    for i in range(1, len(ts)):
+        result_share = result_share.add_mod(ts[i], modulus)
+
+    return mpc.arithmetic.add_public(result_share, double_to_fp(coeffs[0], modulus), modulus)
+
+
 def fourier_evaluate(mpc, x, coeffs, period, degree: Static[int]):
     modulus = x.modulus
     x_r, r = x.get_partitions(mpc)
 
-    partitions = mpc.arithmetic._beaver_fourier(x_r, r, coeffs, period, modulus, degree)
-    result = mpc.fp._beaver_fourier_eval(*partitions, coeffs, modulus)
+    partitions = decor_fourier_partition(mpc, x_r, r, coeffs, period, modulus, degree)
+    result = decor_fourier(mpc, *partitions, coeffs, modulus)
     stensor = Sharetensor(result, modulus)
     stensor.fp = True
 
