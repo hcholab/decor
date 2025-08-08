@@ -34,6 +34,8 @@ from utils import (
     sin, cos, tan, cot, exp, sigmoid, log,
     mul_inv, sqrt, sinh, cosh, tanh)
 
+from C import usleep(int) -> int
+
 
 DECOR_POLY_PERIOD_OF_THRS: Static[int] = (
     7 if MPC_INT_SIZE == 128 else
@@ -70,34 +72,58 @@ class StatsLog[TP]:
 
     def __exit__(self):
         end = time.time()
-        self.data_dump[f'{self.name}_time'] = [end - self.start]
-        self.data_dump[f'{self.name}_bytes_sent'] = [float(self.mpc.stats.bytes_sent)]
-        self.data_dump[f'{self.name}_send_requests'] = [float(self.mpc.stats.send_requests)]
-        self.data_dump[f'{self.name}_partitions_count'] = [float(self.mpc.stats.partitions_count)]
-        self.data_dump[f'{self.name}_truncations_count'] = [float(self.mpc.stats.truncations_count)]
+
+        if f'{self.name}_time' not in self.data_dump:
+            self.data_dump[f'{self.name}_time'] = []
+        if f'{self.name}_bytes_sent' not in self.data_dump:
+            self.data_dump[f'{self.name}_bytes_sent'] = []
+        if f'{self.name}_send_requests' not in self.data_dump:
+            self.data_dump[f'{self.name}_send_requests'] = []
+        if f'{self.name}_partitions_count' not in self.data_dump:
+            self.data_dump[f'{self.name}_partitions_count'] = []
+        if f'{self.name}_truncations_count' not in self.data_dump:
+            self.data_dump[f'{self.name}_truncations_count'] = []
+
+        self.data_dump[f'{self.name}_time'].append(end - self.start)
+        self.data_dump[f'{self.name}_bytes_sent'].append(float(self.mpc.stats.bytes_sent))
+        self.data_dump[f'{self.name}_send_requests'].append(float(self.mpc.stats.send_requests))
+        self.data_dump[f'{self.name}_partitions_count'].append(float(self.mpc.stats.partitions_count))
+        self.data_dump[f'{self.name}_truncations_count'].append(float(self.mpc.stats.truncations_count))
 
 
 def stats_log(mpc, name, data_dump):
     return StatsLog(mpc, name, data_dump)
 
 
+def aggregate_stats(data_dump, name):
+    for k, v in data_dump.items():
+        if f"{name}_" in k:
+            data_dump[k] = [v.mean(), array(v).std()]
+
+
 def _test_op(
         mpc, data_dump, msg, op, raw_input, mpc_input,
-        expected_result, interval, error=0.01,
+        expected_result, interval, iter_count, error=0.01,
         skip_assert=False, periodic=True):
     period = interval[1] - interval[0]
-    
-    with stats_log(mpc, msg, data_dump):
-        op_result = op(mpc, mpc_input, interval)
-    
-    if isinstance(op_result, tuple):
-        mpc_result, aux_compute_time = op_result
-        data_dump[f"{msg}_time"] -= aux_compute_time
-    else:
-        mpc_result = op_result
 
-    revealed_result = mpc_result.reveal(mpc).tolist()
+    revealed_results = []
+    for _ in range(iter_count):
+        with stats_log(mpc, msg, data_dump):
+            op_result = op(mpc, mpc_input, interval)
+        
+        if isinstance(op_result, tuple):
+            mpc_result, aux_compute_time = op_result
+            data_dump[f"{msg}_time"][-1] -= aux_compute_time
+        else:
+            mpc_result = op_result
+
+        revealed_results.append(mpc_result.reveal(mpc).tolist())
+
+    aggregate_stats(data_dump, msg)
+    revealed_result = revealed_results.mean()
     revealed_input = mpc_input.reveal(mpc).tolist()
+
     if not skip_assert:
         assert_distributed_eq_approx(
             mpc, f'CP{mpc.pid}:\tSequre {msg} at interval {interval} (MPC)',
@@ -111,14 +137,21 @@ def _test_op(
     data_dump[f"{msg}_expected"] = expected_result
 
 
-def _test_decor_trig_method(mpc, data_dump, floats, shared_floats, skip_assert, method: Static[str]):
+def _test_decor_trig_method(
+        mpc, data_dump, floats, shared_floats,
+        skip_assert, iter_count, method: Static[str]):
     foo = get_decor_trig_foo(method=method)[0]
 
-    with stats_log(mpc, f"decor_{method}", data_dump):
-        shared_result = via_decor_trig(mpc, shared_floats, method=method)
-    
+    revealed_results = []
+    for _ in range(iter_count):
+        with stats_log(mpc, f"decor_{method}", data_dump):
+            shared_result = via_decor_trig(mpc, shared_floats, method=method)
+        revealed_results.append(shared_result.reveal(mpc).tolist())
+
+    aggregate_stats(data_dump, f"decor_{method}")
+    revealed_result = revealed_results.mean()
     ground_truth = foo(floats)
-    revealed_result = shared_result.reveal(mpc).tolist()
+
     if mpc.pid != 0 and not skip_assert:
         assert_eq_approx(
             f'Decor {method} for {floats}',
@@ -128,18 +161,27 @@ def _test_decor_trig_method(mpc, data_dump, floats, shared_floats, skip_assert, 
     data_dump[f'decor_{method}_expected'] = ground_truth
 
 
-def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, skip_assert, *args, method: Static[str]):
+def _test_decor_method(
+        mpc, data_dump, floats, shared_floats,
+        interval, skip_assert, iter_count, 
+        *args, method: Static[str]):
     foo = get_decor_foos(*args, method=method)[0][0]
     if method == "polynomial":
         eval_foo = lambda x: ([args[1]].astype(float) @ foo(x))[0]
     else:
         eval_foo = foo
 
-    with stats_log(mpc, f"decor_{method}", data_dump):
-        shared_result = via_decor(mpc, shared_floats, interval, *args, method=method)
-    
+    revealed_results = []
+    for _ in range(iter_count):
+        with stats_log(mpc, f"decor_{method}", data_dump):
+            shared_result = via_decor(
+                mpc, shared_floats, interval, *args, method=method)
+        revealed_results.append(shared_result.reveal(mpc).tolist())
+
+    aggregate_stats(data_dump, f"decor_{method}")
+    revealed_result = revealed_results.mean()
     ground_truth = eval_foo(floats)
-    revealed_result = shared_result.reveal(mpc).tolist()
+    
     if mpc.pid != 0 and not skip_assert:
         assert_eq_approx(
             f'Decor {method} for {floats}',
@@ -149,103 +191,105 @@ def _test_decor_method(mpc, data_dump, floats, shared_floats, interval, skip_ass
     data_dump[f'decor_{method}_expected'] = ground_truth
 
 
-def _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
+def _test_chebyshev_method(
+        mpc, data_dump, floats, stensor, interval, iter_count, method: Static[str]):
     name = f"chebyshev_{CHEBYSHEV_DEGREE}"
     _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
         partial(via_chebyshev, op=sigmoid, validate=False, method=method), floats, stensor,
-        sigmoid(floats), interval, skip_assert=True, periodic=False)
+        sigmoid(floats), interval, iter_count, skip_assert=True, periodic=False)
     
     _test_op(mpc, data_dump, f"{name}_exp_{method}",
         partial(via_chebyshev, op=exp, validate=False, method=method), floats, stensor,
-        exp(floats), interval, skip_assert=True, periodic=False)
-    
+        exp(floats), interval, iter_count, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_sin_{method}",
         partial(via_chebyshev, op=sin, validate=False, method=method), floats, stensor,
-        sin(floats), interval, skip_assert=True, periodic=False)
-    
+        sin(floats), interval, iter_count, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_cos_{method}",
         partial(via_chebyshev, op=cos, validate=False, method=method), floats, stensor,
-        cos(floats), interval, skip_assert=True, periodic=False)
-    
+        cos(floats), interval, iter_count, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
         partial(via_chebyshev, op=sinh, validate=False, method=method), floats, stensor,
-        sinh(floats), interval, skip_assert=True, periodic=False)
-    
+        sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
+
     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
         partial(via_chebyshev, op=cosh, validate=False, method=method), floats, stensor,
-        cosh(floats), interval, skip_assert=True, periodic=False)
+        cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_chebyshev, op=tanh, validate=False, method=method), floats, stensor,
-        tanh(floats), interval, skip_assert=True, periodic=False)
-    
+        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+
     period = interval[1] - interval[0]
     if period < math.pi:
         if interval[0] < 0:
             _test_op(mpc, data_dump, f"{name}_tan_{method}",
                 partial(via_chebyshev, op=tan, validate=False, method=method), floats, stensor,
-                tan(floats), interval, skip_assert=True, periodic=False)
+                tan(floats), interval, iter_count, skip_assert=True, periodic=False)
         else:
             _test_op(mpc, data_dump, f"{name}_cot_{method}",
                 partial(via_chebyshev, op=cot, validate=False, method=method), floats, stensor,
-                cot(floats), interval, skip_assert=True, periodic=False)
+                cot(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_chebyshev, op=log, validate=False, method=method), floats, stensor,
-            log(floats), interval, skip_assert=True, periodic=False)
+            log(floats), interval, iter_count, skip_assert=True, periodic=False)
         
         _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
             partial(via_chebyshev, op=mul_inv, validate=False, method=method), floats, stensor,
-            mul_inv(floats), interval, skip_assert=True, periodic=False)
+            mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
             partial(via_chebyshev, op=sqrt, validate=False, method=method), floats, stensor,
-            sqrt(floats), interval, skip_assert=True, periodic=False)
+            sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
-def _test_taylor_method(mpc, data_dump, floats, stensor, interval, method: Static[str]):
+def _test_taylor_method(
+        mpc, data_dump, floats, stensor, interval, iter_count, method: Static[str]):
     name = f"taylor_{TAYLOR_DEGREE}"
     _test_op(mpc, data_dump, f"{name}_sin_{method}",
         partial(via_taylor, op=sin, method=method), floats, stensor,
-        sin(floats), interval, skip_assert=True, periodic=False)
+        sin(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cos_{method}",
         partial(via_taylor, op=cos, method=method), floats, stensor,
-        cos(floats), interval, skip_assert=True, periodic=False)
+        cos(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
         partial(via_taylor, op=sigmoid, method=method), floats, stensor,
-        sigmoid(floats), interval, skip_assert=True, periodic=False)
+        sigmoid(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_exp_{method}",
         partial(via_taylor, op=exp, method=method), floats, stensor,
-        exp(floats), interval, skip_assert=True, periodic=False)
+        exp(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
         partial(via_taylor, op=sinh, method=method), floats, stensor,
-        sinh(floats), interval, skip_assert=True, periodic=False)
+        sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
         partial(via_taylor, op=cosh, method=method), floats, stensor,
-        cosh(floats), interval, skip_assert=True, periodic=False)
+        cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
         partial(via_taylor, op=tanh, method=method), floats, stensor,
-        tanh(floats), interval, skip_assert=True, periodic=False)
+        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
             partial(via_taylor, op=log, method=method), floats, stensor,
-            log(floats), interval, skip_assert=True, periodic=False)
+            log(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
             partial(via_taylor, op=mul_inv, method=method), floats, stensor,
-            mul_inv(floats), interval, skip_assert=True, periodic=False)
+            mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
             partial(via_taylor, op=sqrt, method=method), floats, stensor,
-            sqrt(floats), interval, skip_assert=True, periodic=False)
+            sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_log_reg_method(
@@ -257,7 +301,8 @@ def _test_log_reg_method(
 
     with stats_log(mpc, name, data_dump):
         mpc_log_reg = LogReg(mpc_initial_w, variant=variant).fit(
-            mpc, X=mpc_X, y=mpc_y, step=step_size, epochs=epochs, verbose=False, method=method)
+            mpc, X=mpc_X, y=mpc_y, step=step_size,
+            epochs=epochs, verbose=False, method=method)
 
     if mpc.pid > 0:
         assert_eq_approx(
@@ -276,8 +321,8 @@ def _test_log_reg_method(
 
 def _eval_dti_model(
         mpc, data_dump, X, y, X_test, y_test, act_1, act_2, loss,
-        epochs=50, batch_size=50, learning_rate=0.2, momentum=0.9,
-        method: Static[str] = METHOD_CHEBYSHEV):
+        epochs=50, batch_size=50, learning_rate=0.2,
+        momentum=0.9, method: Static[str] = METHOD_CHEBYSHEV):
     name = f"dti_{act_2}_{method}"
     input_dim = X.shape[1]
     
@@ -396,7 +441,7 @@ def test_division(mpc):
         stensor_2 = Sharetensor.enc(mpc, rand_vec_2)
 
         div_decor_newton = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="newton")
-        div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, niter=7, method="goldschmidt")
+        div_decor_goldschmidt = _decor_div(mpc, stensor_1, stensor_2, niter=15, method="goldschmidt")
 
         if mpc.pid != 0:
             assert_eq_approx(
@@ -409,7 +454,7 @@ def test_division(mpc):
                 silent_pass=True)
 
 
-def test_decor_trig(mpc, interval, sample_size):
+def test_decor_trig(mpc, interval, sample_size, iter_count):
     """
     Test Decor for computing sin and cos.
     """
@@ -424,21 +469,21 @@ def test_decor_trig(mpc, interval, sample_size):
     data_dump = {'x': floats}
     period = interval[1] - interval[0]
 
-    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, method="sin")
-    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, method="cos")
+    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, iter_count, method="sin")
+    _test_decor_trig_method(mpc, data_dump, floats, shared_floats, False, iter_count, method="cos")
 
     if period < math.pi:
         if interval[0] < 0:
             _test_decor_trig_method(
-                mpc, data_dump, floats, shared_floats, False, method="tan")
+                mpc, data_dump, floats, shared_floats, False, iter_count, method="tan")
         else:
             _test_decor_trig_method(
-                mpc, data_dump, floats, shared_floats, False, method="cot")
+                mpc, data_dump, floats, shared_floats, False, iter_count, method="cot")
 
     return data_dump
 
 
-def test_decor(mpc, interval, sample_size):
+def test_decor(mpc, interval, sample_size, iter_count):
     """
     Test Decor.
     """
@@ -451,24 +496,24 @@ def test_decor(mpc, interval, sample_size):
     skip_assert = period > DECOR_POLY_PERIOD_OF_THRS
 
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, skip_assert, method="exp")
+        mpc, data_dump, floats, shared_floats, interval, skip_assert, iter_count, method="exp")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, skip_assert, method="sigmoid")
+        mpc, data_dump, floats, shared_floats, interval, skip_assert, iter_count, method="sigmoid")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, True, method="tanh")
+        mpc, data_dump, floats, shared_floats, interval, True, iter_count, method="tanh")
     _test_decor_method(
-        mpc, data_dump, floats, shared_floats, interval, False, 3, list(range(1, 5)), method="polynomial")
-    
+        mpc, data_dump, floats, shared_floats, interval, False, iter_count, 3, list(range(1, 5)), method="polynomial")
+
     if period <= DECOR_POLY_PERIOD_OF_THRS:
         _test_decor_method(
-            mpc, data_dump, floats, shared_floats, interval, True, method="sinh")
+            mpc, data_dump, floats, shared_floats, interval, True, iter_count, method="sinh")
         _test_decor_method(
-            mpc, data_dump, floats, shared_floats, interval, True, method="cosh")
+            mpc, data_dump, floats, shared_floats, interval, True, iter_count, method="cosh")
     
     return data_dump
 
 
-def test_decor_fourier(mpc, interval, sample_size):
+def test_decor_fourier(mpc, interval, sample_size, iter_count):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
     print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
@@ -483,83 +528,93 @@ def test_decor_fourier(mpc, interval, sample_size):
     name = f"fourier_{FOURIER_DEGREE}"
     _test_op(mpc, data_dump, f"{name}_sin",
         partial(via_fourier, op=sin), floats, stensor,
-        sin(floats), interval, skip_assert=True)
+        sin(floats), interval, iter_count, skip_assert=True)
 
     _test_op(mpc, data_dump, f"{name}_cos",
         partial(via_fourier, op=cos), floats, stensor,
-        cos(floats), interval, skip_assert=True)
+        cos(floats), interval, iter_count, skip_assert=True)
 
     _test_op(mpc, data_dump, f"{name}_sigmoid",
         partial(via_fourier, op=sigmoid), floats, stensor,
-        sigmoid(floats), interval, skip_assert=True)
+        sigmoid(floats), interval, iter_count, skip_assert=True)
 
     _test_op(mpc, data_dump, f"{name}_exp",
         partial(via_fourier, op=exp), floats, stensor,
-        exp(floats), interval, skip_assert=True)
+        exp(floats), interval, iter_count, skip_assert=True)
 
     _test_op(mpc, data_dump, f"{name}_sinh",
         partial(via_fourier, op=sinh), floats, stensor,
-        sinh(floats), interval, skip_assert=True)
-    
+        sinh(floats), interval, iter_count, skip_assert=True)
+
     _test_op(mpc, data_dump, f"{name}_cosh",
         partial(via_fourier, op=cosh), floats, stensor,
-        cosh(floats), interval, skip_assert=True)
+        cosh(floats), interval, iter_count, skip_assert=True)
 
     _test_op(mpc, data_dump, f"{name}_tanh",
         partial(via_fourier, op=tanh), floats, stensor,
-        tanh(floats), interval, skip_assert=True)
-    
+        tanh(floats), interval, iter_count, skip_assert=True)
+
     if period < math.pi:
         if interval[0] < 0:
             _test_op(mpc, data_dump, f"{name}_tan",
                 partial(via_fourier, op=tan), floats, stensor,
-                tan(floats), interval, skip_assert=True)
+                tan(floats), interval, iter_count, skip_assert=True)
         else:
             _test_op(mpc, data_dump, f"{name}_cot",
                 partial(via_fourier, op=cot), floats, stensor,
-                cot(floats), interval, skip_assert=True)
-    
+                cot(floats), interval, iter_count, skip_assert=True)
+
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log",
             partial(via_fourier, op=log), floats, stensor,
-            log(floats), interval, skip_assert=True)
+            log(floats), interval, iter_count, skip_assert=True)
 
         _test_op(mpc, data_dump, f"{name}_mul_inv",
             partial(via_fourier, op=mul_inv), floats, stensor,
-            mul_inv(floats), interval, skip_assert=True)
+            mul_inv(floats), interval, iter_count, skip_assert=True)
 
         _test_op(mpc, data_dump, f"{name}_sqrt",
             partial(via_fourier, op=sqrt), floats, stensor,
-            sqrt(floats), interval, skip_assert=True)
+            sqrt(floats), interval, iter_count, skip_assert=True)
 
     return data_dump
 
 
-def test_chebyshev(mpc, interval, sample_size):
+def test_chebyshev(mpc, interval, sample_size, iter_count):
     print(f'CP{mpc.pid}:\tTesting Sequre Chebyshev at interval {interval} ... \n')
     floats = linspace(*interval, sample_size)
     stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
     period = interval[1] - interval[0]
     
-    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_CLENSHAW)
-    _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_NAIVE)
+    _test_chebyshev_method(
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method=POLY_EVAL_CLENSHAW)
+    _test_chebyshev_method(
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method=POLY_EVAL_NAIVE)
 
     if period <= DECOR_POLY_PERIOD_OF_THRS:
-        _test_chebyshev_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
+        _test_chebyshev_method(
+            mpc, data_dump, floats, stensor, interval,
+            iter_count, method=POLY_EVAL_DECOR)
 
     return data_dump
 
 
-def test_taylor(mpc, interval, sample_size):
+def test_taylor(mpc, interval, sample_size, iter_count):
     print(f'CP{mpc.pid}:\tTesting Sequre Taylor at interval {interval} ... \n')
 
     floats = linspace(*interval, sample_size)
     stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
-    
-    _test_taylor_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_DECOR)
-    _test_taylor_method(mpc, data_dump, floats, stensor, interval, method=POLY_EVAL_NAIVE)
+
+    _test_taylor_method(
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method=POLY_EVAL_DECOR)
+    _test_taylor_method(
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method=POLY_EVAL_NAIVE)
 
     return data_dump
 
@@ -604,7 +659,8 @@ def test_log_reg(mpc):
                 X, y_binary if i == 0 else y_multinomial,
                 raw_initial_w_binary if i == 0 else raw_initial_w_multinomial,
                 mpc_initial_w_binary if i == 0 else mpc_initial_w_multinomial,
-                step_size, epochs, data_dump, variant="binary" if i == 0 else "multinomial",
+                step_size, epochs, data_dump,
+                variant="binary" if i == 0 else "multinomial",
                 method=METHOD_DECOR if j == 0 else METHOD_FOURIER if j == 1 else METHOD_CHEBYSHEV)
     
     print(f'CP{mpc.pid}:\tSequre logistic regression tests passed.\n')
@@ -642,7 +698,7 @@ def test_dti(mpc):
             _eval_dti_model(
                 mpc, data_dump, X, y, X_test, y_test, *comb,
                 epochs=epochs, method=METHOD_TAYLOR)
-    
+
     print(f'CP{mpc.pid}:\tDTI tests passed.\n')
 
     return data_dump
@@ -655,23 +711,30 @@ def test(mpc):
         test_division(mpc)
 
     sample_size = 500
+    iter_count = 10
     intervals = [
         (-10.0, 10.0),
         (math.pi, math.pi * 3),
         (-math.pi / 4, math.pi / 4),  # To test tan
         (math.pi / 4, math.pi * 3 / 4)  # To test cot
         ]
+    
+    with mpc.detach_dealer():
+        for i, interval in enumerate(intervals):
+            pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(
+                mpc, interval, sample_size, iter_count))
+            pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(
+                mpc, interval, sample_size, iter_count))
+            pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(
+                mpc, interval, sample_size, iter_count))
+            pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(
+                mpc, interval, sample_size, iter_count))
+            pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
+                mpc, interval, sample_size, iter_count))
 
-    for i, interval in enumerate(intervals):
-        pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(mpc, interval, sample_size))
-        pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(mpc, interval, sample_size))
-        pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(mpc, interval, sample_size))
-        pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(mpc, interval, sample_size))
-        pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(mpc, interval, sample_size))
-
-    pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
-    # Skipping DTI test for now due to its long runtime
-    # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
+        # Skipping large tests
+        # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
+        # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
 
 
 @local
@@ -681,4 +744,6 @@ def _local_run(mpc):
 if "--local" in sys.argv:
     _local_run()
 else:
-    test(mpc())
+    mpc = mpc()
+    test(mpc)
+    mpc.done()

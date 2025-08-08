@@ -166,12 +166,30 @@ class NoTruncation[TP, T]:
         self.arg.itrunc(self.mpc)
 
 
+class DetachDealer[TP]:
+    mpc: MPCEnv[TP]
+
+    def __init__(self, mpc: MPCEnv[TP]):
+        self.mpc = mpc
+
+    def __enter__(self):
+        self.mpc.comms.detach_dealer = self.mpc.pid == 0
+
+    def __exit__(self):
+        self.mpc.comms.detach_dealer = False
+        self.mpc.comms.flush_dealer_buffers()
+
+
 @extend
 class MPCEnv:
     # TODO: Remember to add default_truncation_allowed attribute to MPCFP when integrating back into Sequre
     def delayed_truncation(self, arg):
         """ Dissalows SMC truncation and truncates arg on exit """
         return NoTruncation(self, arg)
+    
+    def detach_dealer(self):
+        """ Detachs the trusted dealer from the MPC environment """
+        return DetachDealer(self)
 
 
 @extend
