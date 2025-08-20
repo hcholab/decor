@@ -108,11 +108,11 @@ def sgn(value):
     return recursive_reduce(lambda x: 1.0 if x > 0 else (-1.0 if x < 0 else 0.0), value)
 
 
-def square_wave(value, period=math.pi * 2):
-    return sgn(sin(value * (2 * math.pi / period)))
+def square_wave(value, period=math.pi):
+    return sgn(cos(value * (2 * math.pi / period)))
 
 
-def sawtooth_wave(value, period=math.pi * 2):
+def sawtooth_wave(value, period=math.pi):
     return recursive_reduce(lambda x: (x / period) - math.floor((x / period) + 0.5), value)
 
 

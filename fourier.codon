@@ -49,12 +49,13 @@ def decor_fourier_partition(mpc, x_r, r, coeffs, period, modulus, degree: Static
 
 
 def decor_fourier(mpc, t1s, sin_rs_share, t2s, cos_rs_share, coeffs, modulus):
-    ts = mpc.fp.trunc(cos_rs_share.mul_mod(t1s, modulus).add_mod(sin_rs_share.mul_mod(t2s, modulus), modulus), modulus)
+    ts = cos_rs_share.mul_mod(t1s, modulus).add_mod(sin_rs_share.mul_mod(t2s, modulus), modulus)
 
     result_share = ts[0]
     for i in range(1, len(ts)):
         result_share = result_share.add_mod(ts[i], modulus)
 
+    result_share = mpc.fp.trunc(result_share, modulus)
     return mpc.arithmetic.add_public(result_share, double_to_fp(coeffs[0], modulus), modulus)
 
 
