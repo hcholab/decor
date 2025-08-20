@@ -5,7 +5,7 @@ from numpy.create import array
 from sequre.attributes import sequre
 from sequre.stdlib.chebyshev import chebyshev_coeffs, chebyshev_nodes
 
-from constants import POLY_EVAL_CLENSHAW, POLY_EVAL_DECOR, POLY_EVAL_NAIVE, CHEBYSHEV_DEGREE
+from constants import POLY_EVAL_CLENSHAW, POLY_EVAL_DECOR, POLY_EVAL_NAIVE
 from ..decor import via_decor
 from ..utils import secure_powers
 
@@ -27,14 +27,17 @@ def chebyshev_evaluate_clenshaw(mpc, scaled_x, coeffs):
 
 @python
 def chebyshev_monomial(coeffs: List[float]) -> List[float]:
-    from numpy.polynomial import Chebyshev, Polynomial
-    cheb_poly = Chebyshev(coeffs)
-    poly = cheb_poly.convert(kind=Polynomial)
-    return poly.coef.tolist()
+    # Convert Chebyshev coefficients to monomial coefficients using NumPy
+    import numpy as np
+    result = np.polynomial.chebyshev.cheb2poly(coeffs)
+    # Pad with zeros if result is shorter than input
+    # It must be trailing zeros, because cheb2poly returns coefficients in increasing order of degree (constant term first).
+    result = np.pad(result, (0, len(coeffs) - len(result)))
+    return result.tolist()
 
 
 @sequre
-def via_chebyshev(mpc, x, op, interval, validate, method: Static[str], degree: Static[int] = CHEBYSHEV_DEGREE):
+def via_chebyshev(mpc, x, op, interval, validate, method: Static[str], degree: Static[int]):
     coeffs = chebyshev_coeffs(
         op=op,
         nodes=chebyshev_nodes(degree + 1, interval),

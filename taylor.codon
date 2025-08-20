@@ -3,7 +3,7 @@ import math
 from numpy.create import array
 
 from sequre.attributes import sequre
-from patch.constants import TAYLOR_DEGREE, POLY_EVAL_DECOR, POLY_EVAL_NAIVE
+from patch.constants import POLY_EVAL_DECOR, POLY_EVAL_NAIVE
 
 from decor import via_decor
 from derivatives import derive, taylor_df
@@ -23,7 +23,7 @@ def _experimental_taylor_decor(mpc, x, op, interval, degree: Static[int]):
     return stensor
 
 
-def taylor_coeffs(op, pivot, degree: Static[int] = TAYLOR_DEGREE):
+def taylor_coeffs(op, pivot, degree: Static[int]):
     # Compute discrete derivatives limited to degree 3 for sigmoid and tanh
     # due to numerical instability
     if op.__name__[:7] == "sigmoid" or op.__name__[:4] == "tanh":
@@ -35,7 +35,7 @@ def taylor_coeffs(op, pivot, degree: Static[int] = TAYLOR_DEGREE):
 
 
 @sequre
-def via_taylor(mpc, x, op, interval, method: Static[str], degree: Static[int] = TAYLOR_DEGREE):
+def via_taylor(mpc, x, op, interval, method: Static[str], degree: Static[int]):
     pivot = (interval[0] + interval[1]) / 2
     coeffs, clipped_degree = taylor_coeffs(op=op, pivot=pivot, degree=degree)
     

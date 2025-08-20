@@ -16,9 +16,7 @@ from patch.constants import (
     POLY_EVAL_DECOR, POLY_EVAL_NAIVE,
     METHOD_CHEBYSHEV, METHOD_TAYLOR,
     METHOD_FOURIER, METHOD_DECOR,
-    MPC_NBIT_K, CHEBYSHEV_DEGREE, 
-    FOURIER_DEGREE, TAYLOR_DEGREE,
-    MPC_INT_SIZE)
+    MPC_NBIT_K, MPC_INT_SIZE)
 from patch.model import Sequential
 from patch.layers import Input, Dense
 from patch.log_reg import LogReg
@@ -31,8 +29,8 @@ from taylor import via_taylor
 from patch.chebyshev import via_chebyshev
 from utils import (
     linspace, trig_double_to_fp, period_double_to_fp,
-    sin, cos, tan, cot, exp, sigmoid, log,
-    mul_inv, sqrt, sinh, cosh, tanh)
+    sin, cos, tan, cot, exp, sigmoid, log, mul_inv,
+    sqrt, sinh, cosh, tanh, square_wave, sawtooth_wave)
 
 from C import usleep(int) -> int
 
@@ -40,6 +38,9 @@ from C import usleep(int) -> int
 DECOR_POLY_PERIOD_OF_THRS: Static[int] = (
     7 if MPC_INT_SIZE == 128 else
     10 if MPC_INT_SIZE == 192 else 20)
+DEGREE_LOWER_LIMIT: Static[int] = 5
+DEGREE_UPPER_LIMIT: Static[int] = 101
+DEGREE_SIEVE_INTERVAL: Static[int] = 5
 
 
 @python
@@ -192,103 +193,113 @@ def _test_decor_method(
 
 
 def _test_chebyshev_method(
-        mpc, data_dump, floats, stensor, interval, iter_count, method: Static[str]):
-    name = f"chebyshev_{CHEBYSHEV_DEGREE}"
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method: Static[str], degree: Static[int]):
+    name = f"chebyshev_{degree}"
     _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
-        partial(via_chebyshev, op=sigmoid, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=sigmoid, validate=False, method=method, degree=degree), floats, stensor,
         sigmoid(floats), interval, iter_count, skip_assert=True, periodic=False)
     
     _test_op(mpc, data_dump, f"{name}_exp_{method}",
-        partial(via_chebyshev, op=exp, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=exp, validate=False, method=method, degree=degree), floats, stensor,
         exp(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sin_{method}",
-        partial(via_chebyshev, op=sin, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=sin, validate=False, method=method, degree=degree), floats, stensor,
         sin(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cos_{method}",
-        partial(via_chebyshev, op=cos, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=cos, validate=False, method=method, degree=degree), floats, stensor,
         cos(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-        partial(via_chebyshev, op=sinh, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=sinh, validate=False, method=method, degree=degree), floats, stensor,
         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-        partial(via_chebyshev, op=cosh, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=cosh, validate=False, method=method, degree=degree), floats, stensor,
         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-        partial(via_chebyshev, op=tanh, validate=False, method=method), floats, stensor,
+        partial(via_chebyshev, op=tanh, validate=False, method=method, degree=degree), floats, stensor,
         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    
+    _test_op(mpc, data_dump, f"{name}_square_wave_{method}",
+        partial(via_chebyshev, op=square_wave, validate=False, method=method, degree=degree), floats, stensor,
+        square_wave(floats), interval, iter_count, skip_assert=True, periodic=False)
+
+    _test_op(mpc, data_dump, f"{name}_sawtooth_wave_{method}",
+        partial(via_chebyshev, op=sawtooth_wave, validate=False, method=method, degree=degree), floats, stensor,
+        sawtooth_wave(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     period = interval[1] - interval[0]
     if period < math.pi:
         if interval[0] < 0:
             _test_op(mpc, data_dump, f"{name}_tan_{method}",
-                partial(via_chebyshev, op=tan, validate=False, method=method), floats, stensor,
+                partial(via_chebyshev, op=tan, validate=False, method=method, degree=degree), floats, stensor,
                 tan(floats), interval, iter_count, skip_assert=True, periodic=False)
         else:
             _test_op(mpc, data_dump, f"{name}_cot_{method}",
-                partial(via_chebyshev, op=cot, validate=False, method=method), floats, stensor,
+                partial(via_chebyshev, op=cot, validate=False, method=method, degree=degree), floats, stensor,
                 cot(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
-            partial(via_chebyshev, op=log, validate=False, method=method), floats, stensor,
+            partial(via_chebyshev, op=log, validate=False, method=method, degree=degree), floats, stensor,
             log(floats), interval, iter_count, skip_assert=True, periodic=False)
         
         _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-            partial(via_chebyshev, op=mul_inv, validate=False, method=method), floats, stensor,
+            partial(via_chebyshev, op=mul_inv, validate=False, method=method, degree=degree), floats, stensor,
             mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-            partial(via_chebyshev, op=sqrt, validate=False, method=method), floats, stensor,
+            partial(via_chebyshev, op=sqrt, validate=False, method=method, degree=degree), floats, stensor,
             sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_taylor_method(
-        mpc, data_dump, floats, stensor, interval, iter_count, method: Static[str]):
-    name = f"taylor_{TAYLOR_DEGREE}"
+        mpc, data_dump, floats, stensor, interval,
+        iter_count, method: Static[str], degree: Static[int]):
+    name = f"taylor_{degree}"
     _test_op(mpc, data_dump, f"{name}_sin_{method}",
-        partial(via_taylor, op=sin, method=method), floats, stensor,
+        partial(via_taylor, op=sin, method=method, degree=degree), floats, stensor,
         sin(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cos_{method}",
-        partial(via_taylor, op=cos, method=method), floats, stensor,
+        partial(via_taylor, op=cos, method=method, degree=degree), floats, stensor,
         cos(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sigmoid_{method}",
-        partial(via_taylor, op=sigmoid, method=method), floats, stensor,
+        partial(via_taylor, op=sigmoid, method=method, degree=degree), floats, stensor,
         sigmoid(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_exp_{method}",
-        partial(via_taylor, op=exp, method=method), floats, stensor,
+        partial(via_taylor, op=exp, method=method, degree=degree), floats, stensor,
         exp(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-        partial(via_taylor, op=sinh, method=method), floats, stensor,
+        partial(via_taylor, op=sinh, method=method, degree=degree), floats, stensor,
         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-        partial(via_taylor, op=cosh, method=method), floats, stensor,
+        partial(via_taylor, op=cosh, method=method, degree=degree), floats, stensor,
         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-        partial(via_taylor, op=tanh, method=method), floats, stensor,
+        partial(via_taylor, op=tanh, method=method, degree=degree), floats, stensor,
         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
     if interval[0] > 0:
         _test_op(mpc, data_dump, f"{name}_log_{method}",
-            partial(via_taylor, op=log, method=method), floats, stensor,
+            partial(via_taylor, op=log, method=method, degree=degree), floats, stensor,
             log(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-            partial(via_taylor, op=mul_inv, method=method), floats, stensor,
+            partial(via_taylor, op=mul_inv, method=method, degree=degree), floats, stensor,
             mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
 
         _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-            partial(via_taylor, op=sqrt, method=method), floats, stensor,
+            partial(via_taylor, op=sqrt, method=method, degree=degree), floats, stensor,
             sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
@@ -525,57 +536,69 @@ def test_decor_fourier(mpc, interval, sample_size, iter_count):
     stensor.fp = True
     data_dump = {'x': floats}
 
-    name = f"fourier_{FOURIER_DEGREE}"
-    _test_op(mpc, data_dump, f"{name}_sin",
-        partial(via_fourier, op=sin), floats, stensor,
-        sin(floats), interval, iter_count, skip_assert=True)
+    for degree in staticrange(DEGREE_LOWER_LIMIT, DEGREE_UPPER_LIMIT):
+        if degree % DEGREE_SIEVE_INTERVAL:  # No need to test all degrees
+            continue
+    
+        name = f"fourier_{degree}"
+        _test_op(mpc, data_dump, f"{name}_sin",
+            partial(via_fourier, op=sin, degree=degree), floats, stensor,
+            sin(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_cos",
-        partial(via_fourier, op=cos), floats, stensor,
-        cos(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_cos",
+            partial(via_fourier, op=cos, degree=degree), floats, stensor,
+            cos(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_sigmoid",
-        partial(via_fourier, op=sigmoid), floats, stensor,
-        sigmoid(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_sigmoid",
+            partial(via_fourier, op=sigmoid, degree=degree), floats, stensor,
+            sigmoid(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_exp",
-        partial(via_fourier, op=exp), floats, stensor,
-        exp(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_exp",
+            partial(via_fourier, op=exp, degree=degree), floats, stensor,
+            exp(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_sinh",
-        partial(via_fourier, op=sinh), floats, stensor,
-        sinh(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_sinh",
+            partial(via_fourier, op=sinh, degree=degree), floats, stensor,
+            sinh(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_cosh",
-        partial(via_fourier, op=cosh), floats, stensor,
-        cosh(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_cosh",
+            partial(via_fourier, op=cosh, degree=degree), floats, stensor,
+            cosh(floats), interval, iter_count, skip_assert=True)
 
-    _test_op(mpc, data_dump, f"{name}_tanh",
-        partial(via_fourier, op=tanh), floats, stensor,
-        tanh(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_tanh",
+            partial(via_fourier, op=tanh, degree=degree), floats, stensor,
+            tanh(floats), interval, iter_count, skip_assert=True)
+        
+        _test_op(mpc, data_dump, f"{name}_square_wave",
+            partial(via_fourier, op=square_wave, degree=degree), floats, stensor,
+            square_wave(floats), interval, iter_count, skip_assert=True)
 
-    if period < math.pi:
-        if interval[0] < 0:
-            _test_op(mpc, data_dump, f"{name}_tan",
-                partial(via_fourier, op=tan), floats, stensor,
-                tan(floats), interval, iter_count, skip_assert=True)
-        else:
-            _test_op(mpc, data_dump, f"{name}_cot",
-                partial(via_fourier, op=cot), floats, stensor,
-                cot(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_sawtooth_wave",
+            partial(via_fourier, op=sawtooth_wave, degree=degree), floats, stensor,
+            sawtooth_wave(floats), interval, iter_count, skip_assert=True)
 
-    if interval[0] > 0:
-        _test_op(mpc, data_dump, f"{name}_log",
-            partial(via_fourier, op=log), floats, stensor,
-            log(floats), interval, iter_count, skip_assert=True)
+        if period < math.pi:
+            if interval[0] < 0:
+                _test_op(mpc, data_dump, f"{name}_tan",
+                    partial(via_fourier, op=tan, degree=degree), floats, stensor,
+                    tan(floats), interval, iter_count, skip_assert=True)
+            else:
+                _test_op(mpc, data_dump, f"{name}_cot",
+                    partial(via_fourier, op=cot, degree=degree), floats, stensor,
+                    cot(floats), interval, iter_count, skip_assert=True)
 
-        _test_op(mpc, data_dump, f"{name}_mul_inv",
-            partial(via_fourier, op=mul_inv), floats, stensor,
-            mul_inv(floats), interval, iter_count, skip_assert=True)
+        if interval[0] > 0:
+            _test_op(mpc, data_dump, f"{name}_log",
+                partial(via_fourier, op=log, degree=degree), floats, stensor,
+                log(floats), interval, iter_count, skip_assert=True)
 
-        _test_op(mpc, data_dump, f"{name}_sqrt",
-            partial(via_fourier, op=sqrt), floats, stensor,
-            sqrt(floats), interval, iter_count, skip_assert=True)
+            _test_op(mpc, data_dump, f"{name}_mul_inv",
+                partial(via_fourier, op=mul_inv, degree=degree), floats, stensor,
+                mul_inv(floats), interval, iter_count, skip_assert=True)
+
+            _test_op(mpc, data_dump, f"{name}_sqrt",
+                partial(via_fourier, op=sqrt, degree=degree), floats, stensor,
+                sqrt(floats), interval, iter_count, skip_assert=True)
 
     return data_dump
 
@@ -587,17 +610,20 @@ def test_chebyshev(mpc, interval, sample_size, iter_count):
     data_dump = {'x': floats}
     period = interval[1] - interval[0]
     
-    _test_chebyshev_method(
-        mpc, data_dump, floats, stensor, interval,
-        iter_count, method=POLY_EVAL_CLENSHAW)
-    _test_chebyshev_method(
-        mpc, data_dump, floats, stensor, interval,
-        iter_count, method=POLY_EVAL_NAIVE)
-
-    if period <= DECOR_POLY_PERIOD_OF_THRS:
+    for degree in staticrange(DEGREE_LOWER_LIMIT, DEGREE_UPPER_LIMIT):
+        if degree % DEGREE_SIEVE_INTERVAL:  # No need to test all degrees
+            continue
         _test_chebyshev_method(
             mpc, data_dump, floats, stensor, interval,
-            iter_count, method=POLY_EVAL_DECOR)
+            iter_count, method=POLY_EVAL_CLENSHAW, degree=degree)
+        _test_chebyshev_method(
+            mpc, data_dump, floats, stensor, interval,
+            iter_count, method=POLY_EVAL_NAIVE, degree=degree)
+
+        if period <= DECOR_POLY_PERIOD_OF_THRS:
+            _test_chebyshev_method(
+                mpc, data_dump, floats, stensor, interval,
+                iter_count, method=POLY_EVAL_DECOR, degree=degree)
 
     return data_dump
 
@@ -609,12 +635,15 @@ def test_taylor(mpc, interval, sample_size, iter_count):
     stensor = Sharetensor.enc(mpc, array(floats))
     data_dump = {'x': floats}
 
-    _test_taylor_method(
-        mpc, data_dump, floats, stensor, interval,
-        iter_count, method=POLY_EVAL_DECOR)
-    _test_taylor_method(
-        mpc, data_dump, floats, stensor, interval,
-        iter_count, method=POLY_EVAL_NAIVE)
+    for degree in staticrange(3, 10):  # Factorial cannot be computed for degree>20
+        if degree % 2:  # No need to test all degrees
+            continue
+        _test_taylor_method(
+            mpc, data_dump, floats, stensor, interval,
+            iter_count, method=POLY_EVAL_DECOR, degree=degree)
+        _test_taylor_method(
+            mpc, data_dump, floats, stensor, interval,
+            iter_count, method=POLY_EVAL_NAIVE, degree=degree)
 
     return data_dump
 
@@ -713,8 +742,8 @@ def test(mpc):
     sample_size = 500
     iter_count = 10
     intervals = [
+        (-math.pi * 3, math.pi * 3),
         (-10.0, 10.0),
-        (math.pi, math.pi * 3),
         (-math.pi / 4, math.pi / 4),  # To test tan
         (math.pi / 4, math.pi * 3 / 4)  # To test cot
         ]

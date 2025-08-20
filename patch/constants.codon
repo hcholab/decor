@@ -1,6 +1,6 @@
 from sequre.constants import *
 
-NUM_THREADS: Static[int] = 4
+NUM_THREADS: Static[int] = 2
 NETWORK_DELAY_TIME: Static[int] = 0  # in microseconds
 
 METHOD_CHEBYSHEV: Static[str] = "chebyshev"

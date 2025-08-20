@@ -4,7 +4,7 @@ from sequre.types.builtin import *
 from sequre.types.sharetensor import Sharetensor
 from sequre.types.utils import double_to_fp
 
-from patch.constants import FOURIER_DEGREE, EPSILON, FBITS_MASK
+from patch.constants import EPSILON, FBITS_MASK
 from utils import (
     period_fp_to_double, sin, cos, trapz, linspace)
 
@@ -70,7 +70,7 @@ def fourier_evaluate(mpc, x, coeffs, period, degree: Static[int]):
     return stensor
 
 
-def via_fourier(mpc, x, op, interval, degree: Static[int] = FOURIER_DEGREE):
+def via_fourier(mpc, x, op, interval, degree: Static[int]):
     period = interval[1] - interval[0]
     nodes = linspace(*interval, 1000)
     
