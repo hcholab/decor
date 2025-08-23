@@ -1,0 +1,9 @@
+
+
+
+def load_geno(path):
+    raise NotImplementedError()
+
+
+def simulate_gwas_data(geno, pheno, n_samples):
+    raise NotImplementedError()

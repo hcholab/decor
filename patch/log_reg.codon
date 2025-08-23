@@ -100,9 +100,9 @@ class LogReg[T]:
         
         # Batched gradient descent
         w = initial_w  # n x 1
-        for _ in range(epochs):
-            if verbose:
-                print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {_ + 1}/{epochs}")
+        for epoch in range(epochs):
+            if verbose and epoch % 5 == 0:
+                print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {epoch + 1}/{epochs}")
             if debug:
                 print(f"CP{mpc.pid}:\t\t weigts avg {ndarray.mean(w.reveal(mpc))} | loss: "
                       f"{LogReg._loss(mpc, X_tilde, y, w, interval, variant, method=method).reveal(mpc)}")
@@ -127,10 +127,10 @@ class LogReg[T]:
         
         # Mini-batched gradient descent
         w = initial_w
-        for _ in range(epochs):
+        for epoch in range(epochs):
+            if verbose and epoch % 5 == 0:
+                print(f"CP{mpc.pid}:\tLog. reg. MBGD epoch {epoch + 1}/{epochs}")
             for i in range(batches):
-                if verbose:
-                    print(f"CP{mpc.pid}:\tLog. reg. MBGD epoch {_ + 1}/{epochs} -- batch {i + 1}/{batches}")
                 if debug:
                     print(f"CP{mpc.pid}:\t\t weigts avg {ndarray.mean(w.reveal(mpc))} | loss: "
                           f"{LogReg._loss(mpc, X_mini_batches[i], y_mini_batches[i], w, interval, variant, method=method).reveal(mpc)}")

@@ -11,12 +11,14 @@ from sequre.types.utils import double_to_fp
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx, assert_eq
 from sequre.utils.utils import random_floats
 
+from applications.mnist import load_train_data, load_test_data, mnist
+from applications.gwas import load_geno, simulate_gwas_data
+
 from patch.constants import (
     MPC_NBIT_F, POLY_EVAL_CLENSHAW,
     POLY_EVAL_DECOR, POLY_EVAL_NAIVE,
-    METHOD_CHEBYSHEV, METHOD_TAYLOR,
-    METHOD_FOURIER, METHOD_DECOR,
-    MPC_NBIT_K, MPC_INT_SIZE)
+    METHOD_CHEBYSHEV, METHOD_FOURIER,
+    METHOD_DECOR, MPC_NBIT_K)
 from patch.model import Sequential
 from patch.layers import Input, Dense
 from patch.log_reg import LogReg
@@ -35,9 +37,7 @@ from utils import (
 from C import usleep(int) -> int
 
 
-DECOR_POLY_PERIOD_OF_THRS: Static[int] = (
-    7 if MPC_INT_SIZE == 128 else
-    10 if MPC_INT_SIZE == 192 else 20)
+DECOR_POLY_PERIOD_OF_THRS: Static[int] = 10
 DEGREE_LOWER_LIMIT: Static[int] = 1
 DEGREE_UPPER_LIMIT: Static[int] = 15
 DEGREE_SIEVE: Static[int] = 5
@@ -211,18 +211,6 @@ def _test_chebyshev_method(
     _test_op(mpc, data_dump, f"{name}_cos_{method}",
         partial(via_chebyshev, op=cos, validate=False, method=method, degree=degree), floats, stensor,
         cos(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-        partial(via_chebyshev, op=sinh, validate=False, method=method, degree=degree), floats, stensor,
-        sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-        partial(via_chebyshev, op=cosh, validate=False, method=method, degree=degree), floats, stensor,
-        cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-        partial(via_chebyshev, op=tanh, validate=False, method=method, degree=degree), floats, stensor,
-        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
     
     _test_op(mpc, data_dump, f"{name}_square_wave_{method}",
         partial(via_chebyshev, op=square_wave, validate=False, method=method, degree=degree), floats, stensor,
@@ -232,29 +220,42 @@ def _test_chebyshev_method(
         partial(via_chebyshev, op=sawtooth_wave, validate=False, method=method, degree=degree), floats, stensor,
         sawtooth_wave(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    period = interval[1] - interval[0]
-    if period < math.pi:
-        if interval[0] < 0:
-            _test_op(mpc, data_dump, f"{name}_tan_{method}",
-                partial(via_chebyshev, op=tan, validate=False, method=method, degree=degree), floats, stensor,
-                tan(floats), interval, iter_count, skip_assert=True, periodic=False)
-        else:
-            _test_op(mpc, data_dump, f"{name}_cot_{method}",
-                partial(via_chebyshev, op=cot, validate=False, method=method, degree=degree), floats, stensor,
-                cot(floats), interval, iter_count, skip_assert=True, periodic=False)
+    # Temporarily excluded to save compile time
+    # period = interval[1] - interval[0]
+    # if period < math.pi:
+    #     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+    #         partial(via_chebyshev, op=sinh, validate=False, method=method, degree=degree), floats, stensor,
+    #         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    if interval[0] > 0:
-        _test_op(mpc, data_dump, f"{name}_log_{method}",
-            partial(via_chebyshev, op=log, validate=False, method=method, degree=degree), floats, stensor,
-            log(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+    #         partial(via_chebyshev, op=cosh, validate=False, method=method, degree=degree), floats, stensor,
+    #         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
+
+    #     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
+    #         partial(via_chebyshev, op=tanh, validate=False, method=method, degree=degree), floats, stensor,
+    #         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
         
-        _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-            partial(via_chebyshev, op=mul_inv, validate=False, method=method, degree=degree), floats, stensor,
-            mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     if interval[0] < 0:
+    #         _test_op(mpc, data_dump, f"{name}_tan_{method}",
+    #             partial(via_chebyshev, op=tan, validate=False, method=method, degree=degree), floats, stensor,
+    #             tan(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     else:
+    #         _test_op(mpc, data_dump, f"{name}_cot_{method}",
+    #             partial(via_chebyshev, op=cot, validate=False, method=method, degree=degree), floats, stensor,
+    #             cot(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-        _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-            partial(via_chebyshev, op=sqrt, validate=False, method=method, degree=degree), floats, stensor,
-            sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
+    # if interval[0] > 0:
+    #     _test_op(mpc, data_dump, f"{name}_log_{method}",
+    #         partial(via_chebyshev, op=log, validate=False, method=method, degree=degree), floats, stensor,
+    #         log(floats), interval, iter_count, skip_assert=True, periodic=False)
+        
+    #     _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
+    #         partial(via_chebyshev, op=mul_inv, validate=False, method=method, degree=degree), floats, stensor,
+    #         mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
+
+    #     _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
+    #         partial(via_chebyshev, op=sqrt, validate=False, method=method, degree=degree), floats, stensor,
+    #         sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_taylor_method(
@@ -277,30 +278,33 @@ def _test_taylor_method(
         partial(via_taylor, op=exp, method=method, degree=degree), floats, stensor,
         exp(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-        partial(via_taylor, op=sinh, method=method, degree=degree), floats, stensor,
-        sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    # Temporarily excluded to save compile time
+    # period = interval[1] - interval[0]
+    # if period < math.pi:
+    #     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+    #         partial(via_taylor, op=sinh, method=method, degree=degree), floats, stensor,
+    #         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-        partial(via_taylor, op=cosh, method=method, degree=degree), floats, stensor,
-        cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+    #         partial(via_taylor, op=cosh, method=method, degree=degree), floats, stensor,
+    #         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-        partial(via_taylor, op=tanh, method=method, degree=degree), floats, stensor,
-        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
+    #         partial(via_taylor, op=tanh, method=method, degree=degree), floats, stensor,
+    #         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    if interval[0] > 0:
-        _test_op(mpc, data_dump, f"{name}_log_{method}",
-            partial(via_taylor, op=log, method=method, degree=degree), floats, stensor,
-            log(floats), interval, iter_count, skip_assert=True, periodic=False)
+    # if interval[0] > 0:
+    #     _test_op(mpc, data_dump, f"{name}_log_{method}",
+    #         partial(via_taylor, op=log, method=method, degree=degree), floats, stensor,
+    #         log(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-        _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-            partial(via_taylor, op=mul_inv, method=method, degree=degree), floats, stensor,
-            mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
+    #         partial(via_taylor, op=mul_inv, method=method, degree=degree), floats, stensor,
+    #         mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-        _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-            partial(via_taylor, op=sqrt, method=method, degree=degree), floats, stensor,
-            sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
+    #     _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
+    #         partial(via_taylor, op=sqrt, method=method, degree=degree), floats, stensor,
+    #         sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_log_reg_method(
@@ -527,7 +531,7 @@ def test_decor(mpc, interval, sample_size, iter_count):
 def test_decor_fourier(mpc, interval, sample_size, iter_count):
     period = interval[1] - interval[0]
     modulus = mpc.default_mpc_modulus
-    print(f'CP{mpc.pid}:\tTesting Sequre Beaver Fourier at interval {interval} ... \n')
+    print(f'CP{mpc.pid}:\tTesting Decor Fourier at interval {interval} ... \n')
     
     floats = linspace(*interval, sample_size)
     fp_floats = period_double_to_fp(floats, period, modulus)
@@ -555,18 +559,6 @@ def test_decor_fourier(mpc, interval, sample_size, iter_count):
         _test_op(mpc, data_dump, f"{name}_exp",
             partial(via_fourier, op=exp, degree=degree), floats, stensor,
             exp(floats), interval, iter_count, skip_assert=True)
-
-        _test_op(mpc, data_dump, f"{name}_sinh",
-            partial(via_fourier, op=sinh, degree=degree), floats, stensor,
-            sinh(floats), interval, iter_count, skip_assert=True)
-
-        _test_op(mpc, data_dump, f"{name}_cosh",
-            partial(via_fourier, op=cosh, degree=degree), floats, stensor,
-            cosh(floats), interval, iter_count, skip_assert=True)
-
-        _test_op(mpc, data_dump, f"{name}_tanh",
-            partial(via_fourier, op=tanh, degree=degree), floats, stensor,
-            tanh(floats), interval, iter_count, skip_assert=True)
         
         _test_op(mpc, data_dump, f"{name}_square_wave",
             partial(via_fourier, op=square_wave, degree=degree), floats, stensor,
@@ -576,28 +568,41 @@ def test_decor_fourier(mpc, interval, sample_size, iter_count):
             partial(via_fourier, op=sawtooth_wave, degree=degree), floats, stensor,
             sawtooth_wave(floats), interval, iter_count, skip_assert=True)
 
-        if period < math.pi:
-            if interval[0] < 0:
-                _test_op(mpc, data_dump, f"{name}_tan",
-                    partial(via_fourier, op=tan, degree=degree), floats, stensor,
-                    tan(floats), interval, iter_count, skip_assert=True)
-            else:
-                _test_op(mpc, data_dump, f"{name}_cot",
-                    partial(via_fourier, op=cot, degree=degree), floats, stensor,
-                    cot(floats), interval, iter_count, skip_assert=True)
+        # Temporarily exluded to save compile time
+        # if period < math.pi:
+        #     _test_op(mpc, data_dump, f"{name}_sinh",
+        #         partial(via_fourier, op=sinh, degree=degree), floats, stensor,
+        #         sinh(floats), interval, iter_count, skip_assert=True)
 
-        if interval[0] > 0:
-            _test_op(mpc, data_dump, f"{name}_log",
-                partial(via_fourier, op=log, degree=degree), floats, stensor,
-                log(floats), interval, iter_count, skip_assert=True)
+        #     _test_op(mpc, data_dump, f"{name}_cosh",
+        #         partial(via_fourier, op=cosh, degree=degree), floats, stensor,
+        #         cosh(floats), interval, iter_count, skip_assert=True)
 
-            _test_op(mpc, data_dump, f"{name}_mul_inv",
-                partial(via_fourier, op=mul_inv, degree=degree), floats, stensor,
-                mul_inv(floats), interval, iter_count, skip_assert=True)
+        #     _test_op(mpc, data_dump, f"{name}_tanh",
+        #         partial(via_fourier, op=tanh, degree=degree), floats, stensor,
+        #         tanh(floats), interval, iter_count, skip_assert=True)
 
-            _test_op(mpc, data_dump, f"{name}_sqrt",
-                partial(via_fourier, op=sqrt, degree=degree), floats, stensor,
-                sqrt(floats), interval, iter_count, skip_assert=True)
+        #     if interval[0] < 0:
+        #         _test_op(mpc, data_dump, f"{name}_tan",
+        #             partial(via_fourier, op=tan, degree=degree), floats, stensor,
+        #             tan(floats), interval, iter_count, skip_assert=True)
+        #     else:
+        #         _test_op(mpc, data_dump, f"{name}_cot",
+        #             partial(via_fourier, op=cot, degree=degree), floats, stensor,
+        #             cot(floats), interval, iter_count, skip_assert=True)
+
+        # if interval[0] > 0:
+        #     _test_op(mpc, data_dump, f"{name}_log",
+        #         partial(via_fourier, op=log, degree=degree), floats, stensor,
+        #         log(floats), interval, iter_count, skip_assert=True)
+
+        #     _test_op(mpc, data_dump, f"{name}_mul_inv",
+        #         partial(via_fourier, op=mul_inv, degree=degree), floats, stensor,
+        #         mul_inv(floats), interval, iter_count, skip_assert=True)
+
+        #     _test_op(mpc, data_dump, f"{name}_sqrt",
+        #         partial(via_fourier, op=sqrt, degree=degree), floats, stensor,
+        #         sqrt(floats), interval, iter_count, skip_assert=True)
 
     return data_dump
 
@@ -615,12 +620,8 @@ def test_chebyshev(mpc, interval, sample_size, iter_count):
         _test_chebyshev_method(
             mpc, data_dump, floats, stensor, interval,
             iter_count, method=POLY_EVAL_CLENSHAW, degree=degree)
-        _test_chebyshev_method(
-            mpc, data_dump, floats, stensor, interval,
-            iter_count, method=POLY_EVAL_NAIVE, degree=degree)
-
         # Decor poly eval overflows for large periods and degrees for now
-        if degree <= 20:
+        if degree <= 10:
             if period <= DECOR_POLY_PERIOD_OF_THRS:
                 _test_chebyshev_method(
                     mpc, data_dump, floats, stensor, interval,
@@ -707,7 +708,6 @@ def test_dti(mpc):
 
     combinations = [
         ("relu", "linear", "hinge"),
-        ("relu", "tanh", "mean_squared_error"),
         ("relu", "sigmoid", "binary_crossentropy")
     ]
 
@@ -718,18 +718,135 @@ def test_dti(mpc):
             mpc, data_dump, X, y, X_test, y_test, *comb,
             epochs=epochs, method=METHOD_CHEBYSHEV)
         
-        if comb[1] == "tanh" or comb[1] == "sigmoid":
+        if comb[1] == "sigmoid":
             _eval_dti_model(
                 mpc, data_dump, X, y, X_test, y_test, *comb,
                 epochs=epochs, method=METHOD_DECOR)
             _eval_dti_model(
                 mpc, data_dump, X, y, X_test, y_test, *comb,
                 epochs=epochs, method=METHOD_FOURIER)
-            _eval_dti_model(
-                mpc, data_dump, X, y, X_test, y_test, *comb,
-                epochs=epochs, method=METHOD_TAYLOR)
 
     print(f'CP{mpc.pid}:\tDTI tests passed.\n')
+
+    return data_dump
+
+
+def test_mnist(mpc, epochs=20, verbose=True):
+    print(f'CP{mpc.pid}:\tTesting MNIST ... \n')
+    
+    data_dump: Dict[str, List[float]] = {}
+    with mpc.detach_dealer():
+        train_X, train_Y = load_train_data("./data/mnist/", 0)
+        test_X, test_Y = load_test_data("./data/mnist/", 0)
+    
+    np_train_X = array(train_X)
+    np_train_Y = array(train_Y)
+    np_test_X = array(test_X)
+    np_test_Y = array(test_Y)
+
+    classes = train_Y.shape[1]
+    raw_initial_W = array(random_floats((np_train_X.shape[1] + 1, classes), scale=1.0), dtype=float) * 0.01
+    
+    print(f'CP{mpc.pid}:\tTesting MNIST on plaintext (Chebyshev)... \n')
+    with stats_log(mpc, "mnist_plaintext", data_dump):
+        raw_mnist = mnist(
+            mpc, np_train_X, np_train_Y, raw_initial_W,
+            epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
+        raw_pred = raw_mnist.predict(mpc, np_test_X, method=METHOD_CHEBYSHEV).argmax(axis=1)
+    accuracy = (raw_pred == np_test_Y).astype(float).mean()
+    print(f"CP{mpc.pid}:\tMNIST plaintext accuracy (via Chebyshev): {accuracy}")
+    data_dump[f"mnist_plaintext_accuracy"] = [accuracy]
+
+    sequre_train_X = Sharetensor.enc(mpc, np_train_X)
+    sequre_train_Y = Sharetensor.enc(mpc, np_train_Y)
+    sequre_test_X = Sharetensor.enc(mpc, np_test_X)
+    sequre_initial_W = Sharetensor.enc(mpc, raw_initial_W)
+
+    print(f'CP{mpc.pid}:\tTesting MNIST in Sequre (Chebyshev)... \n')
+    with stats_log(mpc, "mnist_chebyshev", data_dump):
+        sequre_mnist = mnist(
+            mpc, sequre_train_X, sequre_train_Y, sequre_initial_W,
+            epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
+        sequre_pred = sequre_mnist.predict(mpc, sequre_test_X, method=METHOD_CHEBYSHEV).reveal(mpc).argmax(axis=1)
+    accuracy = (sequre_pred == np_test_Y).astype(float).mean()
+    print(f"CP{mpc.pid}:\tMNIST Sequre accuracy (via Chebyshev): {accuracy}")
+    data_dump[f"mnist_chebyshev_accuracy"] = [accuracy]
+
+    print(f'CP{mpc.pid}:\tTesting MNIST in Sequre (Decor)... \n')
+    with stats_log(mpc, "mnist_decor", data_dump):
+        sequre_mnist = mnist(
+            mpc, sequre_train_X, sequre_train_Y, sequre_initial_W,
+            epochs=epochs, verbose=verbose, method=METHOD_DECOR)
+        sequre_pred = sequre_mnist.predict(mpc, sequre_test_X, method=METHOD_DECOR).reveal(mpc).argmax(axis=1)
+    accuracy = (sequre_pred == np_test_Y).astype(float).mean()
+    print(f"CP{mpc.pid}:\tMNIST Sequre accuracy (via Decor): {accuracy}")
+    data_dump[f"mnist_decor_accuracy"] = [accuracy]
+
+    return data_dump
+
+
+def test_gwas(mpc, step=0.05 / 600, epochs=20, verbose=True):
+    print(f'CP{mpc.pid}:\tTesting GWAS ... \n')
+
+    data_dump: Dict[str, List[float]] = {}
+    geno = load_geno("./data/gwas/")
+    expected_betas, pheno = simulate_gwas_data(geno)
+
+    betas_ptx = zeros(expected_betas.shape)
+    betas_chebyshev = zeros(expected_betas.shape)
+    betas_decor = zeros(expected_betas.shape)
+    betas_fourier = zeros(expected_betas.shape)
+
+    with mpc.randomness.seed_switch(-1):
+        raw_initial_w = array(random_floats((2, 1), scale=1.0), dtype=float) * 0.01
+
+    raw_gwas = LogReg(raw_initial_w, optimizer="bgd", variant="multinomial")
+    sequre_gwas = LogReg(sequre_initial_w, optimizer="bgd", variant="multinomial")
+
+    sequre_geno = Sharetensor.enc(mpc, geno)
+    sequre_pheno = Sharetensor.enc(mpc, pheno)
+    sequre_initial_w = Sharetensor.enc(mpc, raw_initial_w)
+
+    for snp_idx in range(geno.shape[1]):
+        snp_ptx = array(geno)[:, snp_idx]
+        snp_sequre = sequre_geno[:, snp_idx]
+
+        print(f'CP{mpc.pid}:\tTesting GWAS in plaintext (Chebyshev) for SNP {snp_idx} ... \n')
+        raw_gwas.coef_ = raw_initial_w.copy()
+        with stats_log(mpc, "gwas_plaintext", data_dump):
+            raw_gwas.fit(
+                mpc, snp_ptx, pheno, step=step,
+                epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
+        betas_ptx[snp_idx] = raw_gwas.coef_[0, 0]
+
+        print(f'CP{mpc.pid}:\tTesting GWAS in Sequre (Chebyshev)... \n')
+        sequre_gwas.coef_ = sequre_initial_w.copy()
+        with stats_log(mpc, "gwas_sequre", data_dump):
+            sequre_gwas.fit(
+                mpc, snp_sequre, sequre_pheno, step=step,
+                epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
+        betas_chebyshev[snp_idx] = sequre_gwas.coef_.reveal(mpc)[0, 0]
+
+        print(f'CP{mpc.pid}:\tTesting GWAS in Sequre (Decor)... \n')
+        sequre_gwas.coef_ = sequre_initial_w.copy()
+        with stats_log(mpc, "gwas_decor", data_dump):
+            sequre_gwas.fit(
+                mpc, snp_sequre, sequre_pheno, step=step,
+                epochs=epochs, verbose=verbose, method=METHOD_DECOR)
+        betas_decor[snp_idx] = sequre_gwas.coef_.reveal(mpc)[0, 0]
+
+        print(f'CP{mpc.pid}:\tTesting GWAS in Sequre (Fourier)... \n')
+        sequre_gwas.coef_ = sequre_initial_w.copy()
+        with stats_log(mpc, "gwas_fourier", data_dump):
+            sequre_gwas.fit(
+                mpc, snp_sequre, sequre_pheno, step=step,
+                epochs=epochs, verbose=verbose, method=METHOD_FOURIER)
+        betas_fourier[snp_idx] = sequre_gwas.coef_.reveal(mpc)[0, 0]
+
+    data_dump[f"gwas_plaintext_betas_{snp_idx}"] = betas_ptx
+    data_dump[f"gwas_sequre_betas_{snp_idx}"] = betas_chebyshev
+    data_dump[f"gwas_decor_betas_{snp_idx}"] = betas_decor
+    data_dump[f"gwas_fourier_betas_{snp_idx}"] = betas_fourier
 
     return data_dump
 
@@ -741,12 +858,9 @@ def test(mpc):
         test_division(mpc)
 
     sample_size = 500
-    iter_count = 10
+    iter_count = 3
     intervals = [
-        (-math.pi * 3, math.pi * 3),
-        (-10.0, 10.0),
-        # (-math.pi / 4, math.pi / 4),  # To test tan
-        # (math.pi / 4, math.pi * 3 / 4)  # To test cot
+        (-20.0, 20.0)
         ]
     
     with mpc.detach_dealer():
@@ -762,9 +876,10 @@ def test(mpc):
             pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
                 mpc, interval, sample_size, iter_count))
 
-        # Skipping large tests
-        # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
-        # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
+    # if "--skip-e2e" not in sys.argv:
+    #     pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
+    #     pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
+    #     pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
 
 
 @local

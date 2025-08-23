@@ -90,6 +90,33 @@ def _decor_mul_inv_newton(mpc, b, niter):
     return x * s
 
 @sequre
+def _decor_div_goldschmidt(mpc, a, b, sign_check, niter):
+    modulus = b.modulus
+    
+    if sign_check:
+        denominator_sign = (b > 0) * 2 - 1
+        b = b * denominator_sign
+    
+    s = Sharetensor(
+        mpc.boolean.normalizer(
+            b.share, modulus, UInt[MPC_NBIT_K](1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
+    estimate = b * s
+    estimate = estimate * estimate * 5 - estimate * 10 + 5.9430
+    x = 1 - b * estimate
+    y = estimate * a
+
+    for _ in range(niter - 1):
+        y = y * (x + 1)
+        x = x * x
+
+    y = y * (x + 1)
+
+    if sign_check:
+        return y * denominator_sign
+
+    return y
+
+@sequre
 def _decor_mul_inv_goldschmidt(mpc, b, niter):
     modulus = b.modulus
     if niter == 0:
@@ -301,10 +328,14 @@ def decor_exp(mpc, foo_x_rs, foo_r_shares):
 
 
 @sequre
-def decor_sigmoid(mpc, foo_x_rs, foo_r_shares):
-    foo_x_r, foo_r_share = foo_x_rs[0], foo_r_shares[0]
-    num = foo_r_share * foo_x_r
-    return _decor_div(mpc, num, num * 2 - foo_r_share - foo_x_r + 1, niter=5)
+def decor_sigmoid(mpc, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x):
+    foo_x_r, foo_x_r_p, foo_r_share = foo_x_rs[0], foo_x_r_ps[0], foo_r_shares[0]
+    cond = _decor_gt(mpc, r_frac_share, scaled_x)
+    selected_foo_x_r = cond * (foo_x_r_p - foo_x_r) + foo_x_r
+
+    num = foo_r_share * selected_foo_x_r
+    denom = num + (foo_r_share - 1) * (selected_foo_x_r - 1)
+    return _decor_div(mpc, num, denom, niter=7)
 
 
 @sequre
@@ -409,7 +440,7 @@ def decor_partition(mpc, x, foos, interval):
     x_r, r = scaled_x.get_partitions(mpc)
     
     frac_r = r & FBITS_MASK
-    double_r = period_fp_to_double(frac_r, period, modulus)
+    double_r = period_fp_to_double(frac_r, period, modulus) - (period / 2)
     foo_rs = [double_to_fp(foo(double_r), modulus) for foo in foos]
     
     r_frac_share = Sharetensor(mpc.comms.share_from_trusted_dealer(frac_r, modulus), modulus)
@@ -418,7 +449,7 @@ def decor_partition(mpc, x, foos, interval):
     for foo_r_share in foo_r_shares:
         foo_r_share.fp = True
 
-    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus)
+    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus) + (period / 2)
     foo_x_rs = [foo(double_x_r + a) for foo in foos]
     foo_x_r_ps = [foo(double_x_r - period + a) for foo in foos]
 
@@ -443,7 +474,15 @@ def decor_trig_partition(mpc, x_r, r, modulus):
 
 
 @sequre
-def decor_eval(mpc, decor_foo, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x, *args):
+def decor_eval(
+        mpc, decor_foo, foo_x_rs, foo_x_r_ps,
+        foo_r_shares, r_frac_share, scaled_x,
+        *args, internal_switch: Static[int]):
+    if internal_switch:
+        return decor_foo(
+            mpc, foo_x_rs, foo_x_r_ps, foo_r_shares,
+            r_frac_share, scaled_x, *args)
+
     foo_eval = decor_foo(mpc, foo_x_rs, foo_r_shares, *args)
     foo_eval_shifted = decor_foo(mpc, foo_x_r_ps, foo_r_shares, *args)
 
@@ -454,7 +493,11 @@ def decor_eval(mpc, decor_foo, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share,
 def via_decor(mpc, x, interval, *args, method: Static[str]):
     foos, decor_foo = get_decor_foos(*args, method=method)
     decor_partitions = decor_partition(mpc, x, foos, interval)
-    return decor_eval(mpc, decor_foo, *decor_partitions, *args)
+    internal_switch: Static[int] = method[:3] == "sig"
+    
+    return decor_eval(
+        mpc, decor_foo, *decor_partitions,
+        *args, internal_switch=internal_switch)
 
 
 def via_decor_trig(mpc, x, method: Static[str]):

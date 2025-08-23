@@ -17,7 +17,7 @@ RUN mkdir /.codon && curl -L https://github.com/exaloop/codon/releases/download/
     && curl -L https://github.com/0xTCG/sequre/releases/download/v0.0.20-alpha/sequre-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C /.codon/lib/codon/plugins
 
 # Apply Decor patch
-ARG FRAC_BITS=32
+ARG FRAC_BITS=64
 RUN git clone --depth 1 -b decor-patch-${FRAC_BITS} https://github.com/0xTCG/sequre.git /sequre \
     && cp -r /sequre/stdlib /.codon/lib/codon/plugins/sequre/
 
