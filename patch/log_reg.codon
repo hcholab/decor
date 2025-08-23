@@ -53,8 +53,18 @@ class LogReg[T]:
     def predict(self, mpc, X: T, *args, method: Static[str]) -> T:
         return LogReg._predict(mpc, X, self.coef_, self.interval, self.variant, method=method)
     
-    def loss(self, mpc, X: T, y: T, method: Static[str]) -> T:
-        return LogReg._loss(mpc, X, y, self.coef_, self.interval, self.variant, method=method)
+    def loss(self, mpc, X: T, y: T, method: Static[str]):
+        X_tilde = X.pad_with_value(1, 1, 1, mpc)
+        return LogReg._loss(mpc, X_tilde, y, self.coef_, self.interval, self.variant, method=method)
+
+    def plain_loss(self, mpc, X: T, y: T, method: Static[str]):
+        X_tilde = X.pad_with_value(1, 1, 1, mpc)
+        X_rev = X_tilde.reveal(mpc)
+        y_rev = y.reveal(mpc)
+        w_rev = self.coef_.reveal(mpc)
+
+        return LogReg._loss(
+            mpc, X_rev, y_rev, w_rev, self.interval, self.variant, method=method)
 
     def randomize_weights(self, mpc, distribution: str = "uniform"):
         self.coef_ = self.coef_.rand(distribution, mpc)
@@ -101,12 +111,9 @@ class LogReg[T]:
         # Batched gradient descent
         w = initial_w  # n x 1
         for epoch in range(epochs):
-            if verbose and epoch % 5 == 0:
-                print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {epoch + 1}/{epochs}")
-            if debug:
-                print(f"CP{mpc.pid}:\t\t weigts avg {ndarray.mean(w.reveal(mpc))} | loss: "
-                      f"{LogReg._loss(mpc, X_tilde, y, w, interval, variant, method=method).reveal(mpc)}")
-            
+            if verbose:
+                loss = LogReg._plain_loss(mpc, X_tilde, y, w, interval, variant, method=method).mean()
+                print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {epoch + 1}/{epochs} | loss: {loss}")
             act = LogReg._act(mpc, X_tilde, w, interval, variant, method=method)
             dw = X_tilde.T @ (act - y) * step
             w -= dw  # n x 1
@@ -128,18 +135,25 @@ class LogReg[T]:
         # Mini-batched gradient descent
         w = initial_w
         for epoch in range(epochs):
-            if verbose and epoch % 5 == 0:
-                print(f"CP{mpc.pid}:\tLog. reg. MBGD epoch {epoch + 1}/{epochs}")
+            if verbose:
+                print(f"CP{mpc.pid}:")
             for i in range(batches):
-                if debug:
-                    print(f"CP{mpc.pid}:\t\t weigts avg {ndarray.mean(w.reveal(mpc))} | loss: "
-                          f"{LogReg._loss(mpc, X_mini_batches[i], y_mini_batches[i], w, interval, variant, method=method).reveal(mpc)}")
-                
+                if verbose:
+                    loss = LogReg._plain_loss(mpc, X_mini_batches[i], y_mini_batches[i], w, interval, variant, method=method).mean()
+                    print(f"CP{mpc.pid}:\tLog. reg. MBGD epoch {epoch + 1}/{epochs}-{i + 1}/{batches} | loss: {loss}")
                 act = LogReg._act(mpc, X_mini_batches[i], w, interval, variant, method=method)
                 w -= X_mini_batches[i].T @ (act - y_mini_batches[i]) * step
         
         return w
     
+    def _plain_loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str]):
+        X_rev = X.reveal(mpc)
+        y_rev = y.reveal(mpc)
+        w_rev = w.reveal(mpc)
+
+        return LogReg._loss(
+            mpc, X_rev, y_rev, w_rev, interval, variant, method=method)
+
     @sequre
     def _predict(
             mpc, X: T, w: T, interval: tuple[float, float],
@@ -149,12 +163,12 @@ class LogReg[T]:
         
     
     @sequre
-    def _loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str]) -> T:
+    def _loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str]):
         act = LogReg._act(mpc, X, w, interval, variant, method=method)
         
         if variant == "binary":
-            return (-y * approx_log(mpc, act, (0.0, 1.0), method=method) - (1 - y) * approx_log(mpc, 1 - act, (0.0, 1.0), method=method)).sum(axis=0)
+            return -y * approx_log(mpc, act, (0.0, 1.0), method=method) - (1 - y) * approx_log(mpc, 1 - act, (0.0, 1.0), method=method)
         if variant == "multinomial":
-            return -((y * approx_log(mpc, act, (0.0, 1.0), method=method)).sum(axis=0) / len(X))
+            return -(y * approx_log(mpc, act, (0.0, 1.0), method=method))
 
         raise ValueError(f"LogReg: invalid variant passed: {variant}")

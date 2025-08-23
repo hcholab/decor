@@ -1,9 +1,24 @@
+import prg
+
+from numpy.create import array
 
 
+def load_geno(path, rows, cols):
+    geno = []
+    with open(path, "r") as f:
+        for line in f:
+            geno.append([float(x) for x in line.strip().split(',')[:cols]])
+            if len(geno) == rows:
+                break
+    
+    return array(geno)
 
-def load_geno(path):
-    raise NotImplementedError()
 
+def simulate_gwas_data(geno, covs=5):
+    betas = array([prg.gauss(mu=0.0, sigma=1.0) for _ in range(geno.shape[1])]).reshape(-1, 1)
+    noise = array([prg.gauss(mu=0.0, sigma=0.001) for _ in range(geno.shape[0])]).reshape(-1, 1)
+    pheno_prob = (geno @ betas + noise).sigmoid().flatten()
+    pheno = array([(1.0 if prg.random() < p else 0.0) for p in pheno_prob]).reshape(-1, 1)
+    cov = array([[prg.gauss(mu=0.0, sigma=1.0) for _ in range(covs)] for _ in range(geno.shape[0])])
 
-def simulate_gwas_data(geno, pheno, n_samples):
-    raise NotImplementedError()
+    return betas, pheno, cov
