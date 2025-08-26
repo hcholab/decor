@@ -41,37 +41,37 @@ def _discern_approx_call(mpc, value, op, interval, method: Static[str], degree: 
     return result.reshape(shape)
 
 
-def approx_sin(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, sin, interval, method=method)
+def approx_sin(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, sin, interval, method=method, degree=degree)
 
 
-def approx_cos(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, cos, interval, method=method)
+def approx_cos(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, cos, interval, method=method, degree=degree)
 
 
-def approx_tan(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, tan, interval, method=method)
+def approx_tan(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, tan, interval, method=method, degree=degree)
 
 
-def approx_tanh(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, tanh, interval, method=method)
+def approx_tanh(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, tanh, interval, method=method, degree=degree)
 
 
-def approx_exp(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, exp, interval, method=method)
+def approx_exp(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, exp, interval, method=method, degree=degree)
 
 
-def approx_sigmoid(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, sigmoid, interval, method=method)
+def approx_sigmoid(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, sigmoid, interval, method=method, degree=degree)
 
 
-def approx_log(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, log, interval, method=method)
+def approx_log(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, log, interval, method=method, degree=degree)
 
 
-def approx_sqrt(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, sqrt, interval, method=method)
+def approx_sqrt(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, sqrt, interval, method=method, degree=degree)
 
 
-def approx_mul_inv(mpc, value, interval, method: Static[str]):
-    return _discern_approx_call(mpc, value, mul_inv, interval, method=method)
+def approx_mul_inv(mpc, value, interval, method: Static[str], degree: Static[int]):
+    return _discern_approx_call(mpc, value, mul_inv, interval, method=method, degree=degree)

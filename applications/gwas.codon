@@ -14,9 +14,56 @@ def load_geno(path, rows, cols):
     return array(geno)
 
 
+def load_gwas_data(path, rows, covs):
+    assert "lung" in path, "GWAS is temporarily hardcoded to lung cancer dataset"
+    # Temporarily precomputed and hardcoded top 100 SNPs of lung cancer dataset (via PLINK)
+    target_snps = [
+        28881, 573621, 83887, 598972, 189268, 207839,
+        149141, 213254, 523629, 519518, 445605, 235916,
+        332155, 242689, 29513, 277106, 301991, 129888,
+        358553, 434693, 209645, 281192, 331122, 137888,
+        229273, 26340, 158147, 180281, 413549, 485548,
+        46706, 193731, 551418, 112945, 279954, 71589,
+        521917, 230145, 128905, 57321, 355325, 366064,
+        255321, 474227, 585387, 540586, 452212, 425819,
+        498049, 388062, 73484, 451127, 382149, 185588,
+        230243, 431872, 592183, 246522, 88924, 511847,
+        45382, 147842, 358538, 50208, 479685, 9680,
+        299214, 576539, 114077, 114855, 111067, 185719,
+        491727, 443137, 163846, 393230, 238413, 308598,
+        382358, 437826, 377095, 38850, 201976, 41773, 294040,
+        464511, 21899, 242711, 180854, 192777, 495586, 590729,
+        521555, 453708, 297062, 228393, 354673, 165075, 292049, 337114]
+    
+    geno = []
+    with open(f"{path}/geno.txt", "r") as f:
+        for line in f:
+            snps = [float(x) for x in line.strip().split(' ')]
+            selected_snps = [snps[i] for i in target_snps]
+            geno.append(selected_snps)
+            if len(geno) == rows:
+                break
+
+    pheno = []
+    with open(f"{path}/pheno.txt", "r") as f:
+        for line in f:
+            pheno.append([float(x) for x in line.strip()])
+            if len(pheno) == rows:
+                break
+
+    cov = []
+    with open(f"{path}/cov.txt", "r") as f:
+        for line in f:
+            cov.append([float(x) for x in line.strip().split(' ')[:covs]])
+            if len(cov) == rows:
+                break
+
+    return array(geno), array(pheno), array(cov)
+
+
 def simulate_gwas_data(geno, covs=5):
     betas = array([prg.gauss(mu=0.0, sigma=1.0) for _ in range(geno.shape[1])]).reshape(-1, 1)
-    noise = array([prg.gauss(mu=0.0, sigma=0.001) for _ in range(geno.shape[0])]).reshape(-1, 1)
+    noise = array([prg.gauss(mu=0.0, sigma=0.1) for _ in range(geno.shape[0])]).reshape(-1, 1)
     pheno_prob = (geno @ betas + noise).sigmoid().flatten()
     pheno = array([(1.0 if prg.random() < p else 0.0) for p in pheno_prob]).reshape(-1, 1)
     cov = array([[prg.gauss(mu=0.0, sigma=1.0) for _ in range(covs)] for _ in range(geno.shape[0])])

@@ -40,31 +40,31 @@ class LogReg[T]:
         self.coef_ = initial_weights.copy()
         self.optimizer = optimizer
         self.variant = variant
-        self.interval = interval if interval != (0.0, 0.0) else (-10.0, 10.0) if variant == "binary" else (-20.0, 0.0)
+        self.interval = interval if interval != (0.0, 0.0) else (-30.0, 30.0) if variant == "binary" else (-20.0, 0.0)
 
     def fit(self, mpc, X: T, y: T, step: float, epochs: int,
-            verbose: bool, method: Static[str]) -> LogReg[T]:
+            verbose: bool, method: Static[str], degree: Static[int]) -> LogReg[T]:
         self.coef_ = LogReg._fit(
             mpc, X, y, self.coef_, self.interval, step,
             epochs, self.optimizer, self.variant, verbose,
-            method=method)
+            method=method, degree=degree)
         return self
-    
-    def predict(self, mpc, X: T, *args, method: Static[str]) -> T:
-        return LogReg._predict(mpc, X, self.coef_, self.interval, self.variant, method=method)
-    
-    def loss(self, mpc, X: T, y: T, method: Static[str]):
-        X_tilde = X.pad_with_value(1, 1, 1, mpc)
-        return LogReg._loss(mpc, X_tilde, y, self.coef_, self.interval, self.variant, method=method)
 
-    def plain_loss(self, mpc, X: T, y: T, method: Static[str]):
+    def predict(self, mpc, X: T, *args, method: Static[str], degree: Static[int]) -> T:
+        return LogReg._predict(mpc, X, self.coef_, self.interval, self.variant, method=method, degree=degree)
+
+    def loss(self, mpc, X: T, y: T, method: Static[str], degree: Static[int]):
+        X_tilde = X.pad_with_value(1, 1, 1, mpc)
+        return LogReg._loss(mpc, X_tilde, y, self.coef_, self.interval, self.variant, method=method, degree=degree)
+
+    def plain_loss(self, mpc, X: T, y: T, method: Static[str], degree: Static[int]):
         X_tilde = X.pad_with_value(1, 1, 1, mpc)
         X_rev = X_tilde.reveal(mpc)
         y_rev = y.reveal(mpc)
         w_rev = self.coef_.reveal(mpc)
 
         return LogReg._loss(
-            mpc, X_rev, y_rev, w_rev, self.interval, self.variant, method=method)
+            mpc, X_rev, y_rev, w_rev, self.interval, self.variant, method=method, degree=degree)
 
     def randomize_weights(self, mpc, distribution: str = "uniform"):
         self.coef_ = self.coef_.rand(distribution, mpc)
@@ -72,7 +72,8 @@ class LogReg[T]:
     def _fit(
             mpc, X: T, y: T, initial_w: T, interval: tuple[float, float],
             step: float, epochs: int, optimizer: str, variant: str,
-            verbose: bool, method: Static[str], debug: Static[int] = DEBUG) -> T:
+            verbose: bool, method: Static[str], degree: Static[int],
+            debug: Static[int] = DEBUG) -> T:
         # Adding bias
         X_tilde = X.pad_with_value(1, 1, 1, mpc)
 
@@ -80,31 +81,31 @@ class LogReg[T]:
         if optimizer == "bgd":
             return LogReg._bgd(
                 mpc, X_tilde, y, initial_w, interval, variant,
-                step, epochs, verbose, method=method, debug=debug)
+                step, epochs, verbose, method=method, degree=degree, debug=debug)
         if optimizer == "mbgd":
             return LogReg._mbgd(
                 mpc, X_tilde, y, initial_w, interval, variant,
-                step, epochs, 10, verbose, method=method, debug=debug)
+                step, epochs, 10, verbose, method=method, degree=degree, debug=debug)
         else:
             raise ValueError(f"LogReg: invalid optimizer passed: {optimizer}")
     
     @sequre
-    def _act(mpc, X_tilde, w, interval, variant, method: Static[str]):
+    def _act(mpc, X_tilde, w, interval, variant, method: Static[str], degree: Static[int]):
         dot = X_tilde @ w
         if variant == "binary":
-            return approx_sigmoid(mpc, dot, interval, method=method)  # m x 1
+            return approx_sigmoid(mpc, dot, interval, method=method, degree=degree)  # m x 1
         if variant == "multinomial":
             shift = (dot - maximum_axis(mpc, dot, axis=1, keepdims=True))
             shift = clip(mpc, shift, *interval)
-            return approx_exp(mpc, shift, interval, method=method)  # m x 1
-            
+            return approx_exp(mpc, shift, interval, method=method, degree=degree)  # m x 1
+
         raise ValueError(f"LogReg: invalid variant passed: {variant}")
 
     @sequre
     def _bgd(
             mpc, X_tilde: T, y: T, initial_w: T, interval: tuple[float, float],
             variant: str, step: float, epochs: int, verbose: bool,
-            method: Static[str], debug: Static[int] = DEBUG) -> T:
+            method: Static[str], degree: Static[int], debug: Static[int] = DEBUG) -> T:
         if debug:
             print(f"CP{mpc.pid}:\tLog. reg. BGD step size:", step)
         
@@ -112,9 +113,10 @@ class LogReg[T]:
         w = initial_w  # n x 1
         for epoch in range(epochs):
             if verbose:
-                loss = LogReg._plain_loss(mpc, X_tilde, y, w, interval, variant, method=method).mean()
+                loss = LogReg._plain_loss(
+                    mpc, X_tilde, y, w, interval, variant, method=method, degree=degree).mean()
                 print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {epoch + 1}/{epochs} | loss: {loss}")
-            act = LogReg._act(mpc, X_tilde, w, interval, variant, method=method)
+            act = LogReg._act(mpc, X_tilde, w, interval, variant, method=method, degree=degree)
             dw = X_tilde.T @ (act - y) * step
             w -= dw  # n x 1
         
@@ -124,7 +126,7 @@ class LogReg[T]:
     def _mbgd(
             mpc, X_tilde: T, y: T, initial_w: T, interval: tuple[float, float],
             variant: str, step: float, epochs: int, batches: int,
-            verbose: bool, method: Static[str], debug: Static[int] = DEBUG) -> T:
+            verbose: bool, method: Static[str], degree: Static[int], debug: Static[int] = DEBUG) -> T:
         if debug:
             print(f"CP{mpc.pid}:\tLog. reg. BGD step size:", step)
         
@@ -139,36 +141,36 @@ class LogReg[T]:
                 print(f"CP{mpc.pid}:")
             for i in range(batches):
                 if verbose:
-                    loss = LogReg._plain_loss(mpc, X_mini_batches[i], y_mini_batches[i], w, interval, variant, method=method).mean()
+                    loss = LogReg._plain_loss(
+                        mpc, X_mini_batches[i], y_mini_batches[i], w, interval, variant, method=method, degree=degree).mean()
                     print(f"CP{mpc.pid}:\tLog. reg. MBGD epoch {epoch + 1}/{epochs}-{i + 1}/{batches} | loss: {loss}")
-                act = LogReg._act(mpc, X_mini_batches[i], w, interval, variant, method=method)
+                act = LogReg._act(mpc, X_mini_batches[i], w, interval, variant, method=method, degree=degree)
                 w -= X_mini_batches[i].T @ (act - y_mini_batches[i]) * step
         
         return w
-    
-    def _plain_loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str]):
+
+    def _plain_loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str], degree: Static[int]):
         X_rev = X.reveal(mpc)
         y_rev = y.reveal(mpc)
         w_rev = w.reveal(mpc)
 
         return LogReg._loss(
-            mpc, X_rev, y_rev, w_rev, interval, variant, method=method)
+            mpc, X_rev, y_rev, w_rev, interval, variant, method=method, degree=degree)
 
     @sequre
     def _predict(
             mpc, X: T, w: T, interval: tuple[float, float],
-            variant: str, method: Static[str]) -> T:
+            variant: str, method: Static[str], degree: Static[int]) -> T:
         X_tilde = X.pad_with_value(1, 1, 1, mpc)
-        return LogReg._act(mpc, X_tilde, w, interval, variant, method=method)
-        
-    
+        return LogReg._act(mpc, X_tilde, w, interval, variant, method=method, degree=degree)
+
     @sequre
-    def _loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str]):
-        act = LogReg._act(mpc, X, w, interval, variant, method=method)
-        
+    def _loss(mpc, X: T, y: T, w: T, interval: tuple[float, float], variant: str, method: Static[str], degree: Static[int]):
+        act = LogReg._act(mpc, X, w, interval, variant, method=method, degree=degree)
+
         if variant == "binary":
-            return -y * approx_log(mpc, act, (0.0, 1.0), method=method) - (1 - y) * approx_log(mpc, 1 - act, (0.0, 1.0), method=method)
+            return -y * approx_log(mpc, act, (0.0, 1.0), method=method, degree=degree) - (1 - y) * approx_log(mpc, 1 - act, (0.0, 1.0), method=method, degree=degree)
         if variant == "multinomial":
-            return -(y * approx_log(mpc, act, (0.0, 1.0), method=method))
+            return -(y * approx_log(mpc, act, (0.0, 1.0), method=method, degree=degree))
 
         raise ValueError(f"LogReg: invalid variant passed: {variant}")

@@ -12,13 +12,13 @@ from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx,
 from sequre.utils.utils import random_floats
 
 from applications.mnist import load_train_data, load_test_data, mnist
-from applications.gwas import load_geno, simulate_gwas_data
+from applications.gwas import load_gwas_data
 
 from patch.constants import (
     MPC_NBIT_F, POLY_EVAL_CLENSHAW,
     POLY_EVAL_DECOR, POLY_EVAL_NAIVE,
     METHOD_CHEBYSHEV, METHOD_FOURIER,
-    METHOD_DECOR, MPC_NBIT_K)
+    METHOD_DECOR, METHOD_PLAIN, MPC_NBIT_K)
 from patch.model import Sequential
 from patch.layers import Input, Dense
 from patch.log_reg import LogReg
@@ -368,7 +368,28 @@ def _eval_dti_model(
             preds = preds.sign()
     
     accuracy = (preds == y_test_final).mean()
+    loss = model.loss_(
+        mpc, Sharetensor.enc(mpc, y_test_final), method=method).reveal(mpc).flatten().mean()
     data_dump[f"{name}_accuracy"] = [accuracy]
+    data_dump[f"{name}_loss"] = [loss]
+
+
+def _eval_gwas_model(
+        mpc, name, data_dump, gwas_model, initial_w,
+        snp_cov, pheno, step, epochs, verbose,
+        method: Static[str], degree: Static[int]):
+    gwas_model.coef_ = initial_w.copy()
+    with stats_log(mpc, f"{name}_{degree}", data_dump):
+        gwas_model.fit(
+            mpc, snp_cov, pheno, step=step,
+            epochs=epochs, verbose=verbose,
+            method=method, degree=degree)
+    
+    pheno_hat = gwas_model.predict(mpc, snp_cov, method=method, degree=degree).reveal(mpc)
+    accuracy = (pheno_hat.round() == pheno.reveal(mpc)).astype(float).mean()
+    loss = gwas_model.plain_loss(mpc, snp_cov, pheno, method=method, degree=degree).mean()
+
+    return gwas_model.coef_.reveal(mpc)[0, 0], accuracy, loss
 
 
 def test_boolean(mpc):
@@ -701,10 +722,10 @@ def test_log_reg(mpc):
 def test_dti(mpc):
     print(f'CP{mpc.pid}:\tTesting DTI ... \n')
 
-    X = Sharetensor.enc(mpc, loadtxt("data/Xtrain", shape=(150, 6903)))
-    y = Sharetensor.enc(mpc, loadtxt("data/ytrain", shape=(150, 1)))
-    X_test = Sharetensor.enc(mpc, loadtxt("data/Xtest", shape=(48, 6903)))
-    y_test = loadtxt("data/ytest", shape=(48, 1))
+    X = Sharetensor.enc(mpc, loadtxt("data/dti/Xtrain", shape=(150, 6903)))
+    y = Sharetensor.enc(mpc, loadtxt("data/dti/ytrain", shape=(150, 1)))
+    X_test = Sharetensor.enc(mpc, loadtxt("data/dti/Xtest", shape=(48, 6903)))
+    y_test = loadtxt("data/dti/ytest", shape=(48, 1))
 
     combinations = [
         ("relu", "linear", "hinge"),
@@ -785,22 +806,23 @@ def test_mnist(mpc, epochs=20, verbose=True):
     return data_dump
 
 
-def test_gwas(mpc, inds=1000, snps=10, covs=5, step=0.0001, epochs=20, verbose=False):
+def test_gwas(mpc, inds=9000, covs=10, step=0.0001, epochs=50, verbose=False):
     print(f'CP{mpc.pid}:\tTesting GWAS ... \n')
 
     data_dump: Dict[str, List[float]] = {}
-    geno = load_geno("./data/gwas/geno_1000.txt", inds, snps)
-    expected_betas, pheno, cov = simulate_gwas_data(geno, covs)
+    geno, pheno, cov = load_gwas_data("./data/gwas/for_sfgwas/lung", inds, covs)
+    snps = geno.shape[1]
+    assert snps == 100, "GWAS is temporarily hardcoded to 100 SNPs"
 
-    betas_ptx = zeros(len(expected_betas))
-    betas_chebyshev = zeros(len(expected_betas))
-    betas_decor = zeros(len(expected_betas))
-    accuracies_ptx = zeros(len(expected_betas))
-    accuracies_chebyshev = zeros(len(expected_betas))
-    accuracies_decor = zeros(len(expected_betas))
-    losses_ptx = zeros(len(expected_betas))
-    losses_chebyshev = zeros(len(expected_betas))
-    losses_decor = zeros(len(expected_betas))
+    betas_ptx = zeros(snps)
+    betas_chebyshev = zeros(snps)
+    betas_decor = zeros(snps)
+    accuracies_ptx = zeros(snps)
+    accuracies_chebyshev = zeros(snps)
+    accuracies_decor = zeros(snps)
+    losses_ptx = zeros(snps)
+    losses_chebyshev = zeros(snps)
+    losses_decor = zeros(snps)
 
     with mpc.randomness.seed_switch(-1):
         raw_initial_w = array(random_floats((2 + covs, 1), scale=2.0), dtype=float) - 1.0  # Range: [-1.0, 1.0)
@@ -813,50 +835,30 @@ def test_gwas(mpc, inds=1000, snps=10, covs=5, step=0.0001, epochs=20, verbose=F
     raw_gwas = LogReg(raw_initial_w, optimizer="bgd", variant="binary", interval=(-30.0, 30.0))
     sequre_gwas = LogReg(sequre_initial_w, optimizer="bgd", variant="binary", interval=(-30.0, 30.0))
 
-    for snp_idx in range(geno.shape[1]):
-        print(f'CP{mpc.pid}:\tTesting SNP {snp_idx}... \n')
-        snp_ptx = array(geno)[:, snp_idx].reshape(-1, 1)
-        snp_cov_ptx = snp_ptx.hstack(cov)
-        snp_sequre = sequre_geno[:, snp_idx].expand_dims().reshape([len(snp_ptx), 1])
-        snp_cov_sequre = snp_sequre.hstack(sequre_cov)
+    for deg in staticrange(2, 6):
+        degree: Static[int] = deg * 10
+    
+        for snp_idx in range(geno.shape[1]):
+            print(f'CP{mpc.pid}:\tTesting SNP {snp_idx} at degree {degree}... \n')
+            snp_ptx = array(geno)[:, snp_idx].reshape(-1, 1)
+            snp_cov_ptx = snp_ptx.hstack(cov)
+            snp_sequre = sequre_geno[:, snp_idx].expand_dims().reshape([len(snp_ptx), 1])
+            snp_cov_sequre = snp_sequre.hstack(sequre_cov)
+            
+            betas_ptx[snp_idx], accuracies_ptx[snp_idx], losses_ptx[snp_idx] = _eval_gwas_model(
+                mpc, "gwas_plaintext", data_dump, raw_gwas, raw_initial_w,
+                snp_cov_ptx, pheno, step, epochs, verbose,
+                method=METHOD_PLAIN, degree=degree)
 
-        raw_gwas.coef_ = raw_initial_w.copy()
-        with stats_log(mpc, "gwas_plaintext", data_dump):
-            raw_gwas.fit(
-                mpc, snp_cov_ptx, pheno, step=step,
-                epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
-        pheno_hat = raw_gwas.predict(mpc, snp_cov_ptx, method=METHOD_CHEBYSHEV).reveal(mpc)
-        accuracy = (pheno_hat.round() == pheno).astype(float).mean()
-        loss = raw_gwas.plain_loss(mpc, snp_cov_ptx, pheno, method=METHOD_CHEBYSHEV).mean()
-        betas_ptx[snp_idx] = raw_gwas.coef_[0, 0]
-        accuracies_ptx[snp_idx] = accuracy
-        losses_ptx[snp_idx] = loss
+            betas_chebyshev[snp_idx], accuracies_chebyshev[snp_idx], losses_chebyshev[snp_idx] = _eval_gwas_model(
+                mpc, "gwas_chebyshev", data_dump, sequre_gwas, sequre_initial_w,
+                snp_cov_sequre, sequre_pheno, step, epochs, verbose,
+                method=METHOD_CHEBYSHEV, degree=degree)
 
-        sequre_gwas.coef_ = sequre_initial_w.copy()
-        with stats_log(mpc, "gwas_chebyshev", data_dump):
-            sequre_gwas.fit(
-                mpc, snp_cov_sequre, sequre_pheno, step=step,
-                epochs=epochs, verbose=verbose, method=METHOD_CHEBYSHEV)
-        pheno_hat = sequre_gwas.predict(mpc, snp_cov_sequre, method=METHOD_CHEBYSHEV).reveal(mpc)
-        accuracy = (pheno_hat.round() == pheno).astype(float).mean()
-        loss = sequre_gwas.plain_loss(mpc, snp_cov_sequre, sequre_pheno, method=METHOD_CHEBYSHEV).mean()
-        betas_chebyshev[snp_idx] = sequre_gwas.coef_.reveal(mpc)[0, 0]
-        accuracies_chebyshev[snp_idx] = accuracy
-        losses_chebyshev[snp_idx] = loss
-
-        sequre_gwas.coef_ = sequre_initial_w.copy()
-        with stats_log(mpc, "gwas_decor", data_dump):
-            sequre_gwas.fit(
-                mpc, snp_cov_sequre, sequre_pheno, step=step,
-                epochs=epochs, verbose=verbose, method=METHOD_DECOR)
-        pheno_hat = sequre_gwas.predict(mpc, snp_cov_sequre, method=METHOD_DECOR).reveal(mpc)
-        accuracy = (pheno_hat.round() == pheno).astype(float).mean()
-        loss = sequre_gwas.plain_loss(mpc, snp_cov_sequre, sequre_pheno, method=METHOD_DECOR).mean()
-        betas_decor[snp_idx] = sequre_gwas.coef_.reveal(mpc)[0, 0]
-        accuracies_decor[snp_idx] = accuracy
-        losses_decor[snp_idx] = loss
-
-    data_dump[f"gwas_expected_betas"] = expected_betas.flatten().tolist()
+            betas_decor[snp_idx], accuracies_decor[snp_idx], losses_decor[snp_idx] = _eval_gwas_model(
+                mpc, "gwas_decor", data_dump, sequre_gwas, sequre_initial_w,
+                snp_cov_sequre, sequre_pheno, step, epochs, verbose,
+                method=METHOD_DECOR, degree=degree)
 
     data_dump[f"gwas_plaintext_betas"] = betas_ptx.tolist()
     data_dump[f"gwas_chebyshev_betas"] = betas_chebyshev.tolist()
@@ -873,37 +875,41 @@ def test_gwas(mpc, inds=1000, snps=10, covs=5, step=0.0001, epochs=20, verbose=F
     return data_dump
 
 
+COMPILE_PRIMITIVES: Static[int] = False
+COMPILE_ELEMENTARY: Static[int] = False
+COMPILE_E2E: Static[int] = True
+
 def test(mpc):
-    if "--skip-primitives" not in sys.argv:
+    if COMPILE_PRIMITIVES:
         test_boolean(mpc)
         test_comparisons(mpc)
         test_division(mpc)
 
-    sample_size = 500
-    iter_count = 3
-    intervals = [
-        (-20.0, 20.0)
-        ]
-    
-    with mpc.detach_dealer():
-        for i, interval in enumerate(intervals):
-            pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(
-                mpc, interval, sample_size, iter_count))
-            pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(
-                mpc, interval, sample_size, iter_count))
-            pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(
-                mpc, interval, sample_size, iter_count))
-            pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(
-                mpc, interval, sample_size, iter_count))
-            pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
-                mpc, interval, sample_size, iter_count))
-
-    if "--skip-e2e" not in sys.argv:
+    if COMPILE_ELEMENTARY:
+        sample_size = 500
+        iter_count = 3
+        intervals = [
+            (-20.0, 20.0)
+            ]
+        
         with mpc.detach_dealer():
-            # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
-            # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
-            # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
-            pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+            for i, interval in enumerate(intervals):
+                pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(
+                    mpc, interval, sample_size, iter_count))
+                pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(
+                    mpc, interval, sample_size, iter_count))
+                pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(
+                    mpc, interval, sample_size, iter_count))
+                pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(
+                    mpc, interval, sample_size, iter_count))
+                pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
+                    mpc, interval, sample_size, iter_count))
+
+    if COMPILE_E2E:
+        # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
+        # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
+        # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
+        pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
 
 
 @local

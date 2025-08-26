@@ -42,16 +42,13 @@ def dmean_squared_error_loss(mpc, y, output):
 
 
 @sequre
-def loss(mpc, y, output, loss: str, interval=(-10.0, 10.0), method: Static[str] = METHOD_CHEBYSHEV):
+def loss(mpc, y, output, loss: str, interval=(-30.0, 30.0)):
     assert loss in SUPPORTED_LOSSES, f"Neural net: loss {loss} is not supported"
     
     if loss == HINGE_LOSS:
         _loss = hinge_loss(mpc, y, output)
     if loss == BINARY_CROSSENTROPY_LOSS:
-        if method == METHOD_DECOR:
-            raise ValueError("Cannot compute binary_crossentropy loss via Decor yet.")
-        else:
-            _loss = binary_crossentropy_loss(mpc, y, output, interval, method=method)
+        _loss = binary_crossentropy_loss(mpc, y, output, interval)
     if loss == MEAN_SQUARED_ERROR_LOSS:
         _loss = mean_squared_error_loss(mpc, y, output)
 
