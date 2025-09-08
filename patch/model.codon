@@ -1,6 +1,6 @@
 from constants import (
-    SUPPORTED_OPTIMIZERS, SUPPORTED_LOSSES, METHOD_CHEBYSHEV,
-    BGD_OPTIMIZER, MBGD_OPTIMIZER)
+    SUPPORTED_OPTIMIZERS, SUPPORTED_LOSSES,
+    METHOD_PLAIN, BGD_OPTIMIZER, MBGD_OPTIMIZER)
 from loss import loss, dloss
 from sequre.stdlib.learn.utils import batch
 
@@ -9,10 +9,12 @@ class Sequential[L]:
     layers: L
     loss: str
     optimizer: str
+    loss_interval: tuple[float, float]
 
-    def __init__(self, layers: L):
+    def __init__(self, layers: L, loss_interval: tuple[float, float] = (0.0, 1.0)):
         assert staticlen(L) <= 1024, "Sequential model too large: cannot have more than 1024 layers"
         self.layers = layers
+        self.loss_interval = loss_interval
     
     def compile(self, mpc, loss: str, optimizer: str, *args, **kwargs) -> Sequential:
         assert loss in SUPPORTED_LOSSES, f"Dense neural net layer: {loss} loss is not supported. Supported losses: {SUPPORTED_LOSSES}"
@@ -26,48 +28,59 @@ class Sequential[L]:
         
         return self
     
-    def fit(
-            self, mpc, X, y, step: float, epochs: int, momentum: float,
-            batch_size: int = 0, verbose: bool = False, method: Static[str] = METHOD_CHEBYSHEV):
+    def fit(self, mpc, X, y, step: float, epochs: int, momentum: float,
+            batch_size: int, verbose: bool, method: Static[str], degree: Static[int]):
         if self.optimizer == BGD_OPTIMIZER:
-            self._bgd(mpc, X, y, step, epochs, momentum, verbose, method=method)
+            self._bgd(mpc, X, y, step, epochs, momentum, verbose, method=method, degree=degree)
         elif self.optimizer == MBGD_OPTIMIZER:
             assert batch_size > 0, "Sequential neural net: positive batch_size parameter should be passed to fit method for mini-batch gradient descent optimizer."
-            self._mbgd(mpc, X, y, step, epochs, momentum, batch_size, verbose, method=method)
+            self._mbgd(mpc, X, y, step, epochs, momentum, batch_size, verbose, method=method, degree=degree)
         else:
             raise ValueError(f"Sequential neural net: unsupported optimizer: {self.optimizer}. Supported optimizers: {SUPPORTED_OPTIMIZERS}")
+
+    def get_loss(self, mpc, X, y, method: Static[str], degree: Static[int]):
+        self._forward(mpc, X, method=method, degree=degree)
+        return self._loss(mpc, y, self.layers[-1].output, method=method, degree=degree)
     
-    def get_loss(self, mpc, X, y, method: Static[str] = METHOD_CHEBYSHEV):
-        self._forward(mpc, X, method=method)
-        return self._loss(mpc, y, self.layers[-1].output, method=method)
-    
-    def predict(self, mpc, X, method: Static[str] = METHOD_CHEBYSHEV):
-        self._forward(mpc, X, method=method)
+    def plain_loss(self, mpc, y):
+        assert self.layers[-1].is_evaluated(), "Sequential neural net: cannot calculate training score. Forward pass was never done."
+        return self._loss(mpc, y.reveal(mpc), self.layers[-1].output.reveal(mpc), method=METHOD_PLAIN, degree=0)
+
+    def predict(self, mpc, X, method: Static[str], degree: Static[int]):
+        self._forward(mpc, X, method=method, degree=degree)
         return self.layers[-1].output
 
-    def loss_(self, mpc, y, method: Static[str]):
+    def loss_(self, mpc, y, method: Static[str], degree: Static[int]):
         assert self.layers[-1].is_evaluated(), "Sequential neural net: cannot calculate training score. Forward pass was never done."
-        return self._loss(mpc, y, self.layers[-1].output, method=method)
-    
-    def _gd(self, mpc, X, y, step: float, momentum: float, verbose: bool, method: Static[str]):
-        self._forward(mpc, X, method=method)
-        self._backward(mpc, y, method=method)
+        return self._loss(mpc, y, self.layers[-1].output, method=method, degree=degree)
+
+    def _gd(
+            self, mpc, X, y, step: float, momentum: float,
+            verbose: bool, method: Static[str], degree: Static[int]):
+        self._forward(mpc, X, method=method, degree=degree)
+        self._backward(mpc, y, method=method, degree=degree)
         self._update(mpc, step, momentum)
 
         if verbose:
-            print(f"CP{mpc.pid}:\t\tTraining loss: {self.loss_(mpc, y, method=method).reveal(mpc).sum()}")
-    
+            weights_rev = [layer.weights.reveal(mpc) for layer in self.layers[1:]]
+            weights_max = [w.max() for w in weights_rev]
+            weights_min = [w.min() for w in weights_rev]
+            print(
+                f"CP{mpc.pid}:\t\tTraining loss: {self.plain_loss(mpc, y).sum()}"
+                f"\n\t\tWeights maximums: {weights_max}"
+                f"\n\t\tWeights minimums: {weights_min}")
+
     def _bgd(
             self, mpc, X, y, step: float, epochs: int, momentum: float,
-            verbose: bool, method: Static[str]):
+            verbose: bool, method: Static[str], degree: Static[int]):
         for _ in range(epochs):
             if verbose:
                 print(f"CP{mpc.pid}:\tSequential neural net: BGD epoch {_ + 1}/{epochs}")
-            self._gd(mpc, X, y, step, momentum, verbose, method=method)
+            self._gd(mpc, X, y, step, momentum, verbose, method=method, degree=degree)
             
     def _mbgd(
             self, mpc, X, y, step: float, epochs: int, momentum: float,
-            batch_size: int, verbose: bool, method: Static[str]):
+            batch_size: int, verbose: bool, method: Static[str], degree: Static[int]):
         batches = (len(X) + batch_size - 1) // batch_size
         
         # Compute mini-batches
@@ -79,28 +92,28 @@ class Sequential[L]:
             for i in range(batches):
                 if verbose:
                     print(f"CP{mpc.pid}:\tSequential neural net: MBGD epoch {_ + 1}/{epochs} -- batch {i + 1}/{batches}")
-                self._gd(mpc, X_mini_batches[i], y_mini_batches[i], step, momentum, verbose, method=method)
+                self._gd(mpc, X_mini_batches[i], y_mini_batches[i], step, momentum, verbose, method=method, degree=degree)
     
-    def _forward(self, mpc, X, method: Static[str]):
+    def _forward(self, mpc, X, method: Static[str], degree: Static[int]):
         last_output = X
         for layer in self.layers:
-            layer.evaluate(mpc, last_output, method=method)
+            layer.evaluate(mpc, last_output, method=method, degree=degree)
             last_output = layer.output
     
-    def _backward(self, mpc, y, method: Static[str]):
+    def _backward(self, mpc, y, method: Static[str], degree: Static[int]):
         assert self.layers[-1].is_evaluated(), "Sequenital neural net: there it no output: backward pass possibly ran before or without the forward pass"
         dhidden = self._dloss(mpc, y, self.layers[-1].output)
         for i in staticrange(1, staticlen(self.layers)):
             IDX: Static[int] = staticlen(self.layers) - i
             prev_output = self.layers[IDX - 1].output
-            dhidden = self.layers[IDX].derive(mpc, prev_output, dhidden, LAYER_IDX=IDX, method=method)
+            dhidden = self.layers[IDX].derive(mpc, prev_output, dhidden, LAYER_IDX=IDX, method=method, degree=degree)
     
     def _update(self, mpc, step: float, momentum: float):
         for layer in self.layers[1:]:
             layer.update(mpc, step, momentum)
     
-    def _loss(self, mpc, y, output, method: Static[str]):
-        return loss(mpc, y, output, self.loss, method=method)
+    def _loss(self, mpc, y, output, method: Static[str], degree: Static[int]):
+        return loss(mpc, y, output, self.loss, self.loss_interval, method=method, degree=degree)
     
     def _dloss(self, mpc, y, output):
         return dloss(mpc, y, output, self.loss)

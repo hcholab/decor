@@ -3,7 +3,7 @@ from sequre import sequre, sq
 from constants import (
     SUPPORTED_ACTIVATIONS, RELU_ACTIVATION,
     LINEAR_ACTIVATION, SIGMOID_ACTIVATION,
-    TANH_ACTIVATION, METHOD_CHEBYSHEV)
+    TANH_ACTIVATION, DEBUG)
 from ..builtin import approx_sigmoid, approx_tanh
 
 
@@ -55,42 +55,49 @@ def asigmoid_with_derivative(mpc, x):
 
 
 @sequre
-def sigmoid(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    # Scale x to increase the chance of falling within the interval
-    return approx_sigmoid(mpc, x / len(x), interval, method=method)
+def sigmoid(mpc, x, interval, method: Static[str], degree: Static[int]):
+    if DEBUG:
+        rev_x = x.reveal(mpc)
+        if rev_x.min() < interval[0]:
+            print(f"WARNING: Sigmoid activation: input {rev_x.min()} is out of bounds {interval}.")
+        if rev_x.max() > interval[1]:
+            print(f"WARNING: Sigmoid activation: input {rev_x.max()} is out of bounds {interval}.")
+    
+    return approx_sigmoid(mpc, x, interval, method=method, degree=degree)
 
 
 @sequre
-def dsigmoid(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    s = sigmoid(mpc, x, interval, method=method)
-    return s * (1 - s) / len(x)
+def dsigmoid(mpc, x, interval, method: Static[str], degree: Static[int]):
+    s = sigmoid(mpc, x, interval, method=method, degree=degree)
+    return s * (1 - s)
 
 
 @sequre
-def sigmoid_with_derivative(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    s = sigmoid(mpc, x, interval, method=method)
-    return s, s * (1 - s) / len(x)
+def sigmoid_with_derivative(mpc, x, interval, method: Static[str], degree: Static[int]):
+    s = sigmoid(mpc, x, interval, method=method, degree=degree)
+    return s, s * (1 - s)
 
 
 @sequre
-def tanh(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    # Scale x to increase the chance of falling within the interval
-    return approx_tanh(mpc, x / len(x), interval, method=method)
+def tanh(mpc, x, interval, method: Static[str], degree: Static[int]):
+    return approx_tanh(mpc, x, interval, method=method, degree=degree)
 
 
 @sequre
-def dtanh(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    t = tanh(mpc, x, interval, method=method)
-    return (1 - t * t) / len(x)
+def dtanh(mpc, x, interval, method: Static[str], degree: Static[int]):
+    t = tanh(mpc, x, interval, method=method, degree=degree)
+    return 1 - t * t
 
 
 @sequre
-def tanh_with_derivative(mpc, x, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
-    t = tanh(mpc, x, interval, method=method)
-    return t, (1 - t * t) / len(x)
+def tanh_with_derivative(mpc, x, interval, method: Static[str], degree: Static[int]):
+    t = tanh(mpc, x, interval, method=method, degree=degree)
+    return t, 1 - t * t
 
 
-def activate(mpc, x, activation: str, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
+def activate(
+        mpc, x, activation: str, interval: tuple[float, float],
+        method: Static[str], degree: Static[int]):
     assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
     
     if activation == LINEAR_ACTIVATION:
@@ -98,12 +105,14 @@ def activate(mpc, x, activation: str, interval=(-30.0, 30.0), method: Static[str
     if activation == RELU_ACTIVATION:
         return relu(mpc, x)
     if activation == SIGMOID_ACTIVATION:
-        return sigmoid(mpc, x, interval, method=method)
+        return sigmoid(mpc, x, interval, method=method, degree=degree)
     if activation == TANH_ACTIVATION:
-        return tanh(mpc, x, interval, method=method)
+        return tanh(mpc, x, interval, method=method, degree=degree)
 
 
-def dactivate(mpc, x, activation: str, interval=(-30.0, 30.0), method: Static[str] = METHOD_CHEBYSHEV):
+def dactivate(
+        mpc, x, activation: str, interval: tuple[float, float],
+        method: Static[str], degree: Static[int]):
     assert activation in SUPPORTED_ACTIVATIONS, f"Neural net: activation {activation} is not supported"
     
     if activation == LINEAR_ACTIVATION:
@@ -111,6 +120,6 @@ def dactivate(mpc, x, activation: str, interval=(-30.0, 30.0), method: Static[st
     if activation == RELU_ACTIVATION:
         return drelu(mpc, x)
     if activation == SIGMOID_ACTIVATION:
-        return dsigmoid(mpc, x, interval, method=method)
+        return dsigmoid(mpc, x, interval, method=method, degree=degree)
     if activation == TANH_ACTIVATION:
-        return dtanh(mpc, x, interval, method=method)
+        return dtanh(mpc, x, interval, method=method, degree=degree)

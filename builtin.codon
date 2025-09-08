@@ -14,7 +14,7 @@ from utils import (
     sigmoid, log, sqrt, mul_inv)
 
 
-def _discern_approx_call(mpc, value, op, interval, method: Static[str], degree: Static[int] = 20):
+def _discern_approx_call(mpc, value, op, interval, method: Static[str], degree: Static[int]):
     if isinstance(value, ByVal):
         return op(value)
     
@@ -28,12 +28,18 @@ def _discern_approx_call(mpc, value, op, interval, method: Static[str], degree: 
     elif method == METHOD_DECOR:
         result = via_decor(mpc, value, interval, method=op.__name__[:3])
     elif method == METHOD_FOURIER:
+        if degree <= 0:
+            compile_error("Fourier method requires a positive degree")
         result = via_fourier(mpc, value, op, interval, degree=degree)[0]
     elif method == METHOD_CHEBYSHEV:
+        if degree <= 0:
+            compile_error("Chebyshev method requires a positive degree")
         result = via_chebyshev(
             mpc, value, op, interval, validate=False, method=POLY_EVAL_CLENSHAW, degree=degree)[0]
     elif method == METHOD_TAYLOR:
         compile_error("Taylor is temporarily forbidden. Internal use only.")
+        if degree <= 0:
+            compile_error("Fourier method requires a positive degree")
         result = via_taylor(mpc, value, op, interval, method=POLY_EVAL_NAIVE, degree=degree)
     else:
         compile_error("invalid method specified for approx call")

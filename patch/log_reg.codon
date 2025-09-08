@@ -116,6 +116,7 @@ class LogReg[T]:
                 loss = LogReg._plain_loss(
                     mpc, X_tilde, y, w, interval, variant, method=method, degree=degree).mean()
                 print(f"CP{mpc.pid}:\tLog. reg. BGD epoch {epoch + 1}/{epochs} | loss: {loss}")
+            
             act = LogReg._act(mpc, X_tilde, w, interval, variant, method=method, degree=degree)
             dw = X_tilde.T @ (act - y) * step
             w -= dw  # n x 1

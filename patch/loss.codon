@@ -1,9 +1,11 @@
 from sequre import sequre
+from sequre.types.sharetensor import Sharetensor
 
 from constants import (
     SUPPORTED_LOSSES, HINGE_LOSS, BINARY_CROSSENTROPY_LOSS,
-    MEAN_SQUARED_ERROR_LOSS, METHOD_CHEBYSHEV, METHOD_DECOR)
+    MEAN_SQUARED_ERROR_LOSS)
 from ..builtin import approx_log
+from ..decor import _decor_div
 
 
 @sequre
@@ -19,15 +21,27 @@ def dhinge_loss(mpc, y, output):
 
 @sequre
 def binary_crossentropy_loss(
-        mpc, y, output, interval=(0.0, 1.0), method: Static[str] = METHOD_CHEBYSHEV):
-    return (y - 1) * approx_log(
-        mpc, 1 - output, interval, method=method) - y * approx_log(
-            mpc, output, interval, method=method)
+        mpc, y, output, interval,
+        method: Static[str], degree: Static[int]):
+    l1 = approx_log(mpc, 1 - output, interval, method=method, degree=degree)
+    l2 = approx_log(mpc, output, interval, method=method, degree=degree)
+    return (y - 1) * l1 - y * l2
 
 
 @sequre
 def dbinary_crossentropy_loss(mpc, y, output):
-    return (output - y) / (output * (1 - output))
+    assert y.shape == output.shape, f"Binary crossentropy loss: y and output shapes do not match: {y.shape} != {output.shape}"
+    assert y.ndim == 2, "Binary crossentropy loss: y and output must be 2-dimensional"
+    
+    num = output - y
+    denom = output * (1 - output)
+
+    if isinstance(output, Sharetensor):
+        return _decor_div(
+            mpc, num.flatten(), denom.flatten(),
+            niter=7, sign_check=True, method="newton").reshape(num.shape)
+    
+    return num / denom
 
 
 @sequre
@@ -42,13 +56,13 @@ def dmean_squared_error_loss(mpc, y, output):
 
 
 @sequre
-def loss(mpc, y, output, loss: str, interval=(-30.0, 30.0)):
+def loss(mpc, y, output, loss: str, interval, method: Static[str], degree: Static[int]):
     assert loss in SUPPORTED_LOSSES, f"Neural net: loss {loss} is not supported"
     
     if loss == HINGE_LOSS:
         _loss = hinge_loss(mpc, y, output)
     if loss == BINARY_CROSSENTROPY_LOSS:
-        _loss = binary_crossentropy_loss(mpc, y, output, interval)
+        _loss = binary_crossentropy_loss(mpc, y, output, interval, method=method, degree=degree)
     if loss == MEAN_SQUARED_ERROR_LOSS:
         _loss = mean_squared_error_loss(mpc, y, output)
 

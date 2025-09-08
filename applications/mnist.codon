@@ -33,8 +33,8 @@ def load_test_data(root: str, crop: int) -> Tuple[List[List[float]], List[float]
     return test_X.tolist(), test_Y.tolist()
 
 
-def mnist(mpc, X, y, initial_w, epochs, verbose, method: Static[str]):
+def mnist(mpc, X, y, initial_w, epochs, verbose, method: Static[str], degree: Static[int]):
     step = 0.05 / 60000
     return LogReg(initial_w, optimizer="mbgd", variant="multinomial").fit(
             mpc, X=X, y=y, step=step,
-            epochs=epochs, verbose=verbose, method=method)
+            epochs=epochs, verbose=verbose, method=method, degree=degree)

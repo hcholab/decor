@@ -1,6 +1,8 @@
+import secure_operator
+
 from sequre import sequre
 
-from constants import SUPPORTED_ACTIVATIONS, METHOD_CHEBYSHEV
+from constants import SUPPORTED_ACTIVATIONS
 from activations import activate, dactivate
 
 
@@ -22,7 +24,10 @@ class Input[ctype]:
     def initialize(self, *args):
         return
 
-    def evaluate(self, mpc, last_output: ctype, method: Static[str] = METHOD_CHEBYSHEV):
+    def evaluate(
+            self, mpc, last_output: ctype,
+            method: Static[str],
+            degree: Static[int]):
         self.output = last_output
 
 
@@ -45,22 +50,34 @@ class Dense[ctype]:
     vw: ctype
     vb: ctype
 
+    # Aux params
+    kernel_scale: float
+    interval: tuple[float, float]
+
     def __init__(
             self, activation: str, size: int,
             kernel_initializer: str = "uniform",
-            bias_initializer: str = "uniform"):
+            bias_initializer: str = "uniform",
+            kernel_scale: float = 1.0,
+            interval: tuple[float, float] = (-30.0, 30.0)):
         assert activation in SUPPORTED_ACTIVATIONS, (
             f"Dense neural net layer: {activation} activation is not supported. Supported activations: {SUPPORTED_ACTIVATIONS}")
         self.activation = activation
         self.size = size
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
+        self.kernel_scale = kernel_scale
+        self.interval = interval
     
     def initialize(self, mpc, prev_size: int, *args, **kwargs):
         w_shape = (prev_size, self.size)
         b_shape = (1, self.size)
-        
-        self.weights = ctype.rand(w_shape, self.kernel_initializer, mpc, *args, **kwargs)
+
+        weights = ctype.rand(w_shape, self.kernel_initializer, mpc, *args, **kwargs)
+        if self.kernel_scale != 1.0:
+            self.weights = secure_operator.mul(mpc, weights, self.kernel_scale)
+        else:
+            self.weights = weights
         self.bias = ctype.rand(b_shape, self.bias_initializer, mpc, *args, **kwargs)
         
         self.dw = self.weights.zeros()
@@ -72,16 +89,19 @@ class Dense[ctype]:
     def is_evaluated(self):
         return not self.output.is_empty()
     
-    def evaluate(self, mpc, last_output: ctype, method: Static[str] = METHOD_CHEBYSHEV):
-        Dense[ctype]._evaluate(mpc, self, last_output, method=method)
+    def evaluate(
+            self, mpc, last_output: ctype,
+            method: Static[str],
+            degree: Static[int]):
+        Dense[ctype]._evaluate(mpc, self, last_output, method=method, degree=degree)
     
-    def activate(self, mpc, method: Static[str] = METHOD_CHEBYSHEV) -> ctype:
-        return activate(mpc, self.input, self.activation, method=method)
-    
+    def activate(self, mpc, method: Static[str], degree: Static[int]) -> ctype:
+        return activate(mpc, self.input, self.activation, self.interval, method=method, degree=degree)
+
     def derive(
-            self, mpc, prev_output: ctype, dhidden: ctype,
-            LAYER_IDX: Static[int], method: Static[str] = METHOD_CHEBYSHEV) -> ctype:
-        dact = dactivate(mpc, self.input, self.activation, method=method)
+            self, mpc, prev_output: ctype, dhidden: ctype, LAYER_IDX: Static[int],
+            method: Static[str], degree: Static[int]) -> ctype:
+        dact = dactivate(mpc, self.input, self.activation, self.interval, method=method, degree=degree)
         return Dense[ctype]._derive(
             mpc, self, prev_output, dhidden, dact, LAYER_IDX=LAYER_IDX)
     
@@ -94,7 +114,7 @@ class Dense[ctype]:
         vw_prev = layer.vw.copy()
         layer.vw = layer.vw * momentum - layer.dw * step
         layer.weights += layer.vw * (momentum + 1) - vw_prev * momentum
-        
+
         # Update the biases
         vb_prev = layer.vb.copy()
         layer.vb = layer.vb * momentum - layer.db * step
@@ -116,6 +136,8 @@ class Dense[ctype]:
         return dhidden @ layer.weights.T
     
     @sequre
-    def _evaluate(mpc, layer: Dense, last_output: ctype, method: Static[str]):
+    def _evaluate(
+            mpc, layer: Dense, last_output: ctype,
+            method: Static[str], degree: Static[int]):
         layer.input = last_output @ layer.weights + layer.bias
-        layer.output = layer.activate(mpc, method=method)
+        layer.output = layer.activate(mpc, method=method, degree=degree)
