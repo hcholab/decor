@@ -23,12 +23,16 @@ LINEAR_ACTIVATION: Static[str] = "linear"
 RELU_ACTIVATION: Static[str] = "relu"
 SIGMOID_ACTIVATION: Static[str] = "sigmoid"
 TANH_ACTIVATION: Static[str] = "tanh"
+SIN_ACTIVATION: Static[str] = "sin"
+COS_ACTIVATION: Static[str] = "cos"
 
 SUPPORTED_ACTIVATIONS = [
     LINEAR_ACTIVATION,
     RELU_ACTIVATION,
     SIGMOID_ACTIVATION,
-    TANH_ACTIVATION
+    TANH_ACTIVATION,
+    SIN_ACTIVATION,
+    COS_ACTIVATION
     ]
 
 HINGE_LOSS: Static[str] = "hinge"

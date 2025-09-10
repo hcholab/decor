@@ -13,6 +13,7 @@ from sequre.utils.utils import random_floats
 
 from applications.mnist import load_train_data, load_test_data, mnist
 from applications.gwas import load_gwas_data
+from applications.siren import siren, load_data
 
 from patch.constants import (
     MPC_NBIT_F, POLY_EVAL_CLENSHAW,
@@ -408,6 +409,28 @@ def _eval_mnist_model(
         method=method, degree=degree).reveal(mpc).argmax(axis=1)
     accuracy = (pred == test_Y).astype(float).mean()
     data_dump[f"{name}_accuracy"] = [accuracy]
+
+
+def _eval_siren_model(
+        mpc, data_dump, model_input, ground_truth, epochs,
+        verbose, resolution, method: Static[str], degree: Static[int]):
+    name = f"siren_{method}_{degree}"
+    print(f'\nCP{mpc.pid}:\tTesting SIREN {name}...')
+    mpc.randomness.reset_seed(-1, hash('global'))
+
+    with stats_log(mpc, name, data_dump):    
+        siren_model = siren(mpc, model_input, ground_truth, n_neurons=resolution,
+            loss="mean_squared_error", omega=30.0, epochs=epochs,
+            learning_rate=0.2, momentum=0.9, verbose=verbose,
+            method=method, degree=degree)
+    
+    predicted_img = siren_model.predict(
+        mpc, model_input, method=method, degree=degree).reveal(mpc)
+
+    loss = siren_model.plain_loss(mpc, ground_truth).flatten().mean()
+    data_dump[f"{name}_loss"] = [loss]
+    data_dump[f"{name}_img"] = predicted_img.flatten().tolist()
+    print(f"CP{mpc.pid}:\t{name} - Loss: {loss}")
 
 
 def test_boolean(mpc):
@@ -917,6 +940,34 @@ def test_gwas(mpc, inds=9000, covs=10, step=0.0001, epochs=50, verbose=False):
     return data_dump
 
 
+def test_siren(mpc, resolution=64, epochs=20, verbose=True):
+    print(f'\nCP{mpc.pid}:\tTesting SIREN...')
+
+    model_input, ground_truth = load_data(resolution)
+    model_input_np = array(model_input)
+    ground_truth_np = array(ground_truth)
+
+    model_input_sequre = Sharetensor.enc(mpc, model_input_np)
+    ground_truth_sequre = Sharetensor.enc(mpc, ground_truth_np)
+
+    data_dump: Dict[str, List[float]] = {}
+    _eval_siren_model(
+        mpc, data_dump, model_input_np, ground_truth_np,
+        epochs, verbose, resolution, method=METHOD_PLAIN, degree=0)
+    
+    _eval_siren_model(
+        mpc, data_dump, model_input_sequre, ground_truth_sequre,
+        epochs, verbose, resolution, method=METHOD_DECOR, degree=0)
+    
+    for deg in staticrange(3):
+        degree: Static[int] = (deg + 2) * 10
+        _eval_siren_model(
+            mpc, data_dump, model_input_sequre, ground_truth_sequre,
+            epochs, verbose, resolution, method=METHOD_CHEBYSHEV, degree=degree)
+
+    return data_dump
+
+
 COMPILE_PRIMITIVES: Static[int] = False
 COMPILE_ELEMENTARY: Static[int] = False
 COMPILE_E2E: Static[int] = True
@@ -949,9 +1000,10 @@ def test(mpc):
 
     if COMPILE_E2E:
         # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
-        pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
+        # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
         # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
         # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
 
 
 @local

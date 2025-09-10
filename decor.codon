@@ -1,3 +1,4 @@
+import math
 import secure_operator
 import openmp as omp
 
@@ -490,7 +491,7 @@ def decor_eval(
     return foo_eval + cond * (foo_eval_shifted - foo_eval)
 
 
-def via_decor(mpc, x, interval, *args, method: Static[str]):
+def via_decor_generic(mpc, x, interval, *args, method: Static[str]):
     foos, decor_foo = get_decor_foos(*args, method=method)
     decor_partitions = decor_partition(mpc, x, foos, interval)
     internal_switch: Static[int] = method[:3] == "sig"
@@ -514,3 +515,13 @@ def via_decor_trig(mpc, x, method: Static[str]):
     stensor.fp = True
 
     return stensor
+
+
+@sequre
+def via_decor(mpc, x, interval, *args, method: Static[str]):
+    if method == "sin" or method == "cos" or method == "tan" or method == "cot":
+        period = 2 * math.pi
+        res = via_decor_trig(mpc, x / period, method=method)
+        return res
+    
+    return via_decor_generic(mpc, x, interval, *args, method=method)

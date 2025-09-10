@@ -1,0 +1,78 @@
+import math
+
+from ..patch.layers import Input, Dense
+from ..patch.model import Sequential
+
+
+@python
+def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
+    import torch
+    import skimage
+    
+    from PIL import Image
+    from torchvision.transforms import Resize, Compose, ToTensor, Normalize
+    from torch.utils.data import DataLoader, Dataset
+
+    def get_mgrid(sidelen, dim):
+        tensors = tuple(dim * [torch.linspace(-1, 1, steps=sidelen)])
+        mgrid = torch.stack(torch.meshgrid(*tensors), dim=-1)
+        mgrid = mgrid.reshape(-1, dim)
+        return mgrid
+
+    def get_cameraman_tensor(sidelength):
+        img = Image.fromarray(skimage.data.camera())        
+        transform = Compose([
+            Resize(sidelength),
+            ToTensor(),
+            Normalize(torch.Tensor([0.5]), torch.Tensor([0.5]))
+        ])
+        img = transform(img)
+
+        return img
+
+    class ImageFitting(Dataset):
+        def __init__(self, sidelength):
+            super().__init__()
+            img = get_cameraman_tensor(sidelength)
+            self.pixels = img.permute(1, 2, 0).view(-1, 1)
+            self.coords = get_mgrid(sidelength, 2)
+
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, idx):    
+            if idx > 0: raise IndexError
+            return self.coords, self.pixels
+    
+    cameraman = ImageFitting(resolution)
+    dataloader = DataLoader(cameraman, batch_size=1, pin_memory=True, num_workers=0)
+
+    model_input, ground_truth = next(iter(dataloader))
+    return model_input[0].tolist(), ground_truth[0].tolist()
+
+
+def siren(mpc, model_input, ground_truth, n_neurons, omega,
+          loss, epochs, learning_rate, momentum, verbose,
+          method: Static[str], degree: Static[int]):
+    input_dim = model_input.shape[1]
+
+    layers = (
+        Input[type(model_input)](input_dim),
+        Dense[type(model_input)](
+            "sin", n_neurons, "uniform", "uniform",
+            kernel_interval=(-1.0, 1.0),
+            kernel_scale=(1 / input_dim),
+            pre_act_scale=omega),
+        Dense[type(model_input)](
+            "linear", 1, "uniform", "uniform",
+            kernel_interval=(-1.0, 1.0),
+            kernel_scale=(math.sqrt(6 / n_neurons) / omega))
+    )
+
+    model = Sequential(layers).compile(mpc, loss=loss, optimizer="bgd")
+    model.fit(
+        mpc, X=model_input, y=ground_truth, step=learning_rate,
+        epochs=epochs, momentum=momentum, batch_size=1,
+        verbose=verbose, method=method, degree=degree)
+
+    return model

@@ -3,8 +3,8 @@ from sequre import sequre, sq
 from constants import (
     SUPPORTED_ACTIVATIONS, RELU_ACTIVATION,
     LINEAR_ACTIVATION, SIGMOID_ACTIVATION,
-    TANH_ACTIVATION, DEBUG)
-from ..builtin import approx_sigmoid, approx_tanh
+    TANH_ACTIVATION, SIN_ACTIVATION, DEBUG)
+from ..builtin import approx_sigmoid, approx_tanh, approx_sin, approx_cos
 
 
 @sequre
@@ -79,6 +79,40 @@ def sigmoid_with_derivative(mpc, x, interval, method: Static[str], degree: Stati
 
 
 @sequre
+def sin(mpc, x, interval, method: Static[str], degree: Static[int]):
+    if DEBUG:
+        rev_x = x.reveal(mpc)
+        if rev_x.min() < interval[0]:
+            print(f"WARNING: Sin activation: input {rev_x.min()} is out of bounds {interval}.")
+        if rev_x.max() > interval[1]:
+            print(f"WARNING: Sin activation: input {rev_x.max()} is out of bounds {interval}.")
+
+    return approx_sin(mpc, x, interval, method=method, degree=degree)
+
+
+@sequre
+def cos(mpc, x, interval, method: Static[str], degree: Static[int]):
+    if DEBUG:
+        rev_x = x.reveal(mpc)
+        if rev_x.min() < interval[0]:
+            print(f"WARNING: Cos activation: input {rev_x.min()} is out of bounds {interval}.")
+        if rev_x.max() > interval[1]:
+            print(f"WARNING: Cos activation: input {rev_x.max()} is out of bounds {interval}.")
+
+    return approx_cos(mpc, x, interval, method=method, degree=degree)
+
+
+@sequre
+def dsin(mpc, x, interval, method: Static[str], degree: Static[int]):
+    return cos(mpc, x, interval, method=method, degree=degree)
+
+
+@sequre
+def dcos(mpc, x, interval, method: Static[str], degree: Static[int]):
+    return -sin(mpc, x, interval, method=method, degree=degree)
+
+
+@sequre
 def tanh(mpc, x, interval, method: Static[str], degree: Static[int]):
     return approx_tanh(mpc, x, interval, method=method, degree=degree)
 
@@ -108,6 +142,8 @@ def activate(
         return sigmoid(mpc, x, interval, method=method, degree=degree)
     if activation == TANH_ACTIVATION:
         return tanh(mpc, x, interval, method=method, degree=degree)
+    if activation == SIN_ACTIVATION:
+        return sin(mpc, x, interval, method=method, degree=degree)
 
 
 def dactivate(
@@ -123,3 +159,5 @@ def dactivate(
         return dsigmoid(mpc, x, interval, method=method, degree=degree)
     if activation == TANH_ACTIVATION:
         return dtanh(mpc, x, interval, method=method, degree=degree)
+    if activation == SIN_ACTIVATION:
+        return dsin(mpc, x, interval, method=method, degree=degree)

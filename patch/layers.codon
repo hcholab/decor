@@ -51,29 +51,40 @@ class Dense[ctype]:
     vb: ctype
 
     # Aux params
-    kernel_scale: float
+    kernel_interval: tuple[float, float]
     interval: tuple[float, float]
+    kernel_scale: float
+    pre_act_scale: float
 
     def __init__(
             self, activation: str, size: int,
             kernel_initializer: str = "uniform",
             bias_initializer: str = "uniform",
+            kernel_interval: tuple[float, float] = (0.0, 1.0),
             kernel_scale: float = 1.0,
-            interval: tuple[float, float] = (-30.0, 30.0)):
+            interval: tuple[float, float] = (-30.0, 30.0),
+            pre_act_scale: float = 1.0):
         assert activation in SUPPORTED_ACTIVATIONS, (
             f"Dense neural net layer: {activation} activation is not supported. Supported activations: {SUPPORTED_ACTIVATIONS}")
         self.activation = activation
         self.size = size
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
-        self.kernel_scale = kernel_scale
+        self.kernel_interval = kernel_interval
         self.interval = interval
+        self.kernel_scale = kernel_scale
+        self.pre_act_scale = pre_act_scale
     
     def initialize(self, mpc, prev_size: int, *args, **kwargs):
         w_shape = (prev_size, self.size)
         b_shape = (1, self.size)
 
         weights = ctype.rand(w_shape, self.kernel_initializer, mpc, *args, **kwargs)
+        kernel_interval_len = self.kernel_interval[1] - self.kernel_interval[0]
+        weights = secure_operator.add(
+            mpc, secure_operator.mul(mpc, weights, kernel_interval_len),
+            self.kernel_interval[0])
+
         if self.kernel_scale != 1.0:
             self.weights = secure_operator.mul(mpc, weights, self.kernel_scale)
         else:
@@ -93,7 +104,7 @@ class Dense[ctype]:
             self, mpc, last_output: ctype,
             method: Static[str],
             degree: Static[int]):
-        Dense[ctype]._evaluate(mpc, self, last_output, method=method, degree=degree)
+        Dense[ctype]._evaluate(mpc, self, last_output, self.pre_act_scale, method=method, degree=degree)
     
     def activate(self, mpc, method: Static[str], degree: Static[int]) -> ctype:
         return activate(mpc, self.input, self.activation, self.interval, method=method, degree=degree)
@@ -137,7 +148,10 @@ class Dense[ctype]:
     
     @sequre
     def _evaluate(
-            mpc, layer: Dense, last_output: ctype,
+            mpc, layer: Dense, last_output: ctype, pre_act_scale: float,
             method: Static[str], degree: Static[int]):
         layer.input = last_output @ layer.weights + layer.bias
+        if pre_act_scale != 1.0:
+            layer.input = layer.input * pre_act_scale
+
         layer.output = layer.activate(mpc, method=method, degree=degree)
