@@ -940,7 +940,7 @@ def test_gwas(mpc, inds=9000, covs=10, step=0.0001, epochs=50, verbose=False):
     return data_dump
 
 
-def test_siren(mpc, resolution=64, epochs=20, verbose=True):
+def test_siren(mpc, resolution=64, epochs=200, verbose=True):
     print(f'\nCP{mpc.pid}:\tTesting SIREN...')
 
     model_input, ground_truth = load_data(resolution)
@@ -959,7 +959,7 @@ def test_siren(mpc, resolution=64, epochs=20, verbose=True):
         mpc, data_dump, model_input_sequre, ground_truth_sequre,
         epochs, verbose, resolution, method=METHOD_DECOR, degree=0)
     
-    for deg in staticrange(3):
+    for deg in staticrange(1):
         degree: Static[int] = (deg + 2) * 10
         _eval_siren_model(
             mpc, data_dump, model_input_sequre, ground_truth_sequre,

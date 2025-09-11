@@ -21,6 +21,7 @@ def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
 
     def get_cameraman_tensor(sidelength):
         img = Image.fromarray(skimage.data.camera())        
+        img = img.crop((192, 128, 320, 256))  # Crop to 128x128
         transform = Compose([
             Resize(sidelength),
             ToTensor(),
@@ -56,17 +57,25 @@ def siren(mpc, model_input, ground_truth, n_neurons, omega,
           method: Static[str], degree: Static[int]):
     input_dim = model_input.shape[1]
 
+    kernel_interval = (-1.0, 1.0)
+    initial_kernel_scale = 1 / input_dim
+    inner_kernel_scale = math.sqrt(6 / n_neurons) / omega
     layers = (
         Input[type(model_input)](input_dim),
         Dense[type(model_input)](
             "sin", n_neurons, "uniform", "uniform",
-            kernel_interval=(-1.0, 1.0),
-            kernel_scale=(1 / input_dim),
+            kernel_interval=kernel_interval,
+            kernel_scale=initial_kernel_scale,
+            pre_act_scale=omega),
+        Dense[type(model_input)](
+            "sin", n_neurons, "uniform", "uniform",
+            kernel_interval=kernel_interval,
+            kernel_scale=inner_kernel_scale,
             pre_act_scale=omega),
         Dense[type(model_input)](
             "linear", 1, "uniform", "uniform",
-            kernel_interval=(-1.0, 1.0),
-            kernel_scale=(math.sqrt(6 / n_neurons) / omega))
+            kernel_interval=kernel_interval,
+            kernel_scale=inner_kernel_scale)
     )
 
     model = Sequential(layers).compile(mpc, loss=loss, optimizer="bgd")
