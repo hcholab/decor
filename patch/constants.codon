@@ -46,3 +46,5 @@ SUPPORTED_LOSSES = [
     ]
 
 FBITS_MASK = (mpc_uint(1) << MPC_NBIT_F) - 1
+DECOR_DIV_DEFAULT_NITER: Static[int] = 7
+DECOR_DIV_DEFAULT_METHOD: Static[str] = "newton"

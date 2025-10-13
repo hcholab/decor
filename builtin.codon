@@ -1,11 +1,15 @@
 from numpy.ndarray import ndarray
 
+from sequre import sequre
+from sequre.types.sharetensor import Sharetensor
+
 from patch.constants import (
     METHOD_CHEBYSHEV, METHOD_TAYLOR, METHOD_FOURIER, METHOD_DECOR,
-    POLY_EVAL_CLENSHAW, POLY_EVAL_NAIVE)
+    POLY_EVAL_CLENSHAW, POLY_EVAL_NAIVE, DECOR_DIV_DEFAULT_NITER,
+    DECOR_DIV_DEFAULT_METHOD)
 from patch.chebyshev import via_chebyshev
 
-from decor import via_decor
+from decor import via_decor, _decor_mul_inv
 from fourier import via_fourier
 from taylor import via_taylor
 from utils import (
@@ -81,3 +85,34 @@ def approx_sqrt(mpc, value, interval, method: Static[str], degree: Static[int]):
 
 def approx_mul_inv(mpc, value, interval, method: Static[str], degree: Static[int]):
     return _discern_approx_call(mpc, value, mul_inv, interval, method=method, degree=degree)
+
+
+@sequre
+def approx_softmax(
+        mpc, value, interval, method: Static[str],
+        degree: Static[int], use_decor_for_division: Static[int] = False):
+    assert value.ndim == 2, "Softmax can only be applied to 2-dimensional tensors for now"
+
+    exps = approx_exp(mpc, value, interval, method=method, degree=degree)
+    sums = exps.sum(axis=1, keepdims=True)
+    
+    if isinstance(value, Sharetensor) and use_decor_for_division:
+        # This use case assumes that sums * 0.5 is within (0, 1) range
+        # This is because _decor_mul_inv currently works only for (0, 1) range
+        # since the normalizer within supports only (0, 1) range
+        # Also, this use case assumes that the largest value (in input) is 0
+        # --- a common practice when computing softmax
+        # for numerical stability: shift = x - max(x)
+        
+        sums_inv = _decor_mul_inv(
+            mpc, sums.flatten() * 0.5,
+            niter=DECOR_DIV_DEFAULT_NITER,
+            sign_check=False,
+            method=DECOR_DIV_DEFAULT_METHOD).reshape(sums.shape) * 0.5
+        
+        result = exps * sums_inv
+    else:
+        # Will fail on top of Sharetensor since broadcasting is not supported
+        result = exps / sums
+
+    return result

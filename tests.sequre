@@ -11,7 +11,9 @@ from sequre.types.utils import double_to_fp
 from sequre.utils.testing import assert_eq_approx, assert_distributed_eq_approx, assert_eq
 from sequre.utils.utils import random_floats
 
-from applications.mnist import load_train_data, load_test_data, mnist
+from applications.mnist import (
+    load_train_data, load_test_data, mnist,
+    load_medmnist_train_data, load_medmnist_test_data)
 from applications.gwas import load_gwas_data
 from applications.siren import siren, load_data
 
@@ -400,6 +402,8 @@ def _eval_mnist_model(
         test_X, test_Y, epochs, verbose,
         method: Static[str], degree: Static[int]):
     print(f'\nCP{mpc.pid}:\tTesting MNIST {method} for degree {degree}...')
+    mpc.randomness.reset_seed(-1, hash('global'))
+    
     with stats_log(mpc, name, data_dump):
         mnist = mnist(
             mpc, train_X, train_Y, initial_w,
@@ -407,6 +411,7 @@ def _eval_mnist_model(
     pred = mnist.predict(
         mpc, test_X,
         method=method, degree=degree).reveal(mpc).argmax(axis=1)
+    
     accuracy = (pred == test_Y).astype(float).mean()
     data_dump[f"{name}_accuracy"] = [accuracy]
 
@@ -810,13 +815,18 @@ def test_dti(
     return data_dump
 
 
-def test_mnist(mpc, epochs=20, verbose=False):
+def test_mnist(mpc, medmnist=False, epochs=20, verbose=False):
     print(f'\nCP{mpc.pid}:\tTesting MNIST...')
     
+    name = "medmnist" if medmnist else "mnist"
     data_dump: Dict[str, List[float]] = {}
     with mpc.detach_dealer():
-        train_X, train_Y = load_train_data("./data/mnist/", 0)
-        test_X, test_Y = load_test_data("./data/mnist/", 0)
+        if medmnist:
+            train_X, train_Y = load_medmnist_train_data(0)
+            test_X, test_Y = load_medmnist_test_data(0)
+        else:
+            train_X, train_Y = load_train_data("./data/mnist/", 0)
+            test_X, test_Y = load_test_data("./data/mnist/", 0)
     
     np_train_X = array(train_X)
     np_train_Y = array(train_Y)
@@ -831,29 +841,29 @@ def test_mnist(mpc, epochs=20, verbose=False):
     sequre_test_X = Sharetensor.enc(mpc, np_test_X)
     sequre_initial_W = Sharetensor.enc(mpc, raw_initial_W)
     
-    for deg in staticrange(2, 6):
-        degree: Static[int] = deg * 10
-
-        ptx_name = f"mnist_plaintext_{degree}"
-        chebyshev_name = f"mnist_chebyshev_{degree}"
-        decor_name = f"mnist_decor_{degree}"
-
-        _eval_mnist_model(
-            mpc, ptx_name, data_dump, raw_initial_W, np_train_X, np_train_Y,
-            np_test_X, np_test_Y, epochs, verbose,
-            method=METHOD_PLAIN, degree=degree)
+    ptx_name = f"{name}_plaintext"
+    decor_name = f"{name}_decor"
+    
+    _eval_mnist_model(
+        mpc, ptx_name, data_dump, raw_initial_W, np_train_X, np_train_Y,
+        np_test_X, np_test_Y, epochs, verbose,
+        method=METHOD_PLAIN, degree=0)
+    
+    _eval_mnist_model(
+        mpc, decor_name, data_dump, sequre_initial_W,
+        sequre_train_X, sequre_train_Y,
+        sequre_test_X, np_test_Y, epochs, verbose,
+        method=METHOD_DECOR, degree=0)
+    
+    for deg in staticrange(1):
+        degree: Static[int] = (deg + 2) * 10
+        chebyshev_name = f"{name}_chebyshev_{degree}"
         
         _eval_mnist_model(
             mpc, chebyshev_name, data_dump, sequre_initial_W,
             sequre_train_X, sequre_train_Y,
             sequre_test_X, np_test_Y, epochs, verbose,
             method=METHOD_CHEBYSHEV, degree=degree)
-        
-        _eval_mnist_model(
-            mpc, decor_name, data_dump, sequre_initial_W,
-            sequre_train_X, sequre_train_Y,
-            sequre_test_X, np_test_Y, epochs, verbose,
-            method=METHOD_DECOR, degree=degree)
 
     return data_dump
 
@@ -1003,7 +1013,8 @@ def test(mpc):
         # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
         # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
         # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
-        pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        # pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        pickle_dump(f"dump/medmnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc, medmnist=True))
 
 
 @local

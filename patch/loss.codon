@@ -3,7 +3,7 @@ from sequre.types.sharetensor import Sharetensor
 
 from constants import (
     SUPPORTED_LOSSES, HINGE_LOSS, BINARY_CROSSENTROPY_LOSS,
-    MEAN_SQUARED_ERROR_LOSS)
+    MEAN_SQUARED_ERROR_LOSS, DECOR_DIV_DEFAULT_NITER)
 from ..builtin import approx_log
 from ..decor import _decor_div
 
@@ -39,7 +39,8 @@ def dbinary_crossentropy_loss(mpc, y, output):
     if isinstance(output, Sharetensor):
         return _decor_div(
             mpc, num.flatten(), denom.flatten(),
-            niter=7, sign_check=True, method="newton").reshape(num.shape)
+            niter=DECOR_DIV_DEFAULT_NITER,
+            sign_check=True, method="newton").reshape(num.shape)
     
     return num / denom
 
