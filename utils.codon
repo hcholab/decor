@@ -92,6 +92,21 @@ def sigmoid(value):
     return recursive_reduce(lambda x: 1 / (1 + (-x).exp()), value)
 
 
+def softmax(value):
+    if isinstance(value, list[list]):
+        return [softmax(v) for v in value]
+    
+    if isinstance(value, list):
+        exps = exp(value)
+        sum_exps = sum(exps)
+        return [v / sum_exps for v in exps]
+    
+    if isinstance(value, ByVal):
+        return 1.0
+    
+    compile_error("invalid type for softmax")
+
+
 def log(value):
     return recursive_reduce(math.log, value)
 
