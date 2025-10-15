@@ -3,7 +3,8 @@ from sequre.types.sharetensor import Sharetensor
 
 from constants import (
     SUPPORTED_LOSSES, HINGE_LOSS, BINARY_CROSSENTROPY_LOSS,
-    MEAN_SQUARED_ERROR_LOSS, DECOR_DIV_DEFAULT_NITER)
+    CATEGORICAL_CROSSENTROPY_LOSS, MEAN_SQUARED_ERROR_LOSS,
+    DECOR_DIV_DEFAULT_NITER)
 from ..builtin import approx_log
 from ..decor import _decor_div
 
@@ -46,6 +47,31 @@ def dbinary_crossentropy_loss(mpc, y, output):
 
 
 @sequre
+def categorical_crossentropy_loss(
+        mpc, y, output, interval,
+        method: Static[str], degree: Static[int]):
+    assert y.shape == output.shape, f"Categorical crossentropy loss: y and output shapes do not match: {y.shape} != {output.shape}"
+    assert y.ndim == 2, "Categorical crossentropy loss: y and output must be 2-dimensional"
+    
+    l2 = approx_log(mpc, output, interval, method=method, degree=degree)
+    return -y * l2
+
+
+@sequre
+def dcategorical_crossentropy_loss(mpc, y, output):
+    assert y.shape == output.shape, f"Categorical crossentropy loss: y and output shapes do not match: {y.shape} != {output.shape}"
+    assert y.ndim == 2, "Categorical crossentropy loss: y and output must be 2-dimensional"
+    
+    if isinstance(output, Sharetensor):
+        return _decor_div(
+            mpc, y.flatten(), output.flatten(),
+            niter=DECOR_DIV_DEFAULT_NITER,
+            sign_check=False, method="newton").reshape(y.shape)
+
+    return -y / output
+
+
+@sequre
 def mean_squared_error_loss(mpc, y, output):
     dist = y - output
     return dist * dist / 2
@@ -64,6 +90,8 @@ def loss(mpc, y, output, loss: str, interval, method: Static[str], degree: Stati
         _loss = hinge_loss(mpc, y, output)
     if loss == BINARY_CROSSENTROPY_LOSS:
         _loss = binary_crossentropy_loss(mpc, y, output, interval, method=method, degree=degree)
+    if loss == CATEGORICAL_CROSSENTROPY_LOSS:
+        _loss = categorical_crossentropy_loss(mpc, y, output, interval, method=method, degree=degree)
     if loss == MEAN_SQUARED_ERROR_LOSS:
         _loss = mean_squared_error_loss(mpc, y, output)
 
@@ -79,6 +107,8 @@ def dloss(mpc, y, output, loss: str):
         _dloss = dhinge_loss(mpc, y, output)
     if loss == BINARY_CROSSENTROPY_LOSS:
         _dloss = dbinary_crossentropy_loss(mpc, y, output)
+    if loss == CATEGORICAL_CROSSENTROPY_LOSS:
+        _dloss = dcategorical_crossentropy_loss(mpc, y, output)
     if loss == MEAN_SQUARED_ERROR_LOSS:
         _dloss = dmean_squared_error_loss(mpc, y, output)
 

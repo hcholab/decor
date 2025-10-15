@@ -22,6 +22,7 @@ EPSILON: float = 1e-7
 LINEAR_ACTIVATION: Static[str] = "linear"
 RELU_ACTIVATION: Static[str] = "relu"
 SIGMOID_ACTIVATION: Static[str] = "sigmoid"
+SOFTMAX_ACTIVATION: Static[str] = "softmax"
 TANH_ACTIVATION: Static[str] = "tanh"
 SIN_ACTIVATION: Static[str] = "sin"
 COS_ACTIVATION: Static[str] = "cos"
@@ -30,6 +31,7 @@ SUPPORTED_ACTIVATIONS = [
     LINEAR_ACTIVATION,
     RELU_ACTIVATION,
     SIGMOID_ACTIVATION,
+    SOFTMAX_ACTIVATION,
     TANH_ACTIVATION,
     SIN_ACTIVATION,
     COS_ACTIVATION
@@ -37,11 +39,13 @@ SUPPORTED_ACTIVATIONS = [
 
 HINGE_LOSS: Static[str] = "hinge"
 BINARY_CROSSENTROPY_LOSS: Static[str] = "binary_crossentropy"
+CATEGORICAL_CROSSENTROPY_LOSS: Static[str] = "categorical_crossentropy"
 MEAN_SQUARED_ERROR_LOSS: Static[str] = "mean_squared_error"
 
 SUPPORTED_LOSSES = [
     HINGE_LOSS,
     BINARY_CROSSENTROPY_LOSS,
+    CATEGORICAL_CROSSENTROPY_LOSS,
     MEAN_SQUARED_ERROR_LOSS
     ]
 

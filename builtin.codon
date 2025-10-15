@@ -97,18 +97,19 @@ def approx_softmax(
     sums = exps.sum(axis=1, keepdims=True)
     
     if isinstance(value, Sharetensor) and use_decor_for_division:
-        # This use case assumes that sums * 0.5 is within (0, 1) range
+        # This use case assumes that sums * 0.1 is within (0, 1) range
         # This is because _decor_mul_inv currently works only for (0, 1) range
         # since the normalizer within supports only (0, 1) range
         # Also, this use case assumes that the largest value (in input) is 0
         # --- a common practice when computing softmax
         # for numerical stability: shift = x - max(x)
         
+        scaling_factor = 1. / value.shape[1]
         sums_inv = _decor_mul_inv(
-            mpc, sums.flatten() * 0.5,
+            mpc, sums.flatten() * scaling_factor,
             niter=DECOR_DIV_DEFAULT_NITER,
             sign_check=False,
-            method=DECOR_DIV_DEFAULT_METHOD).reshape(sums.shape) * 0.5
+            method=DECOR_DIV_DEFAULT_METHOD).reshape(sums.shape) * scaling_factor
         
         result = exps * sums_inv
     else:

@@ -405,10 +405,10 @@ def _eval_mnist_model(
     mpc.randomness.reset_seed(-1, hash('global'))
     
     with stats_log(mpc, name, data_dump):
-        mnist = mnist(
+        mnist_model = mnist(
             mpc, train_X, train_Y, initial_w,
             epochs=epochs, verbose=verbose, method=method, degree=degree)
-    pred = mnist.predict(
+    pred = mnist_model.predict(
         mpc, test_X,
         method=method, degree=degree).reveal(mpc).argmax(axis=1)
     
@@ -1014,7 +1014,7 @@ def test(mpc):
         # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
         # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
         # pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
-        pickle_dump(f"dump/medmnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc, medmnist=True))
+        pickle_dump(f"dump/medmnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc, medmnist=True, verbose=True, epochs=5))
 
 
 @local
