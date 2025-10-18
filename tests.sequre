@@ -978,8 +978,8 @@ def test_siren(mpc, resolution=64, epochs=200, verbose=True):
     return data_dump
 
 
-COMPILE_PRIMITIVES: Static[int] = False
-COMPILE_ELEMENTARY: Static[int] = False
+COMPILE_PRIMITIVES: Static[int] = True
+COMPILE_ELEMENTARY: Static[int] = True
 COMPILE_E2E: Static[int] = True
 
 def test(mpc):
@@ -1009,12 +1009,15 @@ def test(mpc):
                     mpc, interval, sample_size, iter_count))
 
     if COMPILE_E2E:
+        # Apps that are stable
+        pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        
+        # # Apps that need more testing
         # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))
         # pickle_dump(f"dump/dti_{MPC_NBIT_F}_CP{mpc.pid}.p", test_dti(mpc))
         # pickle_dump(f"dump/mnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc))
-        # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
-        # pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
-        pickle_dump(f"dump/medmnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc, medmnist=True, verbose=True, epochs=5))
+        # pickle_dump(f"dump/medmnist_{MPC_NBIT_F}_CP{mpc.pid}.p", test_mnist(mpc, medmnist=True))
 
 
 @local

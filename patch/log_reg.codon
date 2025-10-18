@@ -73,7 +73,8 @@ class LogReg[T]:
         w_rev = self.coef_.reveal(mpc)
 
         return LogReg._loss(
-            mpc, X_rev, y_rev, w_rev, self.interval, self.variant, method=method, degree=degree)
+            mpc, X_rev, y_rev, w_rev, self.interval, self.variant,
+            self.fixed_shift_softmax, method=method, degree=degree)
 
     def randomize_weights(self, mpc, distribution: str = "uniform"):
         self.coef_ = self.coef_.rand(distribution, mpc)
