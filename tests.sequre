@@ -223,42 +223,28 @@ def _test_chebyshev_method(
         partial(via_chebyshev, op=sawtooth_wave, validate=False, method=method, degree=degree), floats, stensor,
         sawtooth_wave(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    # Temporarily excluded to save compile time
-    # period = interval[1] - interval[0]
-    # if period < math.pi:
-    #     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-    #         partial(via_chebyshev, op=sinh, validate=False, method=method, degree=degree), floats, stensor,
-    #         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
+        partial(via_chebyshev, op=tanh, validate=False, method=method, degree=degree), floats, stensor,
+        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    
+    period = interval[1] - interval[0]
+    if period <= math.pi:
+        _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+            partial(via_chebyshev, op=sinh, validate=False, method=method, degree=degree), floats, stensor,
+            sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    #     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-    #         partial(via_chebyshev, op=cosh, validate=False, method=method, degree=degree), floats, stensor,
-    #         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    #     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-    #         partial(via_chebyshev, op=tanh, validate=False, method=method, degree=degree), floats, stensor,
-    #         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+        _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+            partial(via_chebyshev, op=cosh, validate=False, method=method, degree=degree), floats, stensor,
+            cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
         
-    #     if interval[0] < 0:
-    #         _test_op(mpc, data_dump, f"{name}_tan_{method}",
-    #             partial(via_chebyshev, op=tan, validate=False, method=method, degree=degree), floats, stensor,
-    #             tan(floats), interval, iter_count, skip_assert=True, periodic=False)
-    #     else:
-    #         _test_op(mpc, data_dump, f"{name}_cot_{method}",
-    #             partial(via_chebyshev, op=cot, validate=False, method=method, degree=degree), floats, stensor,
-    #             cot(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    # if interval[0] > 0:
-    #     _test_op(mpc, data_dump, f"{name}_log_{method}",
-    #         partial(via_chebyshev, op=log, validate=False, method=method, degree=degree), floats, stensor,
-    #         log(floats), interval, iter_count, skip_assert=True, periodic=False)
-        
-    #     _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-    #         partial(via_chebyshev, op=mul_inv, validate=False, method=method, degree=degree), floats, stensor,
-    #         mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    #     _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-    #         partial(via_chebyshev, op=sqrt, validate=False, method=method, degree=degree), floats, stensor,
-    #         sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
+        if interval[0] < 0:
+            _test_op(mpc, data_dump, f"{name}_tan_{method}",
+                partial(via_chebyshev, op=tan, validate=False, method=method, degree=degree), floats, stensor,
+                tan(floats), interval, iter_count, skip_assert=True, periodic=False)
+        else:
+            _test_op(mpc, data_dump, f"{name}_cot_{method}",
+                partial(via_chebyshev, op=cot, validate=False, method=method, degree=degree), floats, stensor,
+                cot(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_taylor_method(
@@ -281,33 +267,19 @@ def _test_taylor_method(
         partial(via_taylor, op=exp, method=method, degree=degree), floats, stensor,
         exp(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    # Temporarily excluded to save compile time
-    # period = interval[1] - interval[0]
-    # if period < math.pi:
-    #     _test_op(mpc, data_dump, f"{name}_sinh_{method}",
-    #         partial(via_taylor, op=sinh, method=method, degree=degree), floats, stensor,
-    #         sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    _test_op(mpc, data_dump, f"{name}_tanh_{method}",
+        partial(via_taylor, op=tanh, method=method, degree=degree), floats, stensor,
+        tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
+    
+    period = interval[1] - interval[0]
+    if period <= math.pi:
+        _test_op(mpc, data_dump, f"{name}_sinh_{method}",
+            partial(via_taylor, op=sinh, method=method, degree=degree), floats, stensor,
+            sinh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
-    #     _test_op(mpc, data_dump, f"{name}_cosh_{method}",
-    #         partial(via_taylor, op=cosh, method=method, degree=degree), floats, stensor,
-    #         cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    #     _test_op(mpc, data_dump, f"{name}_tanh_{method}",
-    #         partial(via_taylor, op=tanh, method=method, degree=degree), floats, stensor,
-    #         tanh(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    # if interval[0] > 0:
-    #     _test_op(mpc, data_dump, f"{name}_log_{method}",
-    #         partial(via_taylor, op=log, method=method, degree=degree), floats, stensor,
-    #         log(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    #     _test_op(mpc, data_dump, f"{name}_mul_inv_{method}",
-    #         partial(via_taylor, op=mul_inv, method=method, degree=degree), floats, stensor,
-    #         mul_inv(floats), interval, iter_count, skip_assert=True, periodic=False)
-
-    #     _test_op(mpc, data_dump, f"{name}_sqrt_{method}",
-    #         partial(via_taylor, op=sqrt, method=method, degree=degree), floats, stensor,
-    #         sqrt(floats), interval, iter_count, skip_assert=True, periodic=False)
+        _test_op(mpc, data_dump, f"{name}_cosh_{method}",
+            partial(via_taylor, op=cosh, method=method, degree=degree), floats, stensor,
+            cosh(floats), interval, iter_count, skip_assert=True, periodic=False)
 
 
 def _test_log_reg_method(
@@ -635,41 +607,26 @@ def test_decor_fourier(mpc, interval, sample_size, iter_count):
             partial(via_fourier, op=sawtooth_wave, degree=degree), floats, stensor,
             sawtooth_wave(floats), interval, iter_count, skip_assert=True)
 
-        # Temporarily exluded to save compile time
-        # if period < math.pi:
-        #     _test_op(mpc, data_dump, f"{name}_sinh",
-        #         partial(via_fourier, op=sinh, degree=degree), floats, stensor,
-        #         sinh(floats), interval, iter_count, skip_assert=True)
+        _test_op(mpc, data_dump, f"{name}_tanh",
+            partial(via_fourier, op=tanh, degree=degree), floats, stensor,
+            tanh(floats), interval, iter_count, skip_assert=True)
+        
+        if period <= math.pi:
+            _test_op(mpc, data_dump, f"{name}_sinh",
+                partial(via_fourier, op=sinh, degree=degree), floats, stensor,
+                sinh(floats), interval, iter_count, skip_assert=True)
 
-        #     _test_op(mpc, data_dump, f"{name}_cosh",
-        #         partial(via_fourier, op=cosh, degree=degree), floats, stensor,
-        #         cosh(floats), interval, iter_count, skip_assert=True)
-
-        #     _test_op(mpc, data_dump, f"{name}_tanh",
-        #         partial(via_fourier, op=tanh, degree=degree), floats, stensor,
-        #         tanh(floats), interval, iter_count, skip_assert=True)
-
-        #     if interval[0] < 0:
-        #         _test_op(mpc, data_dump, f"{name}_tan",
-        #             partial(via_fourier, op=tan, degree=degree), floats, stensor,
-        #             tan(floats), interval, iter_count, skip_assert=True)
-        #     else:
-        #         _test_op(mpc, data_dump, f"{name}_cot",
-        #             partial(via_fourier, op=cot, degree=degree), floats, stensor,
-        #             cot(floats), interval, iter_count, skip_assert=True)
-
-        # if interval[0] > 0:
-        #     _test_op(mpc, data_dump, f"{name}_log",
-        #         partial(via_fourier, op=log, degree=degree), floats, stensor,
-        #         log(floats), interval, iter_count, skip_assert=True)
-
-        #     _test_op(mpc, data_dump, f"{name}_mul_inv",
-        #         partial(via_fourier, op=mul_inv, degree=degree), floats, stensor,
-        #         mul_inv(floats), interval, iter_count, skip_assert=True)
-
-        #     _test_op(mpc, data_dump, f"{name}_sqrt",
-        #         partial(via_fourier, op=sqrt, degree=degree), floats, stensor,
-        #         sqrt(floats), interval, iter_count, skip_assert=True)
+            _test_op(mpc, data_dump, f"{name}_cosh",
+                partial(via_fourier, op=cosh, degree=degree), floats, stensor,
+                cosh(floats), interval, iter_count, skip_assert=True)
+            if interval[0] < 0:
+                _test_op(mpc, data_dump, f"{name}_tan",
+                    partial(via_fourier, op=tan, degree=degree), floats, stensor,
+                    tan(floats), interval, iter_count, skip_assert=True)
+            else:
+                _test_op(mpc, data_dump, f"{name}_cot",
+                    partial(via_fourier, op=cot, degree=degree), floats, stensor,
+                    cot(floats), interval, iter_count, skip_assert=True)
 
     return data_dump
 
@@ -978,9 +935,9 @@ def test_siren(mpc, resolution=64, epochs=200, verbose=True):
     return data_dump
 
 
-COMPILE_PRIMITIVES: Static[int] = True
+COMPILE_PRIMITIVES: Static[int] = False
 COMPILE_ELEMENTARY: Static[int] = True
-COMPILE_E2E: Static[int] = True
+COMPILE_E2E: Static[int] = False
 
 def test(mpc):
     if COMPILE_PRIMITIVES:
@@ -992,6 +949,9 @@ def test(mpc):
         sample_size = 500
         iter_count = 3
         intervals = [
+            (-math.pi / 4, math.pi / 4),
+            (math.pi / 4, 3 * math.pi / 4),
+            (-math.pi * 3, math.pi * 3),
             (-20.0, 20.0)
             ]
         

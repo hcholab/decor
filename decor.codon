@@ -340,33 +340,43 @@ def decor_sigmoid(mpc, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_
 
 
 @sequre
-def decor_tanh(mpc, foo_x_rs, foo_r_shares):
-    foo_x_r, foo_r_share = foo_x_rs[0], foo_r_shares[0]
-    return _decor_div(mpc, foo_r_share + foo_x_r, foo_r_share * foo_x_r + 1, niter=5)
+def decor_tanh(mpc, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x):
+    foo_x_r, foo_x_r_p, foo_r_share = foo_x_rs[0], foo_x_r_ps[0], foo_r_shares[0]
+    cond = _decor_gt(mpc, r_frac_share, scaled_x)
+    selected_foo_x_r = cond * (foo_x_r_p - foo_x_r) + foo_x_r
+
+    # Ensure denom is less than 1 to avoid issues in Decor division
+    num = (foo_r_share + selected_foo_x_r) / 2
+    denom = (foo_r_share * selected_foo_x_r + 1) / 2
+    return _decor_div(mpc, num, denom, niter=7)
 
 
 @sequre
 def decor_sinh(mpc, foo_x_rs, foo_r_shares):
     foo_x_r_sinh, foo_x_r_cosh = foo_x_rs
     foo_r_share_sinh, foo_r_share_cosh = foo_r_shares
-    sinh_eval = foo_r_share_sinh.zeros()
     
-    with mpc.delayed_truncation(sinh_eval):
-        sinh_eval = foo_r_share_sinh * foo_x_r_sinh + foo_r_share_cosh * foo_x_r_cosh
+    # TODO: Check why delayed truncation causes issues here
+    # sinh_eval = foo_r_share_sinh.zeros()
+    # with mpc.delayed_truncation(sinh_eval):
+    #     sinh_eval = foo_r_share_sinh * foo_x_r_sinh + foo_r_share_cosh * foo_x_r_cosh
     
-    return sinh_eval
+    # return sinh_eval
+    return foo_r_share_sinh * foo_x_r_sinh + foo_r_share_cosh * foo_x_r_cosh
 
 
 @sequre
 def decor_cosh(mpc, foo_x_rs, foo_r_shares):
     foo_x_r_cosh, foo_x_r_sinh = foo_x_rs
     foo_r_share_cosh, foo_r_share_sinh = foo_r_shares
-    cosh_eval = foo_r_share_cosh.zeros()
 
-    with mpc.delayed_truncation(cosh_eval):
-        cosh_eval = foo_r_share_cosh * foo_x_r_cosh + foo_r_share_sinh * foo_x_r_sinh
+    # TODO: Check why delayed truncation causes issues here
+    # cosh_eval = foo_r_share_cosh.zeros()
+    # with mpc.delayed_truncation(cosh_eval):
+    #     cosh_eval = foo_r_share_cosh * foo_x_r_cosh + foo_r_share_sinh * foo_x_r_sinh
 
-    return cosh_eval
+    # return cosh_eval
+    return foo_r_share_cosh * foo_x_r_cosh + foo_r_share_sinh * foo_x_r_sinh
 
 
 @sequre
@@ -494,7 +504,7 @@ def decor_eval(
 def via_decor_generic(mpc, x, interval, *args, method: Static[str]):
     foos, decor_foo = get_decor_foos(*args, method=method)
     decor_partitions = decor_partition(mpc, x, foos, interval)
-    internal_switch: Static[int] = method[:3] == "sig"
+    internal_switch: Static[int] = method[:3] == "sig" or method[:4] == "tanh"
     
     return decor_eval(
         mpc, decor_foo, *decor_partitions,
