@@ -5,7 +5,7 @@ from ..patch.model import Sequential
 
 
 @python
-def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
+def load_data(resolution: int, dataset_names: list[str]) -> dict[str, tuple[list[list[float]], list[list[float]]]]:
     import torch
     import skimage
     
@@ -19,9 +19,25 @@ def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
         mgrid = mgrid.reshape(-1, dim)
         return mgrid
 
-    def get_cameraman_tensor(sidelength):
-        img = Image.fromarray(skimage.data.camera())        
-        img = img.crop((192, 128, 320, 256))  # Crop to 128x128
+    def get_img_tensor(sidelength, name):
+        if name == "cameraman":
+            img = Image.fromarray(skimage.data.camera())        
+            img = img.crop((192, 128, 320, 256))  # Crop to 128x128
+        elif name == "chest":
+            from medmnist import ChestMNIST
+            dataset = ChestMNIST(split="train", download=True, size=64)
+            img = Image.fromarray(dataset.imgs[0])
+        elif name == "oct":
+            from medmnist import OCTMNIST
+            dataset = OCTMNIST(split="train", download=True, size=64)
+            img = Image.fromarray(dataset.imgs[0])
+        elif name == "organ":
+            from medmnist import OrganAMNIST
+            dataset = OrganAMNIST(split="train", download=True, size=64)
+            img = Image.fromarray(dataset.imgs[0])
+        else:
+            raise ValueError(f"Non-supported image name: {name}")
+        
         transform = Compose([
             Resize(sidelength),
             ToTensor(),
@@ -32,9 +48,9 @@ def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
         return img
 
     class ImageFitting(Dataset):
-        def __init__(self, sidelength):
+        def __init__(self, sidelength, name):
             super().__init__()
-            img = get_cameraman_tensor(sidelength)
+            img = get_img_tensor(sidelength, name)
             self.pixels = img.permute(1, 2, 0).view(-1, 1)
             self.coords = get_mgrid(sidelength, 2)
 
@@ -45,11 +61,14 @@ def load_data(resolution: int) -> tuple[list[list[float]], list[list[float]]]:
             if idx > 0: raise IndexError
             return self.coords, self.pixels
     
-    cameraman = ImageFitting(resolution)
-    dataloader = DataLoader(cameraman, batch_size=1, pin_memory=True, num_workers=0)
+    data = {}
+    for name in dataset_names:
+        image_tensor = ImageFitting(resolution, name)
+        dataloader = DataLoader(image_tensor, batch_size=1, pin_memory=True, num_workers=0)
+        model_input, ground_truth = next(iter(dataloader))
+        data[name] = (model_input[0].tolist(), ground_truth[0].tolist())
 
-    model_input, ground_truth = next(iter(dataloader))
-    return model_input[0].tolist(), ground_truth[0].tolist()
+    return data
 
 
 def siren(mpc, model_input, ground_truth, n_neurons, omega,
@@ -57,6 +76,7 @@ def siren(mpc, model_input, ground_truth, n_neurons, omega,
           method: Static[str], degree: Static[int]):
     input_dim = model_input.shape[1]
 
+    poly_interval = (-5.0, 15.0)
     kernel_interval = (-1.0, 1.0)
     initial_kernel_scale = 1 / input_dim
     inner_kernel_scale = math.sqrt(6 / n_neurons) / omega
@@ -64,11 +84,13 @@ def siren(mpc, model_input, ground_truth, n_neurons, omega,
         Input[type(model_input)](input_dim),
         Dense[type(model_input)](
             "sin", n_neurons, "uniform", "uniform",
+            interval=poly_interval,
             kernel_interval=kernel_interval,
             kernel_scale=initial_kernel_scale,
             pre_act_scale=omega),
         Dense[type(model_input)](
             "sin", n_neurons, "uniform", "uniform",
+            interval=poly_interval,
             kernel_interval=kernel_interval,
             kernel_scale=inner_kernel_scale,
             pre_act_scale=omega),

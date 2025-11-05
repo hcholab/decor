@@ -3,6 +3,8 @@ import math
 from sequre.attributes import sequre
 from sequre.types.utils import double_to_fp, fp_to_double
 
+from patch.constants import FBITS_MASK
+
 
 @python
 def trapz(y: list[float], x: list[float]) -> float:
@@ -123,6 +125,14 @@ def sgn(value):
     return recursive_reduce(lambda x: 1.0 if x > 0 else (-1.0 if x < 0 else 0.0), value)
 
 
+def floor(value):
+    return recursive_reduce(math.floor, value)
+
+
+def ceil(value):
+    return recursive_reduce(math.ceil, value)
+
+
 def square_wave(value, period=math.pi):
     return sgn(cos(value * (2 * math.pi / period)))
 
@@ -152,3 +162,18 @@ def secure_powers(mpc, value, degree: int):
         pows.append(pows[i - 1] * value)
 
     return pows
+
+
+@sequre
+def modulo_float(mpc, value, period: float):
+    value_cp = value.copy()
+
+    value_p = (value / period)
+    value_cp.share = (value_p.share & FBITS_MASK)
+
+    if value_p.r:
+        value_cp.x_r = value_p.x_r & FBITS_MASK
+        value_cp.r = value_p.r & FBITS_MASK
+
+    value_cp = value_cp * period
+    return value_cp

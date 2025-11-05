@@ -389,10 +389,10 @@ def _eval_mnist_model(
 
 
 def _eval_siren_model(
-        mpc, data_dump, model_input, ground_truth, epochs,
+        mpc, name, data_dump, model_input, ground_truth, epochs,
         verbose, resolution, method: Static[str], degree: Static[int]):
-    name = f"siren_{method}_{degree}"
-    print(f'\nCP{mpc.pid}:\tTesting SIREN {name}...')
+    name = f"siren_{name}_{method}_{degree}"
+    print(f'\nCP{mpc.pid}:\tTesting SIREN {name}...\n')
     mpc.randomness.reset_seed(-1, hash('global'))
 
     with stats_log(mpc, name, data_dump):    
@@ -779,8 +779,8 @@ def test_mnist(mpc, medmnist=False, epochs=20, verbose=False):
     data_dump: Dict[str, List[float]] = {}
     with mpc.detach_dealer():
         if medmnist:
-            train_X, train_Y = load_medmnist_train_data(0)
-            test_X, test_Y = load_medmnist_test_data(0)
+            train_X, train_Y = load_medmnist_train_data("retina", 0)
+            test_X, test_Y = load_medmnist_test_data("retina", 0)
         else:
             train_X, train_Y = load_train_data("./data/mnist/", 0)
             test_X, test_Y = load_test_data("./data/mnist/", 0)
@@ -907,37 +907,62 @@ def test_gwas(mpc, inds=9000, covs=10, step=0.0001, epochs=50, verbose=False):
     return data_dump
 
 
-def test_siren(mpc, resolution=64, epochs=200, verbose=True):
+def test_siren(mpc, resolution=64, epochs=1000, verbose=True):
     print(f'\nCP{mpc.pid}:\tTesting SIREN...')
 
-    model_input, ground_truth = load_data(resolution)
-    model_input_np = array(model_input)
-    ground_truth_np = array(ground_truth)
-
-    model_input_sequre = Sharetensor.enc(mpc, model_input_np)
-    ground_truth_sequre = Sharetensor.enc(mpc, ground_truth_np)
+    with mpc.detach_dealer():
+        data = load_data(resolution, ["chest", "oct", "organ"])
 
     data_dump: Dict[str, List[float]] = {}
-    _eval_siren_model(
-        mpc, data_dump, model_input_np, ground_truth_np,
-        epochs, verbose, resolution, method=METHOD_PLAIN, degree=0)
-    
-    _eval_siren_model(
-        mpc, data_dump, model_input_sequre, ground_truth_sequre,
-        epochs, verbose, resolution, method=METHOD_DECOR, degree=0)
-    
-    for deg in staticrange(1):
-        degree: Static[int] = (deg + 2) * 10
+    for k, v in data.items():
+        model_input, ground_truth = v
+        model_input_np = array(model_input)
+        ground_truth_np = array(ground_truth)
+
+        if mpc.pid == 1:
+            _eval_siren_model(
+                mpc, k, data_dump, model_input_np, ground_truth_np,
+                epochs, verbose, resolution, method=METHOD_PLAIN, degree=0)
+        
+        mpc.comms.sync_parties()
+
+        model_input_sequre = Sharetensor.enc(mpc, model_input_np)
+        ground_truth_sequre = Sharetensor.enc(mpc, ground_truth_np)
+        
         _eval_siren_model(
-            mpc, data_dump, model_input_sequre, ground_truth_sequre,
-            epochs, verbose, resolution, method=METHOD_CHEBYSHEV, degree=degree)
+            mpc, k, data_dump, model_input_sequre, ground_truth_sequre,
+            epochs, verbose, resolution, method=METHOD_DECOR, degree=0)
+        
+    return data_dump
+
+
+def test_siren_cheby(mpc, resolution=64, epochs=200, verbose=True):
+    print(f'\nCP{mpc.pid}:\tTesting SIREN Chebyshev ...')
+
+    with mpc.detach_dealer():
+        data = load_data(resolution, ["chest", "oct", "organ"])
+
+    data_dump: Dict[str, List[float]] = {}
+    for k, v in data.items():
+        model_input, ground_truth = v
+        model_input_np = array(model_input)
+        ground_truth_np = array(ground_truth)
+
+        model_input_sequre = Sharetensor.enc(mpc, model_input_np)
+        ground_truth_sequre = Sharetensor.enc(mpc, ground_truth_np)
+        
+        for deg in staticrange(2):
+            degree: Static[int] = (deg + 1) * 10
+            _eval_siren_model(
+                mpc, k, data_dump, model_input_sequre, ground_truth_sequre,
+                epochs, verbose, resolution, method=METHOD_CHEBYSHEV, degree=degree)
 
     return data_dump
 
 
 COMPILE_PRIMITIVES: Static[int] = False
-COMPILE_ELEMENTARY: Static[int] = True
-COMPILE_E2E: Static[int] = False
+COMPILE_ELEMENTARY: Static[int] = False
+COMPILE_E2E: Static[int] = True
 
 def test(mpc):
     if COMPILE_PRIMITIVES:
@@ -970,8 +995,9 @@ def test(mpc):
 
     if COMPILE_E2E:
         # Apps that are stable
-        pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
-        pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        # pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        pickle_dump(f"dump/siren_cheby_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc))
         
         # # Apps that need more testing
         # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))

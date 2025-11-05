@@ -1,3 +1,5 @@
+import time
+
 from constants import (
     SUPPORTED_OPTIMIZERS, SUPPORTED_LOSSES,
     METHOD_PLAIN, BGD_OPTIMIZER, MBGD_OPTIMIZER)
@@ -74,9 +76,13 @@ class Sequential[L]:
             self, mpc, X, y, step: float, epochs: int, momentum: float,
             verbose: bool, method: Static[str], degree: Static[int]):
         for _ in range(epochs):
-            if verbose:
-                print(f"CP{mpc.pid}:\tSequential neural net: BGD epoch {_ + 1}/{epochs}")
+            s = time.time()
             self._gd(mpc, X, y, step, momentum, verbose, method=method, degree=degree)
+            e = time.time()
+            
+            if verbose:
+                print(f"CP{mpc.pid}:\tSequential neural net: BGD epoch {_ + 1}/{epochs} ({e - s:.2f} seconds)")
+                
             
     def _mbgd(
             self, mpc, X, y, step: float, epochs: int, momentum: float,
@@ -90,10 +96,13 @@ class Sequential[L]:
         # Mini-batched gradient descent
         for _ in range(epochs):
             for i in range(batches):
-                if verbose:
-                    print(f"CP{mpc.pid}:\tSequential neural net: MBGD epoch {_ + 1}/{epochs} -- batch {i + 1}/{batches}")
+                s = time.time()
                 self._gd(mpc, X_mini_batches[i], y_mini_batches[i], step, momentum, verbose, method=method, degree=degree)
-    
+                e = time.time()
+
+                if verbose:
+                    print(f"CP{mpc.pid}:\tSequential neural net: MBGD epoch {_ + 1}/{epochs} -- batch {i + 1}/{batches} ({e - s:.2f} seconds)")
+
     def _forward(self, mpc, X, method: Static[str], degree: Static[int]):
         last_output = X
         for layer in self.layers:

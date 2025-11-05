@@ -1,3 +1,5 @@
+import math
+
 from numpy.ndarray import ndarray
 
 from sequre import sequre
@@ -13,7 +15,7 @@ from decor import via_decor, _decor_mul_inv
 from fourier import via_fourier
 from taylor import via_taylor
 from utils import (
-    recursive_reduce,
+    recursive_reduce, modulo_float,
     sin, cos, tan, tanh, exp,
     sigmoid, log, sqrt, mul_inv)
 
@@ -52,10 +54,18 @@ def _discern_approx_call(mpc, value, op, interval, method: Static[str], degree: 
 
 
 def approx_sin(mpc, value, interval, method: Static[str], degree: Static[int]):
+    # Reduce the input range if using polynomial methods
+    if (method == METHOD_CHEBYSHEV or method == METHOD_TAYLOR) and isinstance(value, Sharetensor):
+        value = modulo_float(mpc, value, 2 * math.pi)
+
     return _discern_approx_call(mpc, value, sin, interval, method=method, degree=degree)
 
 
 def approx_cos(mpc, value, interval, method: Static[str], degree: Static[int]):
+    # Reduce the input range if using polynomial methods
+    if (method == METHOD_CHEBYSHEV or method == METHOD_TAYLOR) and isinstance(value, Sharetensor):
+        value = modulo_float(mpc, value, 2 * math.pi)
+
     return _discern_approx_call(mpc, value, cos, interval, method=method, degree=degree)
 
 

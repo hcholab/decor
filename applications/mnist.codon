@@ -4,10 +4,18 @@ from ..patch.log_reg import LogReg
 
 
 @python
-def load_medmnist_train_data(crop: int) -> Tuple[List[List[float]], List[List[float]]]:
+def load_medmnist_train_data(name: str, crop: int) -> Tuple[List[List[float]], List[List[float]]]:
     import numpy as np
-    from medmnist import RetinaMNIST
-    dataset = RetinaMNIST(split="train", download=False, size=28)
+
+    if name == "retina":
+        from medmnist import RetinaMNIST
+        dataset = RetinaMNIST(split="train", download=False, size=28)
+    elif name == "chest":
+        from medmnist import ChestMNIST
+        dataset = ChestMNIST(split="train", download=False, size=28)
+    else:
+        raise ValueError(f"Non-supported dataset name: {name}")
+
     imgs = dataset.imgs
     labels = dataset.labels
 
@@ -24,10 +32,17 @@ def load_medmnist_train_data(crop: int) -> Tuple[List[List[float]], List[List[fl
 
 
 @python
-def load_medmnist_test_data(crop: int) -> Tuple[List[List[float]], List[float]]:
-    import numpy as np
-    from medmnist import RetinaMNIST
-    dataset = RetinaMNIST(split="test", download=False, size=28)
+def load_medmnist_test_data(name: str, crop: int) -> Tuple[List[List[float]], List[float]]:
+    
+    if name == "retina":
+        from medmnist import RetinaMNIST
+        dataset = RetinaMNIST(split="test", download=False, size=28)
+    elif name == "chest":
+        from medmnist import ChestMNIST
+        dataset = ChestMNIST(split="test", download=False, size=28)
+    else:
+        raise ValueError(f"Non-supported dataset name: {name}")
+
     imgs = dataset.imgs
     labels = dataset.labels
 

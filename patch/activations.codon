@@ -88,17 +88,11 @@ def softmax(mpc, x, interval, method: Static[str], degree: Static[int]):
         if rev_x.max() > interval[1]:
             print(f"WARNING: Softmax activation: input {rev_x.max()} is out of bounds {interval}.")
     
-    # rev_x = x.reveal(mpc)
-    # print("DEBUG softmax:", rev_x.min(), rev_x.max())
-    
     shift = x - maximum_axis(mpc, x, axis=1, keepdims=True)
     shift = clip(mpc, shift, *interval)
     result = approx_softmax(
         mpc, shift, interval, use_decor_for_division=True, method=method, degree=degree)
     
-    # rev_result = result.reveal(mpc)
-    # print("DEBUG softmax result:", rev_result.min(), rev_result.max())
-
     return result
 
 
