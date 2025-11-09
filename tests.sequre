@@ -389,8 +389,9 @@ def _eval_mnist_model(
 
 
 def _eval_siren_model(
-        mpc, name, data_dump, model_input, ground_truth, epochs,
-        verbose, resolution, method: Static[str], degree: Static[int]):
+        mpc, name, data_dump, model_input, ground_truth,
+        epochs, verbose, resolution, reduce_interval,
+        method: Static[str], degree: Static[int]):
     name = f"siren_{name}_{method}_{degree}"
     print(f'\nCP{mpc.pid}:\tTesting SIREN {name}...\n')
     mpc.randomness.reset_seed(-1, hash('global'))
@@ -399,7 +400,7 @@ def _eval_siren_model(
         siren_model = siren(mpc, model_input, ground_truth, n_neurons=resolution,
             loss="mean_squared_error", omega=30.0, epochs=epochs,
             learning_rate=0.2, momentum=0.9, verbose=verbose,
-            method=method, degree=degree)
+            reduce_interval=reduce_interval, method=method, degree=degree)
     
     predicted_img = siren_model.predict(
         mpc, model_input, method=method, degree=degree).reveal(mpc)
@@ -919,10 +920,10 @@ def test_siren(mpc, resolution=64, epochs=1000, verbose=True):
         model_input_np = array(model_input)
         ground_truth_np = array(ground_truth)
 
-        if mpc.pid == 1:
-            _eval_siren_model(
-                mpc, k, data_dump, model_input_np, ground_truth_np,
-                epochs, verbose, resolution, method=METHOD_PLAIN, degree=0)
+        _eval_siren_model(
+            mpc, k, data_dump, model_input_np, ground_truth_np,
+            epochs, verbose, resolution, reduce_interval=False,
+            method=METHOD_PLAIN, degree=0)
         
         mpc.comms.sync_parties()
 
@@ -931,12 +932,15 @@ def test_siren(mpc, resolution=64, epochs=1000, verbose=True):
         
         _eval_siren_model(
             mpc, k, data_dump, model_input_sequre, ground_truth_sequre,
-            epochs, verbose, resolution, method=METHOD_DECOR, degree=0)
-        
+            epochs, verbose, resolution, reduce_interval=False,
+            method=METHOD_DECOR, degree=0)
+
     return data_dump
 
 
-def test_siren_cheby(mpc, resolution=64, epochs=200, verbose=True):
+def test_siren_cheby(
+        mpc, resolution=64, epochs=1000,
+        verbose=True, reduce_interval=True):
     print(f'\nCP{mpc.pid}:\tTesting SIREN Chebyshev ...')
 
     with mpc.detach_dealer():
@@ -953,16 +957,24 @@ def test_siren_cheby(mpc, resolution=64, epochs=200, verbose=True):
         
         for deg in staticrange(2):
             degree: Static[int] = (deg + 1) * 10
+            
+            # Adjust epochs for reduced interval (temporarily)
+            if reduce_interval and degree == 10:
+                epochs = 400
+            elif reduce_interval and degree == 20:
+                epochs = 240
+            
             _eval_siren_model(
                 mpc, k, data_dump, model_input_sequre, ground_truth_sequre,
-                epochs, verbose, resolution, method=METHOD_CHEBYSHEV, degree=degree)
+                epochs, verbose, resolution, reduce_interval=reduce_interval,
+                method=METHOD_CHEBYSHEV, degree=degree)
 
     return data_dump
 
 
 COMPILE_PRIMITIVES: Static[int] = False
 COMPILE_ELEMENTARY: Static[int] = False
-COMPILE_E2E: Static[int] = True
+COMPILE_E2E: Static[int] = False
 
 def test(mpc):
     if COMPILE_PRIMITIVES:
@@ -995,9 +1007,10 @@ def test(mpc):
 
     if COMPILE_E2E:
         # Apps that are stable
-        # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
-        # pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
-        pickle_dump(f"dump/siren_cheby_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc))
+        pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
+        pickle_dump(f"dump/siren_cheby_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc, reduce_interval=False))
+        # pickle_dump(f"dump/siren_cheby_reduced_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc, reduce_interval=True))
         
         # # Apps that need more testing
         # pickle_dump(f"dump/log_reg_{MPC_NBIT_F}_CP{mpc.pid}.p", test_log_reg(mpc))

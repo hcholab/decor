@@ -440,18 +440,19 @@ def get_decor_foos(*args, method: Static[str]):
 
 
 @sequre
-def decor_partition(mpc, x, foos, interval):
+def decor_partition(mpc, x, foos, interval, small_shift = False):
     mpc.stats.partitions_count += 1
 
     modulus = x.modulus
     a, b = interval
     period = b - a
+    internal_shift = (period / 4) if small_shift else (period / 2)
 
     scaled_x = (x - a) / period
     x_r, r = scaled_x.get_partitions(mpc)
     
     frac_r = r & FBITS_MASK
-    double_r = period_fp_to_double(frac_r, period, modulus) - (period / 2)
+    double_r = period_fp_to_double(frac_r, period, modulus) - internal_shift
     foo_rs = [double_to_fp(foo(double_r), modulus) for foo in foos]
     
     r_frac_share = Sharetensor(mpc.comms.share_from_trusted_dealer(frac_r, modulus), modulus)
@@ -460,7 +461,7 @@ def decor_partition(mpc, x, foos, interval):
     for foo_r_share in foo_r_shares:
         foo_r_share.fp = True
 
-    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus) + (period / 2)
+    double_x_r = period_fp_to_double(x_r & FBITS_MASK, period, modulus) + internal_shift
     foo_x_rs = [foo(double_x_r + a) for foo in foos]
     foo_x_r_ps = [foo(double_x_r - period + a) for foo in foos]
 
@@ -503,7 +504,7 @@ def decor_eval(
 
 def via_decor_generic(mpc, x, interval, *args, method: Static[str]):
     foos, decor_foo = get_decor_foos(*args, method=method)
-    decor_partitions = decor_partition(mpc, x, foos, interval)
+    decor_partitions = decor_partition(mpc, x, foos, interval, small_shift=method[:3] == "exp")
     internal_switch: Static[int] = method[:3] == "sig" or method[:4] == "tanh"
     
     return decor_eval(
