@@ -76,7 +76,7 @@ def siren(mpc, model_input, ground_truth, n_neurons, omega,
           reduce_interval, method: Static[str], degree: Static[int]):
     input_dim = model_input.shape[1]
 
-    poly_interval = (-30.0, 30.0)
+    poly_interval = (-5.0, 60.0)
     if reduce_interval:
         poly_interval = (-math.pi, (2 * mpc.comms.number_of_parties - 1) * math.pi)
     

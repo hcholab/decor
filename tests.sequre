@@ -87,12 +87,15 @@ class StatsLog[TP]:
             self.data_dump[f'{self.name}_partitions_count'] = []
         if f'{self.name}_truncations_count' not in self.data_dump:
             self.data_dump[f'{self.name}_truncations_count'] = []
+        if f'{self.name}_rounds' not in self.data_dump:
+            self.data_dump[f'{self.name}_rounds'] = []
 
         self.data_dump[f'{self.name}_time'].append(end - self.start)
         self.data_dump[f'{self.name}_bytes_sent'].append(float(self.mpc.stats.bytes_sent))
         self.data_dump[f'{self.name}_send_requests'].append(float(self.mpc.stats.send_requests))
         self.data_dump[f'{self.name}_partitions_count'].append(float(self.mpc.stats.partitions_count))
         self.data_dump[f'{self.name}_truncations_count'].append(float(self.mpc.stats.truncations_count))
+        self.data_dump[f'{self.name}_rounds'].append(float(self.mpc.stats.rounds))
 
 
 def stats_log(mpc, name, data_dump):
@@ -114,6 +117,7 @@ def _test_op(
     revealed_results = []
     for _ in range(iter_count):
         with stats_log(mpc, msg, data_dump):
+            mpc_input.get_partitions(mpc, force=True)
             op_result = op(mpc, mpc_input, interval)
         
         if isinstance(op_result, tuple):
@@ -149,6 +153,7 @@ def _test_decor_trig_method(
     revealed_results = []
     for _ in range(iter_count):
         with stats_log(mpc, f"decor_{method}", data_dump):
+            shared_floats.get_partitions(mpc, force=True)
             shared_result = via_decor_trig(mpc, shared_floats, method=method)
         revealed_results.append(shared_result.reveal(mpc).tolist())
 
@@ -178,6 +183,7 @@ def _test_decor_method(
     revealed_results = []
     for _ in range(iter_count):
         with stats_log(mpc, f"decor_{method}", data_dump):
+            shared_floats.get_partitions(mpc, force=True)
             shared_result = via_decor(
                 mpc, shared_floats, interval, *args, method=method)
         revealed_results.append(shared_result.reveal(mpc).tolist())
@@ -973,7 +979,7 @@ def test_siren_cheby(
 
 
 COMPILE_PRIMITIVES: Static[int] = False
-COMPILE_ELEMENTARY: Static[int] = False
+COMPILE_ELEMENTARY: Static[int] = True
 COMPILE_E2E: Static[int] = False
 
 def test(mpc):
@@ -992,18 +998,22 @@ def test(mpc):
             (-20.0, 20.0)
             ]
         
-        with mpc.detach_dealer():
-            for i, interval in enumerate(intervals):
-                pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(
-                    mpc, interval, sample_size, iter_count))
-                pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(
-                    mpc, interval, sample_size, iter_count))
-                pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(
-                    mpc, interval, sample_size, iter_count))
-                pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(
-                    mpc, interval, sample_size, iter_count))
-                pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
-                    mpc, interval, sample_size, iter_count))
+    with mpc.detach_dealer():
+        for i, interval in enumerate(intervals):
+            pickle_dump(f"dump/cheby_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_chebyshev(
+                mpc, interval, sample_size, iter_count))
+            
+            pickle_dump(f"dump/decor_trig_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_trig(
+                mpc, interval, sample_size, iter_count))
+            
+            pickle_dump(f"dump/decor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor(
+                mpc, interval, sample_size, iter_count))
+            
+            pickle_dump(f"dump/fourier_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_decor_fourier(
+                mpc, interval, sample_size, iter_count))
+            
+            pickle_dump(f"dump/taylor_{i}_{MPC_NBIT_F}_CP{mpc.pid}.p", test_taylor(
+                mpc, interval, sample_size, iter_count))
 
     if COMPILE_E2E:
         # Apps that are stable

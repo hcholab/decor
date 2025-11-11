@@ -32,7 +32,7 @@ MPC_DECOR_RING_SIZE = mpc_uint(1) << mpc_uint(MPC_DECOR_MODULUS_BITS)
 class MPCComms:
     def reveal(self, value, modulus):
         if NETWORK_DELAY_TIME > 0:
-            if self.pid > 0:
+            if self.pid == 1:
                 usleep(NETWORK_DELAY_TIME)
         
         return superf(self, value, modulus)
@@ -441,8 +441,6 @@ def get_decor_foos(*args, method: Static[str]):
 
 @sequre
 def decor_partition(mpc, x, foos, interval, small_shift = False):
-    mpc.stats.partitions_count += 1
-
     modulus = x.modulus
     a, b = interval
     period = b - a
@@ -469,8 +467,6 @@ def decor_partition(mpc, x, foos, interval, small_shift = False):
 
 
 def decor_trig_partition(mpc, x_r, r, modulus):
-    mpc.stats.partitions_count += 1
-
     double_r = trig_fp_to_double(r & FBITS_MASK, modulus)
     sin_r = double_to_fp(sin(double_r), modulus)
     cos_r = double_to_fp(cos(double_r), modulus)

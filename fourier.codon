@@ -19,8 +19,6 @@ def fourier_coeffs(op, nodes, period, degree: Static[int]):
 
 
 def decor_fourier_partition(mpc, x_r, r, coeffs, period, modulus, degree: Static[int]):
-    mpc.stats.partitions_count += 1
-
     _, an, bn, cn = coeffs
     skip_term = [(-EPSILON < an[i] < EPSILON) and (-EPSILON < bn[i] < EPSILON) for i in staticrange(degree)]
 
