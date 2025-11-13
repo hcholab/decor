@@ -82,6 +82,7 @@ def _decor_mul_inv_newton(mpc, b, niter):
         mpc.boolean.normalizer(
             b.share, modulus, UInt[MPC_NBIT_K](1) << MPC_NBIT_F, bitlen=MPC_NBIT_F), modulus)
     b_scaled = b * s
+    b_scaled.get_partitions(mpc)
 
     # Assuming init_val = 1.0 after normalization: x = (2 - b_scaled * init_val) * init_val
     x = 2 - b_scaled
@@ -336,7 +337,7 @@ def decor_sigmoid(mpc, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_
 
     num = foo_r_share * selected_foo_x_r
     denom = num + (foo_r_share - 1) * (selected_foo_x_r - 1)
-    return _decor_div(mpc, num, denom, niter=7)
+    return _decor_div(mpc, num, denom, niter=5)
 
 
 @sequre
@@ -348,7 +349,7 @@ def decor_tanh(mpc, foo_x_rs, foo_x_r_ps, foo_r_shares, r_frac_share, scaled_x):
     # Ensure denom is less than 1 to avoid issues in Decor division
     num = (foo_r_share + selected_foo_x_r) / 2
     denom = (foo_r_share * selected_foo_x_r + 1) / 2
-    return _decor_div(mpc, num, denom, niter=7)
+    return _decor_div(mpc, num, denom, niter=5)
 
 
 @sequre

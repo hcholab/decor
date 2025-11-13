@@ -6,11 +6,14 @@ from sequre.utils.utils import zeros_vec, zeros_mat
 
 from constants import (
     MPC_MODULUS_BITS, MPC_INT_SIZE, MPC_FIELD_SIZE,
-    MPC_RING_SIZE, MPC_NBIT_K, DEBUG, mpc_uint)
+    MPC_RING_SIZE, MPC_NBIT_K, NETWORK_DELAY_TIME,
+    DEBUG, mpc_uint)
 
 
 PACKING_SIZE: Static[int] = MPC_NBIT_K  # Fixed to standard register length
 size_t = UInt[PACKING_SIZE]
+
+from C import usleep(int) -> int
 
 
 @extend
@@ -263,11 +266,15 @@ class MPCBoolean:
 
             d_gen[0] &= tip_mask_inv
 
-        d_prop_shift = d_prop >> 1
         d_gen_shift = d_gen >> 1
 
-        d_prop_out = self.land(d_prop_shift, d_prop)
-        d_gen_out = self.land(d_prop_shift, d_gen) ^ d_gen_shift
+        x_1, x_3 = self._beaver_partition_bulk(d_prop, d_gen)
+        _x_1, _r_1 = x_1  # d_prop
+        _x_2, _r_2 = _x_1 >> 1, _r_1 >> 1  # d_prop_shift
+        _x_3, _r_3 = x_3  # d_gen
+        
+        d_prop_out = self._land(_x_2, _r_2, _x_1, _r_1)
+        d_gen_out = self._land(_x_2, _r_2, _x_3, _r_3) ^ d_gen_shift
 
         # 01010101 -> 00001111 (Collect all odd position bits in the second half of the integer)
         for i in range(1, (PACKING_SIZE - 1).bitlen()):
@@ -351,7 +358,33 @@ class MPCBoolean:
             op_1 = (x & input_mask).shift_copy(tzs)
             op_2 = x & set_mask
 
+            rs = self.stats.rounds
             x = x & (dtype(-1) ^ set_mask) | op(op_1, op_2) & set_mask
+            re = self.stats.rounds
+            print(f"CP{self.pid}: prefix_op step {k} rounds: {re - rs}")
+            prev_mask = mask
+        
+        return x
+    
+    def _prefix_op(self, x, op, bitlen: Static[int], dtype: type = mpc_uint):
+        """ 
+        Adapted from
+        https://faui1-files.cs.fau.de/filepool/publications/octavian_securescm/SecureSCM-D.9.2.pdf
+        """
+        prev_mask = dtype(-1)
+        for k in range(bitlen.bitlen() - 1):
+            x_r, r = self._beaver_partition(x)
+            mask = MPCBoolean._get_prefix_mask(k, bitlen=bitlen, dtype=dtype)
+            input_mask = mask ^ prev_mask
+            tzs = (prev_mask - 1).__cttz__()
+            set_mask = input_mask.shift_copy(tzs)
+
+            x_r_op_1 = (x_r & input_mask).shift_copy(tzs)
+            x_r_op_2 = x_r & set_mask
+            r_op_1 = (r & input_mask).shift_copy(tzs)
+            r_op_2 = r & set_mask
+
+            x = x & (dtype(-1) ^ set_mask) | op(x_r_op_1, r_op_1, x_r_op_2, r_op_2) & set_mask
             prev_mask = mask
         
         return x
@@ -386,9 +419,14 @@ class MPCBoolean:
         return self.share_from(data, 0)
     
     def reveal(self, value):
+        if NETWORK_DELAY_TIME > 0:
+            if self.pid == 1:
+                usleep(NETWORK_DELAY_TIME)
+        
         if self.pid == 0:
             return value
         
+        self.stats.rounds += 1
         if self.pid == 1:
             for i in range(2, self.comms.number_of_parties):
                 value = value ^ self.comms.receive_as_jar(i, type(value))
@@ -473,6 +511,25 @@ class MPCBoolean:
 
             return x_r, r
     
+    def _beaver_partition_bulk(self, *values):
+        concatenated_values = []
+        for value in values:
+            concatenated_values.extend(value)
+
+        partitions = self._beaver_partition(concatenated_values)
+
+        result = []
+        start_idx = 0
+        for value in values:
+            end_idx = start_idx + len(value)
+            result.append((
+                partitions[0][start_idx:end_idx],
+                partitions[1][start_idx:end_idx]
+            ))
+            start_idx = end_idx
+
+        return result
+
     def _beaver_land(self, x_r, r_1, y_r, r_2):
         if self.pid == 0:
             return r_1 & r_2
@@ -596,15 +653,9 @@ class SharedCarry[T]:
     def __or__(self, value: SharedCarry[T]) -> SharedCarry[T]:
         return SharedCarry(
             self.mpc_boolean,
-            self.mpc_boolean.lor(self.p, value.p),
-            self.mpc_boolean.lor(self.g, value.g))
+            self.p | value.p,
+            self.g | value.g)
 
-    def __or__(self, value: UInt) -> SharedCarry[T]:
-        return SharedCarry(
-            self.mpc_boolean,
-            self.mpc_boolean.lor_public(self.p, value),
-            self.mpc_boolean.lor_public(self.g, value))
-    
     def shift_copy(self, k) -> SharedCarry[T]:
         return SharedCarry(
             self.mpc_boolean,
@@ -617,19 +668,52 @@ class SharedCarry[T]:
         Returns SharedCarry(a.p & b.p, a.g | a.p & b.g)
         """
         # Caching boolean Beaver partitions
-        self_p_r, self_r_p = self.mpc_boolean._beaver_partition(self.p)
-        other_p_r, other_r_p = self.mpc_boolean._beaver_partition(other.p)
-        other_g_r, other_r_g = self.mpc_boolean._beaver_partition(other.g)
+        self_p, other_p, other_g = self.mpc_boolean._beaver_partition_bulk(self.p, other.p, other.g)
+        self_p_r, self_r_p = self_p
+        other_p_r, other_r_p = other_p
+        other_g_r, other_r_g = other_g
+
+        pg = self.mpc_boolean._land(self_p_r, self_r_p, other_g_r, other_r_g)
+        
+        pg_, self_g = self.mpc_boolean._beaver_partition_bulk(pg, self.g)
+        pg_x_r, pg_r = pg_
+        self_g_r, self_r_g = self_g
 
         p = self.mpc_boolean._land(self_p_r, self_r_p, other_p_r, other_r_p)
-        g = self.mpc_boolean.lor(
-            self.g, self.mpc_boolean._land(self_p_r, self_r_p, other_g_r, other_r_g))
-        
+        g = self.mpc_boolean._lor(self_g_r, self_r_g, pg_x_r, pg_r)
+
         return SharedCarry(self.mpc_boolean, p, g)
 
 
 @extend
 class MPCBoolean:
+    def _beaver_partition(self, value):
+        if isinstance(value, SharedCarry):
+            p_, g_ = self._beaver_partition_bulk(value.p, value.g)
+            p_x_r, p_r = p_
+            g_x_r, g_r = g_
+            return SharedCarry(self, p_x_r, g_x_r), SharedCarry(self, p_r, g_r)
+        
+        return superf(self, value)
+    
+    def _carry(self, self_x_r, self_r, other_x_r, other_r) -> SharedCarry:
+        """
+        Carry operation for two SharedCarry objects.
+        Returns SharedCarry(a.p & b.p, a.g | a.p & b.g)
+        """
+        self_p_r, self_g_r = self_x_r.p, self_x_r.g
+        self_r_p, self_r_g = self_r.p, self_r.g
+        other_p_r, other_g_r = other_x_r.p, other_x_r.g
+        other_r_p, other_r_g = other_r.p, other_r.g
+
+        pg = self._land(self_p_r, self_r_p, other_g_r, other_r_g)
+        pg_x_r, pg_r = self._beaver_partition(pg)
+
+        p = self._land(self_p_r, self_r_p, other_p_r, other_r_p)
+        g = self._lor(self_g_r, self_r_g, pg_x_r, pg_r)
+
+        return SharedCarry(self, p, g)
+
     def add_public(self, x_share, y_pub, bitlen: Static[int] = MPC_INT_SIZE, dtype: type = mpc_uint):
         """ 
         Adapted from
@@ -641,9 +725,9 @@ class MPCBoolean:
 
         g = x_share & y_pub
 
-        carry = self.prefix_op(
+        carry = self._prefix_op(
             SharedCarry(self, p.bit_reverse(), g.bit_reverse()),
-            lambda a, b: b.carry(a),
+            lambda a_x_r, a_r, b_x_r, b_r: self._carry(b_x_r, b_r, a_x_r, a_r),
             bitlen=bitlen, dtype=dtype)
         c = carry.g.bit_reverse()
 
@@ -667,8 +751,8 @@ class MPCBoolean:
         x_bits = self.add_public(
             r_bits, x_r, bitlen=M, dtype=UInt[M]) & ((UInt[M](1) << bitlen) - 1)
 
-        prefix_or_bits = self.prefix_op(
-            x_bits, lambda a, b: self.lor(a, b), bitlen=bitlen, dtype=UInt[M])
+        prefix_or_bits = self._prefix_op(
+            x_bits, lambda x_r_1, r_1, x_r_2, r_2: self._lor(x_r_1, r_1, x_r_2, r_2), bitlen=bitlen, dtype=UInt[M])
         smallest_pow_2 = prefix_or_bits ^ (prefix_or_bits >> 1)
         normalizer = smallest_pow_2.bit_reverse_subset(bitlen)
         
