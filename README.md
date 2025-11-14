@@ -26,10 +26,19 @@ Export necessary libraries to Shechi/Sequre (either custom or the one provided a
 export SEQURE_GMP_PATH=external/GMP/lib/libgmp.so
 ```
 
-Afterwards, add alias for sequre command:
+Afterwards, add alias for `decor` command:
 ```bash
-alias sequre="find . -name 'sock.*' -exec rm {} \; && CODON_DEBUG=lt $HOME/.codon/bin/codon run --disable-opt="core-pythonic-list-addition-opt" -plugin sequre"
+alias decor="find . -name 'sock.*' -exec rm {} \; && CODON_DEBUG=lt $HOME/.codon/bin/codon run --disable-opt="core-pythonic-list-addition-opt" -plugin sequre"
 ```
+
+## Run
+
+Navigate to the root of this directory and run all essential experiments by executing `tests.sequre`
+```bash
+decor -release tests.sequre --skip-mhe-setup --use-ring --local
+```
+
+Inspect the results by running all cells in provided `plots.ipynb` notebook.
 
 ## Troubleshooting
 

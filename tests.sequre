@@ -971,8 +971,8 @@ def test_siren_cheby(
 
 
 COMPILE_PRIMITIVES: Static[int] = False
-COMPILE_ELEMENTARY: Static[int] = False
-COMPILE_E2E: Static[int] = False
+COMPILE_ELEMENTARY: Static[int] = True
+COMPILE_E2E: Static[int] = True
 
 def test(mpc):
     if COMPILE_PRIMITIVES:
@@ -1010,7 +1010,10 @@ def test(mpc):
 
     if COMPILE_E2E:
         # Apps that are stable
-        pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        
+        # Disable GWAS because data is proprietary
+        # pickle_dump(f"dump/gwas_{MPC_NBIT_F}_CP{mpc.pid}.p", test_gwas(mpc))
+        
         pickle_dump(f"dump/siren_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren(mpc))
         pickle_dump(f"dump/siren_cheby_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc, reduce_interval=False))
         # pickle_dump(f"dump/siren_cheby_reduced_{MPC_NBIT_F}_CP{mpc.pid}.p", test_siren_cheby(mpc, reduce_interval=True))
