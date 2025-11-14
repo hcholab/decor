@@ -7,7 +7,7 @@ Decor framework for evaluating non-linear functions in Secure Multiparty Computa
 
 Install Decor by running a following set of commands:
 ```bash
-mkdir $HOME/.codon && curl -L https://github.com/exaloop/codon/releases/download/v0.17.0/codon-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C $HOME/.codon --strip-components=1 && \
+mkdir -p $HOME/.codon && curl -L https://github.com/exaloop/codon/releases/download/v0.17.0/codon-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C $HOME/.codon --strip-components=1 && \
 curl -L https://github.com/0xTCG/sequre/releases/download/v0.0.20-alpha/sequre-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C $HOME/.codon/lib/codon/plugins && \
 git clone -b decor-patch-64 --depth 1 https://github.com/0xTCG/sequre.git .sequre && \
 cp -r .sequre/stdlib/ $HOME/.codon/lib/codon/plugins/sequre/ && \
