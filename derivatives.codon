@@ -115,17 +115,17 @@ def dsqrt(x, degree: Static[int]):
 
 
 def derive(op, x, degree: Static[int]):
-    if op.__name__[:3] == "sin":
+    if op.__name__[:4] == "sin[":
         return dsin(x, degree)
-    elif op.__name__[:3] == "cos":
+    elif op.__name__[:4] == "cos[":
         return dcos(x, degree)
-    elif op.__name__[:3] == "exp":
+    elif op.__name__[:4] == "exp[":
         return dexp(x, degree)
-    elif op.__name__[:3] == "log":
+    elif op.__name__[:4] == "log[":
         return dlog(x, degree)
-    elif op.__name__[:4] == "sqrt":
+    elif op.__name__[:5] == "sqrt[":
         return dsqrt(x, degree)
-    elif op.__name__[:7] == "mul_inv":
+    elif op.__name__[:8] == "mul_inv[":
         return dmul_inv(x, degree)
     else:
-        compile_error("unsupported operation")
+        compile_error(op.__name__ + " is not supported for derivative computation")

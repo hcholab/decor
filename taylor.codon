@@ -26,7 +26,7 @@ def _experimental_taylor_decor(mpc, x, op, interval, degree: Static[int]):
 def taylor_coeffs(op, pivot, degree: Static[int]):
     # Compute discrete derivatives limited to degree 3 for sigmoid and tanh
     # due to numerical instability
-    if op.__name__[:7] == "sigmoid" or op.__name__[:4] == "tanh":
+    if op.__name__[:8] == "sigmoid[" or op.__name__[:5] == "tanh[":
         stable_degree: Static[int] = 3
         return [taylor_df(op, pivot, deg=deg) for deg in staticrange(stable_degree + 1)], stable_degree
 
