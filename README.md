@@ -9,9 +9,9 @@ Install Decor by running a following set of commands:
 ```bash
 mkdir $HOME/.codon && curl -L https://github.com/exaloop/codon/releases/download/v0.17.0/codon-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C $HOME/.codon --strip-components=1 && \
 curl -L https://github.com/0xTCG/sequre/releases/download/v0.0.20-alpha/sequre-$(uname -s | awk '{print tolower($0)}')-$(uname -m).tar.gz | tar zxvf - -C $HOME/.codon/lib/codon/plugins && \
-git clone -b decor-patch-64 --depth 1 https://github.com/0xTCG/sequre.git && cd sequre && \
-cp -r stdlib/ $HOME/.codon/lib/codon/plugins/sequre/ && \
-alias decor="find . -name 'sock.*' -exec rm {} \; && CODON_DEBUG=lt $HOME/.codon/bin/codon run --disable-opt="core-pythonic-list-addition-opt" -plugin sequre"
+git clone -b decor-patch-64 --depth 1 https://github.com/0xTCG/sequre.git .sequre && \
+cp -r .sequre/stdlib/ $HOME/.codon/lib/codon/plugins/sequre/ && \
+alias decor="find . -name 'sock.*' -exec rm {} \; && CODON_DEBUG=lt $HOME/.codon/bin/codon run --disable-opt="core-pythonic-list-addition-opt" -plugin $HOME/.codon/lib/codon/plugins/sequre"
 ```
 
 And then export GMP library to Decor like so (either custom or the one provided at `external/GMP/lib/libgmp.so`)
