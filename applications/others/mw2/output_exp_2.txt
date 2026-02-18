@@ -1,0 +1,33 @@
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 37.12
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 137438953471
+Computation completed in 27 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 500 (100.00%)
+Average ULP error: 0.0058
+Maximum ULP error: 0.6963
+Average relative error: 73.690414%
+Maximum relative error: 100.000000%
+
+=== Performance Statistics ===
+Communication: 508020 bytes
+Communication per element: 1016.04 bytes
+Computation time: 27 ms
+Throughput: 18518.52 exp_nagx/sec
+
+=== exp_nagx Specific Analysis ===
+Input range tested: [0.1, 4.0] (positive values)
+Output range: exp(-4.0) to exp(-0.1) ≈ [0.018, 0.905]
+Function tested: exp(-x) where x > 0
+
+exp_nagx test completed successfully!

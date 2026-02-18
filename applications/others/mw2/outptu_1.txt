@@ -1,0 +1,1764 @@
+B: 524288
+sin_val: 0.000000
+cos_val: 1.000000
+MW_sin_lut[0]: 0
+MW_cos_lut[0]: 288230376151711744
+sin_val: -0.079518
+cos_val: -0.996833
+MW_sin_lut[1]: 18423824428216352768
+MW_cos_lut[1]: 18159426410588930048
+sin_val: 0.158533
+cos_val: 0.987354
+MW_sin_lut[2]: 45694135855742976
+MW_cos_lut[2]: 284585304784896000
+N_2f_t_f_T: 288230376151711744
+mask_2bwL_t_bwL_T_lut: 18446744073709551615
+
+222222sin_inA[0]: 31526
+cos_inA[0]: 22640
+sin_inA_cos_inB[0]: 4102579574
+cos_inA_sin_inB[0]: 1300457243
+cos_inA_cos_inB[0]: 920555157
+sin_inA_sin_inB[0]: 3520564887
+
+
+222222sin_inA[1]: 15231
+cos_inA[1]: 32727
+sin_inA_cos_inB[1]: 3302252811
+cos_inA_sin_inB[1]: 258002217
+cos_inA_cos_inB[1]: 3966086381
+sin_inA_sin_inB[1]: 2039875334
+
+
+222222sin_inA[2]: 13145
+cos_inA[2]: 323
+sin_inA_cos_inB[2]: 3873134671
+cos_inA_sin_inB[2]: 1306874453
+cos_inA_cos_inB[2]: 1026274925
+sin_inA_sin_inB[2]: 1280935121
+
+
+222222sin_inA[3]: 5643
+cos_inA[3]: 28756
+sin_inA_cos_inB[3]: 2380607588
+cos_inA_sin_inB[3]: 1009687826
+cos_inA_cos_inB[3]: 625156219
+sin_inA_sin_inB[3]: 1884679111
+
+
+222222sin_inA[4]: 23154
+cos_inA[4]: 31304
+sin_inA_cos_inB[4]: 855914705
+cos_inA_sin_inB[4]: 1282696225
+cos_inA_cos_inB[4]: 1095230935
+sin_inA_sin_inB[4]: 2749494728
+
+
+222222sin_inA[5]: 5496
+cos_inA[5]: 28627
+sin_inA_cos_inB[5]: 1304095976
+cos_inA_sin_inB[5]: 3855856148
+cos_inA_cos_inB[5]: 564458133
+sin_inA_sin_inB[5]: 4134349314
+
+
+222222sin_inA[6]: 10323
+cos_inA[6]: 1162
+sin_inA_cos_inB[6]: 707612030
+cos_inA_sin_inB[6]: 3072709086
+cos_inA_cos_inB[6]: 1927103246
+sin_inA_sin_inB[6]: 2087914521
+
+
+222222sin_inA[7]: 1431
+cos_inA[7]: 9687
+sin_inA_cos_inB[7]: 2264138743
+cos_inA_sin_inB[7]: 1644947276
+cos_inA_cos_inB[7]: 2594254152
+sin_inA_sin_inB[7]: 988942629
+
+
+222222sin_inA[8]: 4595
+cos_inA[8]: 5006
+sin_inA_cos_inB[8]: 2086194602
+cos_inA_sin_inB[8]: 1975499552
+cos_inA_cos_inB[8]: 1545112932
+sin_inA_sin_inB[8]: 1399302539
+
+
+222222sin_inA[9]: 20529
+cos_inA[9]: 533
+sin_inA_cos_inB[9]: 1107611350
+cos_inA_sin_inB[9]: 2469678579
+cos_inA_cos_inB[9]: 3100928669
+sin_inA_sin_inB[9]: 3525607208
+
+
+222222sin_inA[10]: 6136
+cos_inA[10]: 29167
+sin_inA_cos_inB[10]: 2696623539
+cos_inA_sin_inB[10]: 962782090
+cos_inA_cos_inB[10]: 3094716346
+sin_inA_sin_inB[10]: 3500122403
+
+
+222222sin_inA[11]: 12522
+cos_inA[11]: 32306
+sin_inA_cos_inB[11]: 2546525552
+cos_inA_sin_inB[11]: 1018499075
+cos_inA_cos_inB[11]: 910127687
+sin_inA_sin_inB[11]: 541006278
+
+
+222222sin_inA[12]: 350
+cos_inA[12]: 19754
+sin_inA_cos_inB[12]: 2959548754
+cos_inA_sin_inB[12]: 1199367093
+cos_inA_cos_inB[12]: 820859870
+sin_inA_sin_inB[12]: 1277907639
+
+
+222222sin_inA[13]: 31730
+cos_inA[13]: 10644
+sin_inA_cos_inB[13]: 28552581
+cos_inA_sin_inB[13]: 3888934755
+cos_inA_cos_inB[13]: 2609559478
+sin_inA_sin_inB[13]: 3849098793
+
+
+222222sin_inA[14]: 32614
+cos_inA[14]: 18625
+sin_inA_cos_inB[14]: 4049650163
+cos_inA_sin_inB[14]: 3272569092
+cos_inA_cos_inB[14]: 1897873332
+sin_inA_sin_inB[14]: 3033479379
+
+
+222222sin_inA[15]: 14505
+cos_inA[15]: 32660
+sin_inA_cos_inB[15]: 392572566
+cos_inA_sin_inB[15]: 2460293444
+cos_inA_cos_inB[15]: 2819972628
+sin_inA_sin_inB[15]: 4202911161
+
+
+222222sin_inA[16]: 13557
+cos_inA[16]: 32522
+sin_inA_cos_inB[16]: 2019400740
+cos_inA_sin_inB[16]: 822268673
+cos_inA_cos_inB[16]: 530284798
+sin_inA_sin_inB[16]: 1383462280
+
+
+222222sin_inA[17]: 16225
+cos_inA[17]: 32767
+sin_inA_cos_inB[17]: 2337754650
+cos_inA_sin_inB[17]: 2695725303
+cos_inA_cos_inB[17]: 1917030792
+sin_inA_sin_inB[17]: 3357920002
+
+
+222222sin_inA[18]: 32768
+cos_inA[18]: 16299
+sin_inA_cos_inB[18]: 2583053237
+cos_inA_sin_inB[18]: 2590285492
+cos_inA_cos_inB[18]: 1653611728
+sin_inA_sin_inB[18]: 1169741344
+
+
+222222sin_inA[19]: 1963
+cos_inA[19]: 24160
+sin_inA_cos_inB[19]: 200714177
+cos_inA_sin_inB[19]: 4292253589
+cos_inA_cos_inB[19]: 4012109139
+sin_inA_sin_inB[19]: 3208193159
+
+
+222222sin_inA[20]: 23998
+cos_inA[20]: 1877
+sin_inA_cos_inB[20]: 2020963924
+cos_inA_sin_inB[20]: 572092530
+cos_inA_cos_inB[20]: 779328524
+sin_inA_sin_inB[20]: 4126411170
+
+
+222222sin_inA[21]: 4330
+cos_inA[21]: 27481
+sin_inA_cos_inB[21]: 2207571286
+cos_inA_sin_inB[21]: 2938496589
+cos_inA_cos_inB[21]: 1537674804
+sin_inA_sin_inB[21]: 1752088280
+
+
+222222sin_inA[22]: 6025
+cos_inA[22]: 29078
+sin_inA_cos_inB[22]: 3675795931
+cos_inA_sin_inB[22]: 3685082268
+cos_inA_cos_inB[22]: 2955265748
+sin_inA_sin_inB[22]: 1828647635
+
+
+222222sin_inA[23]: 29335
+cos_inA[23]: 6349
+sin_inA_cos_inB[23]: 307596494
+cos_inA_sin_inB[23]: 4216296602
+cos_inA_cos_inB[23]: 105791017
+sin_inA_sin_inB[23]: 2148153950
+
+
+222222sin_inA[24]: 32668
+cos_inA[24]: 14574
+sin_inA_cos_inB[24]: 3336455553
+cos_inA_sin_inB[24]: 947956927
+cos_inA_cos_inB[24]: 915637385
+sin_inA_sin_inB[24]: 1202015214
+
+
+222222sin_inA[25]: 30869
+cos_inA[25]: 24040
+sin_inA_cos_inB[25]: 488225724
+cos_inA_sin_inB[25]: 1869718306
+cos_inA_cos_inB[25]: 3022829676
+sin_inA_sin_inB[25]: 4046023726
+
+
+222222sin_inA[26]: 32614
+cos_inA[26]: 14142
+sin_inA_cos_inB[26]: 439623682
+cos_inA_sin_inB[26]: 1978067715
+cos_inA_cos_inB[26]: 3742393784
+sin_inA_sin_inB[26]: 293351802
+
+
+222222sin_inA[27]: 329
+cos_inA[27]: 19651
+sin_inA_cos_inB[27]: 3018687887
+cos_inA_sin_inB[27]: 3344544550
+cos_inA_cos_inB[27]: 4166766680
+sin_inA_sin_inB[27]: 2466768267
+
+
+222222sin_inA[28]: 1831
+cos_inA[28]: 23911
+sin_inA_cos_inB[28]: 2037183017
+cos_inA_sin_inB[28]: 3172909463
+cos_inA_cos_inB[28]: 4075777769
+sin_inA_sin_inB[28]: 322696743
+
+
+222222sin_inA[29]: 13832
+cos_inA[29]: 200
+sin_inA_cos_inB[29]: 2315036151
+cos_inA_sin_inB[29]: 3095806549
+cos_inA_cos_inB[29]: 2574874045
+sin_inA_sin_inB[29]: 2236695782
+
+
+222222sin_inA[30]: 19023
+cos_inA[30]: 32554
+sin_inA_cos_inB[30]: 3576130250
+cos_inA_sin_inB[30]: 2420915967
+cos_inA_cos_inB[30]: 3590344216
+sin_inA_sin_inB[30]: 4133799649
+
+
+222222sin_inA[31]: 28533
+cos_inA[31]: 27376
+sin_inA_cos_inB[31]: 143796409
+cos_inA_sin_inB[31]: 2264005792
+cos_inA_cos_inB[31]: 3895853024
+sin_inA_sin_inB[31]: 1105763831
+
+
+222222sin_inA[32]: 1778
+cos_inA[32]: 23807
+sin_inA_cos_inB[32]: 2193804299
+cos_inA_sin_inB[32]: 2697899225
+cos_inA_cos_inB[32]: 662951374
+sin_inA_sin_inB[32]: 1776262377
+
+
+222222sin_inA[33]: 28891
+cos_inA[33]: 26967
+sin_inA_cos_inB[33]: 1057756359
+cos_inA_sin_inB[33]: 368158101
+cos_inA_cos_inB[33]: 1103790174
+sin_inA_sin_inB[33]: 2080041663
+
+
+222222sin_inA[34]: 32631
+cos_inA[34]: 14266
+sin_inA_cos_inB[34]: 1738296374
+cos_inA_sin_inB[34]: 2488139488
+cos_inA_cos_inB[34]: 2403598275
+sin_inA_sin_inB[34]: 1155557149
+
+
+222222sin_inA[35]: 26578
+cos_inA[35]: 29210
+sin_inA_cos_inB[35]: 4132570291
+cos_inA_sin_inB[35]: 2928293781
+cos_inA_cos_inB[35]: 1206089814
+sin_inA_sin_inB[35]: 1620312821
+
+
+222222sin_inA[36]: 32610
+cos_inA[36]: 18656
+sin_inA_cos_inB[36]: 666881704
+cos_inA_sin_inB[36]: 911382809
+cos_inA_cos_inB[36]: 2657007823
+sin_inA_sin_inB[36]: 2293736724
+
+
+222222sin_inA[37]: 28484
+cos_inA[37]: 5338
+sin_inA_cos_inB[37]: 898235907
+cos_inA_sin_inB[37]: 1998332461
+cos_inA_cos_inB[37]: 2930295756
+sin_inA_sin_inB[37]: 498131106
+
+
+222222sin_inA[38]: 28943
+cos_inA[38]: 5863
+sin_inA_cos_inB[38]: 3525258280
+cos_inA_sin_inB[38]: 1319351774
+cos_inA_cos_inB[38]: 1904807167
+sin_inA_sin_inB[38]: 4130678831
+
+
+222222sin_inA[39]: 1220
+cos_inA[39]: 22588
+sin_inA_cos_inB[39]: 378843675
+cos_inA_sin_inB[39]: 2966961299
+cos_inA_cos_inB[39]: 1810061246
+sin_inA_sin_inB[39]: 621403535
+
+
+222222sin_inA[40]: 43
+cos_inA[40]: 15193
+sin_inA_cos_inB[40]: 3782037622
+cos_inA_sin_inB[40]: 740289969
+cos_inA_cos_inB[40]: 2147460775
+sin_inA_sin_inB[40]: 3701084882
+
+
+222222sin_inA[41]: 25724
+cos_inA[41]: 2923
+sin_inA_cos_inB[41]: 2244941797
+cos_inA_sin_inB[41]: 1613505474
+cos_inA_cos_inB[41]: 3230660289
+sin_inA_sin_inB[41]: 1822211995
+
+
+222222sin_inA[42]: 31468
+cos_inA[42]: 22779
+sin_inA_cos_inB[42]: 2311098227
+cos_inA_sin_inB[42]: 2730500509
+cos_inA_cos_inB[42]: 2241766850
+sin_inA_sin_inB[42]: 3715339604
+
+
+222222sin_inA[43]: 12500
+cos_inA[43]: 32301
+sin_inA_cos_inB[43]: 1866131286
+cos_inA_sin_inB[43]: 1763263824
+cos_inA_cos_inB[43]: 1995835800
+sin_inA_sin_inB[43]: 2871138524
+
+
+222222sin_inA[44]: 32242
+cos_inA[44]: 20501
+sin_inA_cos_inB[44]: 1357912905
+cos_inA_sin_inB[44]: 3381240870
+cos_inA_cos_inB[44]: 167808147
+sin_inA_sin_inB[44]: 2225247440
+
+
+222222sin_inA[45]: 11556
+cos_inA[45]: 727
+sin_inA_cos_inB[45]: 1779477882
+cos_inA_sin_inB[45]: 4052940860
+cos_inA_cos_inB[45]: 2108214597
+sin_inA_sin_inB[45]: 4124134534
+
+
+222222sin_inA[46]: 4659
+cos_inA[46]: 27828
+sin_inA_cos_inB[46]: 1475537959
+cos_inA_sin_inB[46]: 2282678321
+cos_inA_cos_inB[46]: 419856020
+sin_inA_sin_inB[46]: 4288596266
+
+
+222222sin_inA[47]: 8128
+cos_inA[47]: 2232
+sin_inA_cos_inB[47]: 65399882
+cos_inA_sin_inB[47]: 1369297461
+cos_inA_cos_inB[47]: 3731162590
+sin_inA_sin_inB[47]: 2800257838
+
+
+222222sin_inA[48]: 21689
+cos_inA[48]: 883
+sin_inA_cos_inB[48]: 252426997
+cos_inA_sin_inB[48]: 3344256582
+cos_inA_cos_inB[48]: 634346504
+sin_inA_sin_inB[48]: 1727146729
+
+
+222222sin_inA[49]: 30889
+cos_inA[49]: 24002
+sin_inA_cos_inB[49]: 1393001198
+cos_inA_sin_inB[49]: 2047231001
+cos_inA_cos_inB[49]: 2051327506
+sin_inA_sin_inB[49]: 3958560197
+
+
+222222sin_inA[50]: 25123
+cos_inA[50]: 30243
+sin_inA_cos_inB[50]: 339456410
+cos_inA_sin_inB[50]: 3556314457
+cos_inA_cos_inB[50]: 2986168347
+sin_inA_sin_inB[50]: 65535932
+
+
+222222sin_inA[51]: 9058
+cos_inA[51]: 1729
+sin_inA_cos_inB[51]: 3553268524
+cos_inA_sin_inB[51]: 3802712568
+cos_inA_cos_inB[51]: 3940684151
+sin_inA_sin_inB[51]: 2578570544
+
+
+222222sin_inA[52]: 900
+cos_inA[52]: 21738
+sin_inA_cos_inB[52]: 168938079
+cos_inA_sin_inB[52]: 3393201206
+cos_inA_cos_inB[52]: 2222632235
+sin_inA_sin_inB[52]: 1642688306
+
+
+222222sin_inA[53]: 32405
+cos_inA[53]: 12955
+sin_inA_cos_inB[53]: 2355383984
+cos_inA_sin_inB[53]: 1874044377
+cos_inA_cos_inB[53]: 1862485487
+sin_inA_sin_inB[53]: 687256952
+
+
+222222sin_inA[54]: 24402
+cos_inA[54]: 2096
+sin_inA_cos_inB[54]: 880254276
+cos_inA_sin_inB[54]: 4031812723
+cos_inA_cos_inB[54]: 665421611
+sin_inA_sin_inB[54]: 2015014192
+
+
+222222sin_inA[55]: 25550
+cos_inA[55]: 2804
+sin_inA_cos_inB[55]: 640009460
+cos_inA_sin_inB[55]: 455136791
+cos_inA_cos_inB[55]: 3386465989
+sin_inA_sin_inB[55]: 735089242
+
+
+222222sin_inA[56]: 2757
+cos_inA[56]: 7288
+sin_inA_cos_inB[56]: 3323268500
+cos_inA_sin_inB[56]: 1546534818
+cos_inA_cos_inB[56]: 1627368966
+sin_inA_sin_inB[56]: 1976619997
+
+
+222222sin_inA[57]: 16718
+cos_inA[57]: 32765
+sin_inA_cos_inB[57]: 803229508
+cos_inA_sin_inB[57]: 1184688192
+cos_inA_cos_inB[57]: 2294990595
+sin_inA_sin_inB[57]: 3896120497
+
+
+222222sin_inA[58]: 1633
+cos_inA[58]: 23514
+sin_inA_cos_inB[58]: 1403764728
+cos_inA_sin_inB[58]: 2721868255
+cos_inA_cos_inB[58]: 641609918
+sin_inA_sin_inB[58]: 3847732813
+
+
+222222sin_inA[59]: 26776
+cos_inA[59]: 29051
+sin_inA_cos_inB[59]: 491137101
+cos_inA_sin_inB[59]: 3539809406
+cos_inA_cos_inB[59]: 445842227
+sin_inA_sin_inB[59]: 4221773996
+
+
+222222sin_inA[60]: 357
+cos_inA[60]: 12983
+sin_inA_cos_inB[60]: 498277560
+cos_inA_sin_inB[60]: 1622752447
+cos_inA_cos_inB[60]: 2161981341
+sin_inA_sin_inB[60]: 3926498076
+
+
+222222sin_inA[61]: 25804
+cos_inA[61]: 2979
+sin_inA_cos_inB[61]: 3266260144
+cos_inA_sin_inB[61]: 2641834512
+cos_inA_cos_inB[61]: 825669683
+sin_inA_sin_inB[61]: 2388264947
+
+
+222222sin_inA[62]: 20024
+cos_inA[62]: 410
+sin_inA_cos_inB[62]: 3156894570
+cos_inA_sin_inB[62]: 1753731083
+cos_inA_cos_inB[62]: 3755545788
+sin_inA_sin_inB[62]: 931949448
+
+
+222222sin_inA[63]: 25111
+cos_inA[63]: 2518
+sin_inA_cos_inB[63]: 1449524068
+cos_inA_sin_inB[63]: 4155581533
+cos_inA_cos_inB[63]: 3863441831
+sin_inA_sin_inB[63]: 3337513700
+
+
+222222sin_inA[64]: 16211
+cos_inA[64]: 32767
+sin_inA_cos_inB[64]: 3302367611
+cos_inA_sin_inB[64]: 4112818092
+cos_inA_cos_inB[64]: 1108678876
+sin_inA_sin_inB[64]: 1741894279
+
+
+222222sin_inA[65]: 3425
+cos_inA[65]: 26410
+sin_inA_cos_inB[65]: 3067061241
+cos_inA_sin_inB[65]: 3964731109
+cos_inA_cos_inB[65]: 3583229470
+sin_inA_sin_inB[65]: 3885710989
+
+
+222222sin_inA[66]: 2225
+cos_inA[66]: 24627
+sin_inA_cos_inB[66]: 4116194067
+cos_inA_sin_inB[66]: 557532711
+cos_inA_cos_inB[66]: 3365964117
+sin_inA_sin_inB[66]: 2686157830
+
+
+222222sin_inA[67]: 8777
+cos_inA[67]: 30895
+sin_inA_cos_inB[67]: 1790392715
+cos_inA_sin_inB[67]: 1626961588
+cos_inA_cos_inB[67]: 4197840198
+sin_inA_sin_inB[67]: 3133695641
+
+
+222222sin_inA[68]: 32412
+cos_inA[68]: 19781
+sin_inA_cos_inB[68]: 2169928155
+cos_inA_sin_inB[68]: 821169822
+cos_inA_cos_inB[68]: 3703386541
+sin_inA_sin_inB[68]: 1401260801
+
+
+222222sin_inA[69]: 32767
+cos_inA[69]: 16239
+sin_inA_cos_inB[69]: 2661790564
+cos_inA_sin_inB[69]: 4024987267
+cos_inA_cos_inB[69]: 2941996508
+sin_inA_sin_inB[69]: 1194283737
+
+
+222222sin_inA[70]: 32735
+cos_inA[70]: 15343
+sin_inA_cos_inB[70]: 735242099
+cos_inA_sin_inB[70]: 671825106
+cos_inA_cos_inB[70]: 440577096
+sin_inA_sin_inB[70]: 2606374986
+
+
+222222sin_inA[71]: 20740
+cos_inA[71]: 590
+sin_inA_cos_inB[71]: 3754994354
+cos_inA_sin_inB[71]: 3487791300
+cos_inA_cos_inB[71]: 3586518272
+sin_inA_sin_inB[71]: 3977280742
+
+
+222222sin_inA[72]: 24257
+cos_inA[72]: 30752
+sin_inA_cos_inB[72]: 3669830664
+cos_inA_sin_inB[72]: 3400877912
+cos_inA_cos_inB[72]: 3501374909
+sin_inA_sin_inB[72]: 1776000382
+
+
+222222sin_inA[73]: 1681
+cos_inA[73]: 9155
+sin_inA_cos_inB[73]: 3644506281
+cos_inA_sin_inB[73]: 2259390231
+cos_inA_cos_inB[73]: 2721454939
+sin_inA_sin_inB[73]: 3425431000
+
+
+222222sin_inA[74]: 5402
+cos_inA[74]: 4226
+sin_inA_cos_inB[74]: 205042099
+cos_inA_sin_inB[74]: 4022933255
+cos_inA_cos_inB[74]: 2555180162
+sin_inA_sin_inB[74]: 2199399036
+
+
+222222sin_inA[75]: 29665
+cos_inA[75]: 6789
+sin_inA_cos_inB[75]: 776106721
+cos_inA_sin_inB[75]: 2000722194
+cos_inA_cos_inB[75]: 2000995737
+sin_inA_sin_inB[75]: 1974584592
+
+
+222222sin_inA[76]: 7942
+cos_inA[76]: 30425
+sin_inA_cos_inB[76]: 3854649463
+cos_inA_sin_inB[76]: 6667401
+cos_inA_cos_inB[76]: 1066006863
+sin_inA_sin_inB[76]: 2946614202
+
+
+222222sin_inA[77]: 9509
+cos_inA[77]: 31256
+sin_inA_cos_inB[77]: 3408732999
+cos_inA_sin_inB[77]: 1476445912
+cos_inA_cos_inB[77]: 3029209259
+sin_inA_sin_inB[77]: 2857338879
+
+
+222222sin_inA[78]: 32743
+cos_inA[78]: 17281
+sin_inA_cos_inB[78]: 4248196333
+cos_inA_sin_inB[78]: 329646281
+cos_inA_cos_inB[78]: 2190899829
+sin_inA_sin_inB[78]: 3724661349
+
+
+222222sin_inA[79]: 26352
+cos_inA[79]: 3381
+sin_inA_cos_inB[79]: 1585651857
+cos_inA_sin_inB[79]: 3177791973
+cos_inA_cos_inB[79]: 3509452088
+sin_inA_sin_inB[79]: 3355851879
+
+
+222222sin_inA[80]: 5011
+cos_inA[80]: 4590
+sin_inA_cos_inB[80]: 2897657893
+cos_inA_sin_inB[80]: 60926805
+cos_inA_cos_inB[80]: 2181347642
+sin_inA_sin_inB[80]: 1058348850
+
+
+222222sin_inA[81]: 30946
+cos_inA[81]: 23892
+sin_inA_cos_inB[81]: 4181015265
+cos_inA_sin_inB[81]: 830788849
+cos_inA_cos_inB[81]: 1352498557
+sin_inA_sin_inB[81]: 684862806
+
+
+222222sin_inA[82]: 3502
+cos_inA[82]: 26508
+sin_inA_cos_inB[82]: 2599436442
+cos_inA_sin_inB[82]: 2106990923
+cos_inA_cos_inB[82]: 4268002149
+sin_inA_sin_inB[82]: 2326943673
+
+
+222222sin_inA[83]: 31759
+cos_inA[83]: 22044
+sin_inA_cos_inB[83]: 3586077331
+cos_inA_sin_inB[83]: 540111703
+cos_inA_cos_inB[83]: 2677882371
+sin_inA_sin_inB[83]: 633785868
+
+
+222222sin_inA[84]: 7553
+cos_inA[84]: 30184
+sin_inA_cos_inB[84]: 582742135
+cos_inA_sin_inB[84]: 3625363168
+cos_inA_cos_inB[84]: 329155587
+sin_inA_sin_inB[84]: 1237423997
+
+
+222222sin_inA[85]: 31267
+cos_inA[85]: 9532
+sin_inA_cos_inB[85]: 862372906
+cos_inA_sin_inB[85]: 1777058601
+cos_inA_cos_inB[85]: 3656692152
+sin_inA_sin_inB[85]: 3482475692
+
+
+222222sin_inA[86]: 31537
+cos_inA[86]: 22615
+sin_inA_cos_inB[86]: 418212285
+cos_inA_sin_inB[86]: 3967531942
+cos_inA_cos_inB[86]: 4029643071
+sin_inA_sin_inB[86]: 3294539348
+
+
+222222sin_inA[87]: 26159
+cos_inA[87]: 3235
+sin_inA_cos_inB[87]: 376552886
+cos_inA_sin_inB[87]: 3536508654
+cos_inA_cos_inB[87]: 294237571
+sin_inA_sin_inB[87]: 2645285898
+
+
+222222sin_inA[88]: 29048
+cos_inA[88]: 5989
+sin_inA_cos_inB[88]: 3377026854
+cos_inA_sin_inB[88]: 3639723056
+cos_inA_cos_inB[88]: 549386995
+sin_inA_sin_inB[88]: 3346687323
+
+
+222222sin_inA[89]: 31881
+cos_inA[89]: 21701
+sin_inA_cos_inB[89]: 4080602868
+cos_inA_sin_inB[89]: 1918884548
+cos_inA_cos_inB[89]: 1056149728
+sin_inA_sin_inB[89]: 2352224645
+
+
+222222sin_inA[90]: 10738
+cos_inA[90]: 31765
+sin_inA_cos_inB[90]: 2801320590
+cos_inA_sin_inB[90]: 1285247303
+cos_inA_cos_inB[90]: 2592013099
+sin_inA_sin_inB[90]: 4127922779
+
+
+222222sin_inA[91]: 26352
+cos_inA[91]: 29387
+sin_inA_cos_inB[91]: 2758423243
+cos_inA_sin_inB[91]: 2041349856
+cos_inA_cos_inB[91]: 1224233899
+sin_inA_sin_inB[91]: 3648525962
+
+
+222222sin_inA[92]: 13186
+cos_inA[92]: 32453
+sin_inA_cos_inB[92]: 2301909964
+cos_inA_sin_inB[92]: 3591137231
+cos_inA_cos_inB[92]: 2444006640
+sin_inA_sin_inB[92]: 3125451189
+
+
+222222sin_inA[93]: 1961
+cos_inA[93]: 24156
+sin_inA_cos_inB[93]: 1097896174
+cos_inA_sin_inB[93]: 196923449
+cos_inA_cos_inB[93]: 3160311883
+sin_inA_sin_inB[93]: 1502823693
+
+
+222222sin_inA[94]: 15892
+cos_inA[94]: 32761
+sin_inA_cos_inB[94]: 85732911
+cos_inA_sin_inB[94]: 2604588653
+cos_inA_cos_inB[94]: 3201891677
+sin_inA_sin_inB[94]: 2654635685
+
+
+222222sin_inA[95]: 28803
+cos_inA[95]: 5698
+sin_inA_cos_inB[95]: 654851011
+cos_inA_sin_inB[95]: 4083240743
+cos_inA_cos_inB[95]: 782999986
+sin_inA_sin_inB[95]: 4262222143
+
+
+222222sin_inA[96]: 139
+cos_inA[96]: 14251
+sin_inA_cos_inB[96]: 4270304273
+cos_inA_sin_inB[96]: 2099444003
+cos_inA_cos_inB[96]: 1955089978
+sin_inA_sin_inB[96]: 1581416782
+
+
+222222sin_inA[97]: 5421
+cos_inA[97]: 28560
+sin_inA_cos_inB[97]: 1188787038
+cos_inA_sin_inB[97]: 2458095960
+cos_inA_cos_inB[97]: 1793043398
+sin_inA_sin_inB[97]: 2069363499
+
+
+222222sin_inA[98]: 19630
+cos_inA[98]: 325
+sin_inA_cos_inB[98]: 2988842597
+cos_inA_sin_inB[98]: 2433127134
+cos_inA_cos_inB[98]: 3646743370
+sin_inA_sin_inB[98]: 2646141982
+
+
+222222sin_inA[99]: 27568
+cos_inA[99]: 28357
+sin_inA_cos_inB[99]: 17067774
+cos_inA_sin_inB[99]: 2425757266
+cos_inA_cos_inB[99]: 3526691435
+sin_inA_sin_inB[99]: 1027785309
+
+MW_cos_lut[0]: 288230376151711744
+MW_sin_lut[0]: 0
+MW_cos_lut[1]: 18159426410588930048
+MW_sin_lut[1]: 18423824428216352768
+MW_cos_lut[2]: 284585304784896000
+MW_sin_lut[2]: 45694135855742976
+MW_cos_lut[3]: 100
+MW_sin_lut[3]: 100
+Communication: 64585728 bytes
+Hadamard Communication: 51380224 bytes
+Sextend 1 Communication: 2359296 bytes
+MW Communication: 65536 bytes
+LUT Communication: 8388608 bytes
+Sextend 2 Communication: 294912 bytes
+Computation time: 2486 ms
+ULP avg: 1050248.234645
+ULP max: 2101231.999988
+B: 524288
+sin_val: 0.000000
+cos_val: 1.000000
+MW_sin_lut[0]: 0
+MW_cos_lut[0]: 288230376151711744
+sin_val: -0.079518
+cos_val: -0.996833
+MW_sin_lut[1]: 18423824428216352768
+MW_cos_lut[1]: 18159426410588930048
+sin_val: 0.158533
+cos_val: 0.987354
+MW_sin_lut[2]: 45694135855742976
+MW_cos_lut[2]: 284585304784896000
+N_2f_t_f_T: 288230376151711744
+mask_2bwL_t_bwL_T_lut: 18446744073709551615
+
+222222	dim 	500
+sin_inA[0]: 31526
+cos_inA[0]: 22640
+sin_inA_cos_inB[0]: 496297260
+cos_inA_sin_inB[0]: 3711030883
+cos_inA_cos_inB[0]: 1270894733
+sin_inA_sin_inB[0]: 2473195948
+
+
+222222	dim 	500
+sin_inA[1]: 15231
+cos_inA[1]: 32727
+sin_inA_cos_inB[1]: 4191731221
+cos_inA_sin_inB[1]: 152639053
+cos_inA_cos_inB[1]: 2068008510
+sin_inA_sin_inB[1]: 1114258369
+
+
+222222	dim 	500
+sin_inA[2]: 13145
+cos_inA[2]: 323
+sin_inA_cos_inB[2]: 1313653885
+cos_inA_sin_inB[2]: 4276109399
+cos_inA_cos_inB[2]: 3409623171
+sin_inA_sin_inB[2]: 3240311811
+
+
+222222	dim 	500
+sin_inA[3]: 5643
+cos_inA[3]: 28756
+sin_inA_cos_inB[3]: 589131218
+cos_inA_sin_inB[3]: 2909830899
+cos_inA_cos_inB[3]: 3143345727
+sin_inA_sin_inB[3]: 3273716586
+
+
+222222	dim 	500
+sin_inA[4]: 23154
+cos_inA[4]: 31304
+sin_inA_cos_inB[4]: 704811235
+cos_inA_sin_inB[4]: 3548974176
+cos_inA_cos_inB[4]: 1879652244
+sin_inA_sin_inB[4]: 1286897460
+
+
+222222	dim 	500
+sin_inA[5]: 5496
+cos_inA[5]: 28627
+sin_inA_cos_inB[5]: 638066360
+cos_inA_sin_inB[5]: 1901803480
+cos_inA_cos_inB[5]: 3392985114
+sin_inA_sin_inB[5]: 224898544
+
+
+222222	dim 	500
+sin_inA[6]: 10323
+cos_inA[6]: 1162
+sin_inA_cos_inB[6]: 2715423865
+cos_inA_sin_inB[6]: 3743747741
+cos_inA_cos_inB[6]: 3932850879
+sin_inA_sin_inB[6]: 1520890039
+
+
+222222	dim 	500
+sin_inA[7]: 1431
+cos_inA[7]: 9687
+sin_inA_cos_inB[7]: 3385930744
+cos_inA_sin_inB[7]: 1314437357
+cos_inA_cos_inB[7]: 2162545224
+sin_inA_sin_inB[7]: 572605517
+
+
+222222	dim 	500
+sin_inA[8]: 4595
+cos_inA[8]: 5006
+sin_inA_cos_inB[8]: 1374157901
+cos_inA_sin_inB[8]: 13926184
+cos_inA_cos_inB[8]: 3360483745
+sin_inA_sin_inB[8]: 3705433013
+
+
+222222	dim 	500
+sin_inA[9]: 20529
+cos_inA[9]: 533
+sin_inA_cos_inB[9]: 4252210657
+cos_inA_sin_inB[9]: 4098104081
+cos_inA_cos_inB[9]: 4237603355
+sin_inA_sin_inB[9]: 694233883
+
+
+222222	dim 	500
+sin_inA[10]: 6136
+cos_inA[10]: 29167
+sin_inA_cos_inB[10]: 2478920342
+cos_inA_sin_inB[10]: 205418275
+cos_inA_cos_inB[10]: 3217227772
+sin_inA_sin_inB[10]: 3991769883
+
+
+222222	dim 	500
+sin_inA[11]: 12522
+cos_inA[11]: 32306
+sin_inA_cos_inB[11]: 3282981606
+cos_inA_sin_inB[11]: 3990935679
+cos_inA_cos_inB[11]: 2055267349
+sin_inA_sin_inB[11]: 2413501908
+
+
+222222	dim 	500
+sin_inA[12]: 350
+cos_inA[12]: 19754
+sin_inA_cos_inB[12]: 1708284704
+cos_inA_sin_inB[12]: 1944509312
+cos_inA_cos_inB[12]: 150063879
+sin_inA_sin_inB[12]: 1023202482
+
+
+222222	dim 	500
+sin_inA[13]: 31730
+cos_inA[13]: 10644
+sin_inA_cos_inB[13]: 3555516006
+cos_inA_sin_inB[13]: 3747200062
+cos_inA_cos_inB[13]: 25630119
+sin_inA_sin_inB[13]: 3341254962
+
+
+222222	dim 	500
+sin_inA[14]: 32614
+cos_inA[14]: 18625
+sin_inA_cos_inB[14]: 724682248
+cos_inA_sin_inB[14]: 1656907147
+cos_inA_cos_inB[14]: 4015223811
+sin_inA_sin_inB[14]: 1547292827
+
+
+222222	dim 	500
+sin_inA[15]: 14505
+cos_inA[15]: 32660
+sin_inA_cos_inB[15]: 229045494
+cos_inA_sin_inB[15]: 3333149530
+cos_inA_cos_inB[15]: 24831826
+sin_inA_sin_inB[15]: 1533095330
+
+
+222222	dim 	500
+sin_inA[16]: 13557
+cos_inA[16]: 32522
+sin_inA_cos_inB[16]: 1954972687
+cos_inA_sin_inB[16]: 52960135
+cos_inA_cos_inB[16]: 4058003076
+sin_inA_sin_inB[16]: 2203720227
+
+
+222222	dim 	500
+sin_inA[17]: 16225
+cos_inA[17]: 32767
+sin_inA_cos_inB[17]: 2002215025
+cos_inA_sin_inB[17]: 3765818974
+cos_inA_cos_inB[17]: 2931058321
+sin_inA_sin_inB[17]: 2340734695
+
+
+222222	dim 	500
+sin_inA[18]: 32768
+cos_inA[18]: 16299
+sin_inA_cos_inB[18]: 3838655103
+cos_inA_sin_inB[18]: 3041476006
+cos_inA_cos_inB[18]: 1329364719
+sin_inA_sin_inB[18]: 3420354842
+
+
+222222	dim 	500
+sin_inA[19]: 1963
+cos_inA[19]: 24160
+sin_inA_cos_inB[19]: 405775356
+cos_inA_sin_inB[19]: 2764910514
+cos_inA_cos_inB[19]: 2845543456
+sin_inA_sin_inB[19]: 21711895
+
+
+222222	dim 	500
+sin_inA[20]: 23998
+cos_inA[20]: 1877
+sin_inA_cos_inB[20]: 4041212029
+cos_inA_sin_inB[20]: 619671847
+cos_inA_cos_inB[20]: 1952262138
+sin_inA_sin_inB[20]: 1101832813
+
+
+222222	dim 	500
+sin_inA[21]: 4330
+cos_inA[21]: 27481
+sin_inA_cos_inB[21]: 437321310
+cos_inA_sin_inB[21]: 3976903403
+cos_inA_cos_inB[21]: 1315946957
+sin_inA_sin_inB[21]: 3175164065
+
+
+222222	dim 	500
+sin_inA[22]: 6025
+cos_inA[22]: 29078
+sin_inA_cos_inB[22]: 460502614
+cos_inA_sin_inB[22]: 3867368414
+cos_inA_cos_inB[22]: 338113811
+sin_inA_sin_inB[22]: 407131549
+
+
+222222	dim 	500
+sin_inA[23]: 29335
+cos_inA[23]: 6349
+sin_inA_cos_inB[23]: 3687297641
+cos_inA_sin_inB[23]: 2134737013
+cos_inA_cos_inB[23]: 2207053543
+sin_inA_sin_inB[23]: 1958195499
+
+
+222222	dim 	500
+sin_inA[24]: 32668
+cos_inA[24]: 14574
+sin_inA_cos_inB[24]: 4130499225
+cos_inA_sin_inB[24]: 3581056242
+cos_inA_cos_inB[24]: 1149826493
+sin_inA_sin_inB[24]: 1402749102
+
+
+222222	dim 	500
+sin_inA[25]: 30869
+cos_inA[25]: 24040
+sin_inA_cos_inB[25]: 2941036242
+cos_inA_sin_inB[25]: 1418837481
+cos_inA_cos_inB[25]: 2757610282
+sin_inA_sin_inB[25]: 2390418981
+
+
+222222	dim 	500
+sin_inA[26]: 32614
+cos_inA[26]: 14142
+sin_inA_cos_inB[26]: 2290299444
+cos_inA_sin_inB[26]: 2975589611
+cos_inA_cos_inB[26]: 1196836320
+sin_inA_sin_inB[26]: 415566224
+
+
+222222	dim 	500
+sin_inA[27]: 329
+cos_inA[27]: 19651
+sin_inA_cos_inB[27]: 2437123191
+cos_inA_sin_inB[27]: 477657290
+cos_inA_cos_inB[27]: 595084475
+sin_inA_sin_inB[27]: 43089935
+
+
+222222	dim 	500
+sin_inA[28]: 1831
+cos_inA[28]: 23911
+sin_inA_cos_inB[28]: 2268913164
+cos_inA_sin_inB[28]: 3986882454
+cos_inA_cos_inB[28]: 635874777
+sin_inA_sin_inB[28]: 3488180768
+
+
+222222	dim 	500
+sin_inA[29]: 13832
+cos_inA[29]: 200
+sin_inA_cos_inB[29]: 2250441783
+cos_inA_sin_inB[29]: 3142682914
+cos_inA_cos_inB[29]: 1577790370
+sin_inA_sin_inB[29]: 3962735448
+
+
+222222	dim 	500
+sin_inA[30]: 19023
+cos_inA[30]: 32554
+sin_inA_cos_inB[30]: 737101785
+cos_inA_sin_inB[30]: 3828391892
+cos_inA_cos_inB[30]: 30316866
+sin_inA_sin_inB[30]: 1808620814
+
+
+222222	dim 	500
+sin_inA[31]: 28533
+cos_inA[31]: 27376
+sin_inA_cos_inB[31]: 3121201683
+cos_inA_sin_inB[31]: 1078603030
+cos_inA_cos_inB[31]: 1218939021
+sin_inA_sin_inB[31]: 745230360
+
+
+222222	dim 	500
+sin_inA[32]: 1778
+cos_inA[32]: 23807
+sin_inA_cos_inB[32]: 939909877
+cos_inA_sin_inB[32]: 2725354159
+cos_inA_cos_inB[32]: 238624708
+sin_inA_sin_inB[32]: 2404840396
+
+
+222222	dim 	500
+sin_inA[33]: 28891
+cos_inA[33]: 26967
+sin_inA_cos_inB[33]: 563446410
+cos_inA_sin_inB[33]: 2914954666
+cos_inA_cos_inB[33]: 2086607854
+sin_inA_sin_inB[33]: 627378423
+
+
+222222	dim 	500
+sin_inA[34]: 32631
+cos_inA[34]: 14266
+sin_inA_cos_inB[34]: 1038173777
+cos_inA_sin_inB[34]: 1329308899
+cos_inA_cos_inB[34]: 1671251266
+sin_inA_sin_inB[34]: 2945326194
+
+
+222222	dim 	500
+sin_inA[35]: 26578
+cos_inA[35]: 29210
+sin_inA_cos_inB[35]: 1822287692
+cos_inA_sin_inB[35]: 36615081
+cos_inA_cos_inB[35]: 2020516839
+sin_inA_sin_inB[35]: 2956956445
+
+
+222222	dim 	500
+sin_inA[36]: 32610
+cos_inA[36]: 18656
+sin_inA_cos_inB[36]: 2051790864
+cos_inA_sin_inB[36]: 3664128891
+cos_inA_cos_inB[36]: 783426843
+sin_inA_sin_inB[36]: 1373324294
+
+
+222222	dim 	500
+sin_inA[37]: 28484
+cos_inA[37]: 5338
+sin_inA_cos_inB[37]: 1649857688
+cos_inA_sin_inB[37]: 472366814
+cos_inA_cos_inB[37]: 3933469892
+sin_inA_sin_inB[37]: 2145272043
+
+
+222222	dim 	500
+sin_inA[38]: 28943
+cos_inA[38]: 5863
+sin_inA_cos_inB[38]: 2850246373
+cos_inA_sin_inB[38]: 2111725985
+cos_inA_cos_inB[38]: 1988240799
+sin_inA_sin_inB[38]: 928620638
+
+
+222222	dim 	500
+sin_inA[39]: 1220
+cos_inA[39]: 22588
+sin_inA_cos_inB[39]: 25369113
+cos_inA_sin_inB[39]: 2968659678
+cos_inA_cos_inB[39]: 3356959316
+sin_inA_sin_inB[39]: 1628062101
+
+
+222222	dim 	500
+sin_inA[40]: 43
+cos_inA[40]: 15193
+sin_inA_cos_inB[40]: 4159681747
+cos_inA_sin_inB[40]: 341481930
+cos_inA_cos_inB[40]: 3814776728
+sin_inA_sin_inB[40]: 3731041631
+
+
+222222	dim 	500
+sin_inA[41]: 25724
+cos_inA[41]: 2923
+sin_inA_cos_inB[41]: 4143367597
+cos_inA_sin_inB[41]: 3324625312
+cos_inA_cos_inB[41]: 2232605103
+sin_inA_sin_inB[41]: 1364100305
+
+
+222222	dim 	500
+sin_inA[42]: 31468
+cos_inA[42]: 22779
+sin_inA_cos_inB[42]: 4189007819
+cos_inA_sin_inB[42]: 4226013400
+cos_inA_cos_inB[42]: 2516484836
+sin_inA_sin_inB[42]: 4277781705
+
+
+222222	dim 	500
+sin_inA[43]: 12500
+cos_inA[43]: 32301
+sin_inA_cos_inB[43]: 2123828033
+cos_inA_sin_inB[43]: 4191948687
+cos_inA_cos_inB[43]: 3292635726
+sin_inA_sin_inB[43]: 2926501007
+
+
+222222	dim 	500
+sin_inA[44]: 32242
+cos_inA[44]: 20501
+sin_inA_cos_inB[44]: 3302941680
+cos_inA_sin_inB[44]: 1390297696
+cos_inA_cos_inB[44]: 2611917976
+sin_inA_sin_inB[44]: 1962547209
+
+
+222222	dim 	500
+sin_inA[45]: 11556
+cos_inA[45]: 727
+sin_inA_cos_inB[45]: 2454132648
+cos_inA_sin_inB[45]: 3166982913
+cos_inA_cos_inB[45]: 170521030
+sin_inA_sin_inB[45]: 2700123930
+
+
+222222	dim 	500
+sin_inA[46]: 4659
+cos_inA[46]: 27828
+sin_inA_cos_inB[46]: 1444096843
+cos_inA_sin_inB[46]: 255833816
+cos_inA_cos_inB[46]: 4195025188
+sin_inA_sin_inB[46]: 2074245196
+
+
+222222	dim 	500
+sin_inA[47]: 8128
+cos_inA[47]: 2232
+sin_inA_cos_inB[47]: 1693738374
+cos_inA_sin_inB[47]: 2994310886
+cos_inA_cos_inB[47]: 2845114683
+sin_inA_sin_inB[47]: 1335576101
+
+
+222222	dim 	500
+sin_inA[48]: 21689
+cos_inA[48]: 883
+sin_inA_cos_inB[48]: 319313521
+cos_inA_sin_inB[48]: 693010964
+cos_inA_cos_inB[48]: 436258326
+sin_inA_sin_inB[48]: 854173242
+
+
+222222	dim 	500
+sin_inA[49]: 30889
+cos_inA[49]: 24002
+sin_inA_cos_inB[49]: 483502982
+cos_inA_sin_inB[49]: 3295826667
+cos_inA_cos_inB[49]: 2968610743
+sin_inA_sin_inB[49]: 3974571392
+
+
+222222	dim 	500
+sin_inA[50]: 25123
+cos_inA[50]: 30243
+sin_inA_cos_inB[50]: 3916338286
+cos_inA_sin_inB[50]: 792503270
+cos_inA_cos_inB[50]: 1674109387
+sin_inA_sin_inB[50]: 554783363
+
+
+222222	dim 	500
+sin_inA[51]: 9058
+cos_inA[51]: 1729
+sin_inA_cos_inB[51]: 3673703955
+cos_inA_sin_inB[51]: 2650281974
+cos_inA_cos_inB[51]: 708688835
+sin_inA_sin_inB[51]: 2562590220
+
+
+222222	dim 	500
+sin_inA[52]: 900
+cos_inA[52]: 21738
+sin_inA_cos_inB[52]: 4263281885
+cos_inA_sin_inB[52]: 1511291107
+cos_inA_cos_inB[52]: 651297572
+sin_inA_sin_inB[52]: 99192501
+
+
+222222	dim 	500
+sin_inA[53]: 32405
+cos_inA[53]: 12955
+sin_inA_cos_inB[53]: 1426054544
+cos_inA_sin_inB[53]: 2264960639
+cos_inA_cos_inB[53]: 848409904
+sin_inA_sin_inB[53]: 1198701864
+
+
+222222	dim 	500
+sin_inA[54]: 24402
+cos_inA[54]: 2096
+sin_inA_cos_inB[54]: 1779245222
+cos_inA_sin_inB[54]: 466556113
+cos_inA_cos_inB[54]: 751415652
+sin_inA_sin_inB[54]: 2006453027
+
+
+222222	dim 	500
+sin_inA[55]: 25550
+cos_inA[55]: 2804
+sin_inA_cos_inB[55]: 874711897
+cos_inA_sin_inB[55]: 3054857691
+cos_inA_cos_inB[55]: 3108538760
+sin_inA_sin_inB[55]: 2659347185
+
+
+222222	dim 	500
+sin_inA[56]: 2757
+cos_inA[56]: 7288
+sin_inA_cos_inB[56]: 2731747243
+cos_inA_sin_inB[56]: 3909453825
+cos_inA_cos_inB[56]: 1751784447
+sin_inA_sin_inB[56]: 2658595431
+
+
+222222	dim 	500
+sin_inA[57]: 16718
+cos_inA[57]: 32765
+sin_inA_cos_inB[57]: 2619867870
+cos_inA_sin_inB[57]: 4126670931
+cos_inA_cos_inB[57]: 868932858
+sin_inA_sin_inB[57]: 4110728979
+
+
+222222	dim 	500
+sin_inA[58]: 1633
+cos_inA[58]: 23514
+sin_inA_cos_inB[58]: 3033646324
+cos_inA_sin_inB[58]: 3856212678
+cos_inA_cos_inB[58]: 413691870
+sin_inA_sin_inB[58]: 1929790324
+
+
+222222	dim 	500
+sin_inA[59]: 26776
+cos_inA[59]: 29051
+sin_inA_cos_inB[59]: 3047312611
+cos_inA_sin_inB[59]: 2832421090
+cos_inA_cos_inB[59]: 3773981175
+sin_inA_sin_inB[59]: 3039921039
+
+
+222222	dim 	500
+sin_inA[60]: 357
+cos_inA[60]: 12983
+sin_inA_cos_inB[60]: 793307230
+cos_inA_sin_inB[60]: 1792498475
+cos_inA_cos_inB[60]: 14834728
+sin_inA_sin_inB[60]: 3170756394
+
+
+222222	dim 	500
+sin_inA[61]: 25804
+cos_inA[61]: 2979
+sin_inA_cos_inB[61]: 321121886
+cos_inA_sin_inB[61]: 3797691587
+cos_inA_cos_inB[61]: 1214981057
+sin_inA_sin_inB[61]: 3772201353
+
+
+222222	dim 	500
+sin_inA[62]: 20024
+cos_inA[62]: 410
+sin_inA_cos_inB[62]: 2306277307
+cos_inA_sin_inB[62]: 1657030824
+cos_inA_cos_inB[62]: 4040089531
+sin_inA_sin_inB[62]: 3982739439
+
+
+222222	dim 	500
+sin_inA[63]: 25111
+cos_inA[63]: 2518
+sin_inA_cos_inB[63]: 69681926
+cos_inA_sin_inB[63]: 1968340940
+cos_inA_cos_inB[63]: 1008666077
+sin_inA_sin_inB[63]: 941022177
+
+
+222222	dim 	500
+sin_inA[64]: 16211
+cos_inA[64]: 32767
+sin_inA_cos_inB[64]: 623865805
+cos_inA_sin_inB[64]: 1654529206
+cos_inA_cos_inB[64]: 1694891680
+sin_inA_sin_inB[64]: 1728115441
+
+
+222222	dim 	500
+sin_inA[65]: 3425
+cos_inA[65]: 26410
+sin_inA_cos_inB[65]: 2254036142
+cos_inA_sin_inB[65]: 3299003199
+cos_inA_cos_inB[65]: 991727728
+sin_inA_sin_inB[65]: 1045712358
+
+
+222222	dim 	500
+sin_inA[66]: 2225
+cos_inA[66]: 24627
+sin_inA_cos_inB[66]: 3406365448
+cos_inA_sin_inB[66]: 1403624163
+cos_inA_cos_inB[66]: 650091803
+sin_inA_sin_inB[66]: 3382523512
+
+
+222222	dim 	500
+sin_inA[67]: 8777
+cos_inA[67]: 30895
+sin_inA_cos_inB[67]: 686774625
+cos_inA_sin_inB[67]: 3889625078
+cos_inA_cos_inB[67]: 3707426846
+sin_inA_sin_inB[67]: 1080311529
+
+
+222222	dim 	500
+sin_inA[68]: 32412
+cos_inA[68]: 19781
+sin_inA_cos_inB[68]: 3903814119
+cos_inA_sin_inB[68]: 2202107034
+cos_inA_cos_inB[68]: 2276232103
+sin_inA_sin_inB[68]: 2869373303
+
+
+222222	dim 	500
+sin_inA[69]: 32767
+cos_inA[69]: 16239
+sin_inA_cos_inB[69]: 3822739285
+cos_inA_sin_inB[69]: 3087005969
+cos_inA_cos_inB[69]: 2439417379
+sin_inA_sin_inB[69]: 2632664263
+
+
+222222	dim 	500
+sin_inA[70]: 32735
+cos_inA[70]: 15343
+sin_inA_cos_inB[70]: 3982648561
+cos_inA_sin_inB[70]: 75647411
+cos_inA_cos_inB[70]: 624129077
+sin_inA_sin_inB[70]: 912769397
+
+
+222222	dim 	500
+sin_inA[71]: 20740
+cos_inA[71]: 590
+sin_inA_cos_inB[71]: 2343147009
+cos_inA_sin_inB[71]: 2026529559
+cos_inA_cos_inB[71]: 3831270191
+sin_inA_sin_inB[71]: 1636933125
+
+
+222222	dim 	500
+sin_inA[72]: 24257
+cos_inA[72]: 30752
+sin_inA_cos_inB[72]: 3598749862
+cos_inA_sin_inB[72]: 340508936
+cos_inA_cos_inB[72]: 3264510158
+sin_inA_sin_inB[72]: 2308651654
+
+
+222222	dim 	500
+sin_inA[73]: 1681
+cos_inA[73]: 9155
+sin_inA_cos_inB[73]: 3706282179
+cos_inA_sin_inB[73]: 1635003607
+cos_inA_cos_inB[73]: 2117874753
+sin_inA_sin_inB[73]: 3413356951
+
+
+222222	dim 	500
+sin_inA[74]: 5402
+cos_inA[74]: 4226
+sin_inA_cos_inB[74]: 3849927546
+cos_inA_sin_inB[74]: 1992395132
+cos_inA_cos_inB[74]: 1200582137
+sin_inA_sin_inB[74]: 3743069612
+
+
+222222	dim 	500
+sin_inA[75]: 29665
+cos_inA[75]: 6789
+sin_inA_cos_inB[75]: 46526076
+cos_inA_sin_inB[75]: 1512031346
+cos_inA_cos_inB[75]: 920500352
+sin_inA_sin_inB[75]: 1742590211
+
+
+222222	dim 	500
+sin_inA[76]: 7942
+cos_inA[76]: 30425
+sin_inA_cos_inB[76]: 1792739690
+cos_inA_sin_inB[76]: 2753990271
+cos_inA_cos_inB[76]: 1170775638
+sin_inA_sin_inB[76]: 2009047796
+
+
+222222	dim 	500
+sin_inA[77]: 9509
+cos_inA[77]: 31256
+sin_inA_cos_inB[77]: 704302018
+cos_inA_sin_inB[77]: 3947162722
+cos_inA_cos_inB[77]: 1730799938
+sin_inA_sin_inB[77]: 3620637646
+
+
+222222	dim 	500
+sin_inA[78]: 32743
+cos_inA[78]: 17281
+sin_inA_cos_inB[78]: 661127581
+cos_inA_sin_inB[78]: 2995524878
+cos_inA_cos_inB[78]: 1029786046
+sin_inA_sin_inB[78]: 2259447482
+
+
+222222	dim 	500
+sin_inA[79]: 26352
+cos_inA[79]: 3381
+sin_inA_cos_inB[79]: 863754400
+cos_inA_sin_inB[79]: 3337603270
+cos_inA_cos_inB[79]: 3907481473
+sin_inA_sin_inB[79]: 3020471854
+
+
+222222	dim 	500
+sin_inA[80]: 5011
+cos_inA[80]: 4590
+sin_inA_cos_inB[80]: 1165644436
+cos_inA_sin_inB[80]: 831455104
+cos_inA_cos_inB[80]: 2443536513
+sin_inA_sin_inB[80]: 2690625730
+
+
+222222	dim 	500
+sin_inA[81]: 30946
+cos_inA[81]: 23892
+sin_inA_cos_inB[81]: 404113189
+cos_inA_sin_inB[81]: 3608425931
+cos_inA_cos_inB[81]: 4232955813
+sin_inA_sin_inB[81]: 4100692488
+
+
+222222	dim 	500
+sin_inA[82]: 3502
+cos_inA[82]: 26508
+sin_inA_cos_inB[82]: 3587588258
+cos_inA_sin_inB[82]: 3653325761
+cos_inA_cos_inB[82]: 2237272591
+sin_inA_sin_inB[82]: 3179517358
+
+
+222222	dim 	500
+sin_inA[83]: 31759
+cos_inA[83]: 22044
+sin_inA_cos_inB[83]: 4159838368
+cos_inA_sin_inB[83]: 2117185334
+cos_inA_cos_inB[83]: 73434953
+sin_inA_sin_inB[83]: 2467794095
+
+
+222222	dim 	500
+sin_inA[84]: 7553
+cos_inA[84]: 30184
+sin_inA_cos_inB[84]: 463634011
+cos_inA_sin_inB[84]: 2732129289
+cos_inA_cos_inB[84]: 2888823089
+sin_inA_sin_inB[84]: 3582377507
+
+
+222222	dim 	500
+sin_inA[85]: 31267
+cos_inA[85]: 9532
+sin_inA_cos_inB[85]: 4200715014
+cos_inA_sin_inB[85]: 4135512803
+cos_inA_cos_inB[85]: 1840920549
+sin_inA_sin_inB[85]: 2447507685
+
+
+222222	dim 	500
+sin_inA[86]: 31537
+cos_inA[86]: 22615
+sin_inA_cos_inB[86]: 440841485
+cos_inA_sin_inB[86]: 1729061028
+cos_inA_cos_inB[86]: 198712785
+sin_inA_sin_inB[86]: 2504893524
+
+
+222222	dim 	500
+sin_inA[87]: 26159
+cos_inA[87]: 3235
+sin_inA_cos_inB[87]: 509738883
+cos_inA_sin_inB[87]: 2461757034
+cos_inA_cos_inB[87]: 921735195
+sin_inA_sin_inB[87]: 3069181860
+
+
+222222	dim 	500
+sin_inA[88]: 29048
+cos_inA[88]: 5989
+sin_inA_cos_inB[88]: 729960831
+cos_inA_sin_inB[88]: 1489808108
+cos_inA_cos_inB[88]: 3219288022
+sin_inA_sin_inB[88]: 1211396562
+
+
+222222	dim 	500
+sin_inA[89]: 31881
+cos_inA[89]: 21701
+sin_inA_cos_inB[89]: 1788857959
+cos_inA_sin_inB[89]: 2204142767
+cos_inA_cos_inB[89]: 535973132
+sin_inA_sin_inB[89]: 2540081176
+
+
+222222	dim 	500
+sin_inA[90]: 10738
+cos_inA[90]: 31765
+sin_inA_cos_inB[90]: 3920992919
+cos_inA_sin_inB[90]: 2193009077
+cos_inA_cos_inB[90]: 1032634374
+sin_inA_sin_inB[90]: 4158029402
+
+
+222222	dim 	500
+sin_inA[91]: 26352
+cos_inA[91]: 29387
+sin_inA_cos_inB[91]: 925602276
+cos_inA_sin_inB[91]: 3118368452
+cos_inA_cos_inB[91]: 1234461260
+sin_inA_sin_inB[91]: 117484463
+
+
+222222	dim 	500
+sin_inA[92]: 13186
+cos_inA[92]: 32453
+sin_inA_cos_inB[92]: 3008015126
+cos_inA_sin_inB[92]: 2092406376
+cos_inA_cos_inB[92]: 4116553331
+sin_inA_sin_inB[92]: 1156692899
+
+
+222222	dim 	500
+sin_inA[93]: 1961
+cos_inA[93]: 24156
+sin_inA_cos_inB[93]: 1594412796
+cos_inA_sin_inB[93]: 1405468271
+cos_inA_cos_inB[93]: 3028827742
+sin_inA_sin_inB[93]: 4283677929
+
+
+222222	dim 	500
+sin_inA[94]: 15892
+cos_inA[94]: 32761
+sin_inA_cos_inB[94]: 1766518607
+cos_inA_sin_inB[94]: 213852012
+cos_inA_cos_inB[94]: 780267686
+sin_inA_sin_inB[94]: 382046619
+
+
+222222	dim 	500
+sin_inA[95]: 28803
+cos_inA[95]: 5698
+sin_inA_cos_inB[95]: 3103454132
+cos_inA_sin_inB[95]: 348853003
+cos_inA_cos_inB[95]: 3760740188
+sin_inA_sin_inB[95]: 547793504
+
+
+222222	dim 	500
+sin_inA[96]: 139
+cos_inA[96]: 14251
+sin_inA_cos_inB[96]: 382756792
+cos_inA_sin_inB[96]: 1989444000
+cos_inA_cos_inB[96]: 785515835
+sin_inA_sin_inB[96]: 410442977
+
+
+222222	dim 	500
+sin_inA[97]: 5421
+cos_inA[97]: 28560
+sin_inA_cos_inB[97]: 224420988
+cos_inA_sin_inB[97]: 762560249
+cos_inA_cos_inB[97]: 2365903514
+sin_inA_sin_inB[97]: 314992916
+
+
+222222	dim 	500
+sin_inA[98]: 19630
+cos_inA[98]: 325
+sin_inA_cos_inB[98]: 673696951
+cos_inA_sin_inB[98]: 3205020848
+cos_inA_cos_inB[98]: 1694909688
+sin_inA_sin_inB[98]: 450731729
+
+
+222222	dim 	500
+sin_inA[99]: 27568
+cos_inA[99]: 28357
+sin_inA_cos_inB[99]: 1630108080
+cos_inA_sin_inB[99]: 2245469696
+cos_inA_cos_inB[99]: 873320711
+sin_inA_sin_inB[99]: 4082530724
+
+MW_cos_lut[0]: 288230376151711744
+MW_sin_lut[0]: 0
+MW_cos_lut[1]: 18159426410588930048
+MW_sin_lut[1]: 18423824428216352768
+MW_cos_lut[2]: 284585304784896000
+MW_sin_lut[2]: 45694135855742976
+MW_cos_lut[3]: 100
+MW_sin_lut[3]: 100
+Communication: 123438 bytes
+Hadamard Communication: 98240 bytes
+Sextend 1 Communication: 4500 bytes
+MW Communication: 128 bytes
+LUT Communication: 16000 bytes
+Sextend 2 Communication: 570 bytes
+Computation time: 51 ms
+ULP avg: 1011140.478159
+ULP max: 2081902.234823
