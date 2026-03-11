@@ -41,7 +41,7 @@ AuxProtocols *aux;
 // int dim = 1048576/4;  // Test with 1024 elements
 // int dim = 1024;
 int dim = 500; // Test with 500 elements
-int32_t in_bw = 37;      // Input bit width
+int32_t in_bw = 64;      // Input bit width
 int32_t in_f = 16;       // Input fractional bits
 
 int32_t localexp_f = 10;   // Local exp fractional bits
@@ -166,6 +166,7 @@ int main(int argc, char **argv) {
         cout << "\n=== Accuracy Analysis ===" << endl;
         
         double ulp = 1.0 / (1ULL << in_f); // ULP for input precision (assuming output same as input)
+        double total_absolute_error = 0.0;
         double total_ulp_error = 0.0;
         double max_ulp_error = 0.0;
         double total_relative_error = 0.0;
@@ -187,6 +188,7 @@ int main(int argc, char **argv) {
             double ulp_error = absolute_error / ulp;
             double relative_error = (expected_result != 0) ? absolute_error / fabs(expected_result) : 0;
             
+            total_absolute_error += absolute_error;
             total_ulp_error += ulp_error;
             total_relative_error += relative_error;
             
@@ -207,6 +209,7 @@ int main(int argc, char **argv) {
         printf("Total tests: %d\n", dim);
         printf("Correct results (ULP < 10): %d (%.2f%%)\n", 
                correct_results, 100.0 * correct_results / dim);
+        printf("Average absolute error: %.6f\n", total_absolute_error / dim);
         printf("Average ULP error: %.4f\n", total_ulp_error / dim);
         printf("Maximum ULP error: %.4f\n", max_ulp_error);
         printf("Average relative error: %.6f%%\n", 100.0 * total_relative_error / dim);

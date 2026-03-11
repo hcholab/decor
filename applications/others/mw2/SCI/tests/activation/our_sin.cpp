@@ -52,7 +52,7 @@ uint64_t mask_N_MW = (bwL_MW == 64 ? -1 : ((1ULL << bwL_MW) - 1));
 // uint64_t pow_f = pow(2, f);
 
 uint64_t f_input = 16;
-int bwL_input = f_input + 9;
+int bwL_input = 63;
 uint64_t mask_bwL_input = (bwL_input == 64 ? -1 : ((1ULL << bwL_input) - 1));
 uint64_t N_input = pow(2, bwL_input);
 uint64_t B = 0.5*2*(1ULL << bwL_input)/4;
@@ -684,13 +684,15 @@ int main(int argc, char **argv) {
         printf("MW_cos_lut[%d]: %llu\n", i, MW_cos_lut[i]);
         printf("MW_sin_lut[%d]: %llu\n", i, MW_sin_lut[i]);
     }
-        double ulp_sum = 0.0;
+    double error_sum = 0.0;
+    double ulp_sum = 0.0;
     double ulp_max = 0.0;
     for (int i = 0; i < dim; i++) {
-    double ulp = 1.0 / (1 << f_output); 
-    double error = std::abs(res_sin_plain[i] - ideal_exp_plain[i]);
-    ulp_sum += error / ulp;
-    ulp_max = std::max(ulp_max, error / ulp);
+      double ulp = 1.0 / (1 << f_output); 
+      double error = std::abs(res_sin_plain[i] - ideal_exp_plain[i]);
+      error_sum += error;
+      ulp_sum += error / ulp;
+      ulp_max = std::max(ulp_max, error / ulp);
   }
   printf("Communication: %zu bytes\n", comm_bytes);
   printf("Hadamard Communication: %zu bytes\n", had_comm_end - had_comm_start);
@@ -699,6 +701,7 @@ int main(int argc, char **argv) {
   printf("LUT Communication: %zu bytes\n", comm_end_lut - comm_start_lut);
   printf("Sextend 2 Communication: %zu bytes\n", comm_end_sextend_2 - comm_start_sextend_2);
   printf("Computation time: %ld ms\n", duration.count());
+  printf("Average error: %f\n", error_sum / dim);
   printf("ULP avg: %f\n", ulp_sum / dim);
   printf("ULP max: %f\n", ulp_max);
 

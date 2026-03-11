@@ -1,0 +1,438 @@
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.32
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 31 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 0 (0.00%)
+Average ULP error: 201396.7445
+Maximum ULP error: 742760.1632
+Average relative error: 0.004590%
+Maximum relative error: 0.017503%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 31 ms
+Throughput: 16129.03 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 128.64
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 50.32
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 1125899906842623
+Computation completed in 29 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 0 (0.00%)
+Average ULP error: 201396.7985
+Maximum ULP error: 742760.1632
+Average relative error: 0.004590%
+Maximum relative error: 0.017503%
+
+=== Performance Statistics ===
+Communication: 639092 bytes
+Communication per element: 1278.18 bytes
+Computation time: 29 ms
+Throughput: 17241.38 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 50.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 1125899906842623
+Computation completed in 34 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 498 (99.60%)
+Average ULP error: 2.9949
+Maximum ULP error: 10.3769
+Average relative error: 0.004560%
+Maximum relative error: 0.017166%
+
+=== Performance Statistics ===
+Communication: 639092 bytes
+Communication per element: 1278.18 bytes
+Computation time: 34 ms
+Throughput: 14705.88 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 50.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 1125899906842623
+Computation completed in 35 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 498 (99.60%)
+Average ULP error: 3.0438
+Maximum ULP error: 10.1848
+Average relative error: 0.004657%
+Maximum relative error: 0.017967%
+
+=== Performance Statistics ===
+Communication: 639092 bytes
+Communication per element: 1278.18 bytes
+Computation time: 35 ms
+Throughput: 14285.71 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 50.24
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 1125899906842623
+Computation completed in 29 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 3 (0.60%)
+Average ULP error: 786.6576
+Maximum ULP error: 2903.9834
+Average relative error: 0.004590%
+Maximum relative error: 0.017496%
+
+=== Performance Statistics ===
+Communication: 639092 bytes
+Communication per element: 1278.18 bytes
+Computation time: 29 ms
+Throughput: 17241.38 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 31 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 497 (99.40%)
+Average ULP error: 3.0612
+Maximum ULP error: 10.3769
+Average relative error: 0.004670%
+Maximum relative error: 0.017967%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 31 ms
+Throughput: 16129.03 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.20
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 30 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 74 (14.80%)
+Average ULP error: 49.0199
+Maximum ULP error: 182.5366
+Average relative error: 0.004577%
+Maximum relative error: 0.017564%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 30 ms
+Throughput: 16666.67 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.18
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 30 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 236 (47.20%)
+Average ULP error: 12.2450
+Maximum ULP error: 46.1342
+Average relative error: 0.004578%
+Maximum relative error: 0.016503%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 30 ms
+Throughput: 16666.67 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.17
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 30 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 414 (82.80%)
+Average ULP error: 6.0222
+Maximum ULP error: 19.3273
+Average relative error: 0.004569%
+Maximum relative error: 0.018062%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 30 ms
+Throughput: 16666.67 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.17
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 31 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 411 (82.20%)
+Average ULP error: 5.9718
+Maximum ULP error: 19.3273
+Average relative error: 0.004523%
+Maximum relative error: 0.018062%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 31 ms
+Throughput: 16129.03 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 30 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 498 (99.60%)
+Average ULP error: 3.0344
+Maximum ULP error: 10.3769
+Average relative error: 0.004615%
+Maximum relative error: 0.020484%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 30 ms
+Throughput: 16666.67 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 31 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 499 (99.80%)
+Average absolute error: 0.000046
+Average ULP error: 3.0261
+Maximum ULP error: 10.3769
+Average relative error: 0.004645%
+Maximum relative error: 0.016389%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 31 ms
+Throughput: 16129.03 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
+=== exp_nagx Test Suite ===
+Testing exp(-x) where x > 0
+Party: BOB
+Dimensions: 500
+Input format: 64.16
+Generating test data for 500 elements...
+Starting exp_nagx computation...
+exp nag4 comm: 254068
+mask_in_bw: 18446744073709551615
+Computation completed in 30 ms
+
+=== Accuracy Analysis ===
+
+=== Summary Statistics ===
+Total tests: 500
+Correct results (ULP < 10): 284 (56.80%)
+Average absolute error: 2647.966373
+Average ULP error: 173537124.1910
+Maximum ULP error: 3014219035.5327
+Average relative error: 49.467067%
+Maximum relative error: 100.000000%
+
+=== Performance Statistics ===
+Communication: 737396 bytes
+Communication per element: 1474.79 bytes
+Computation time: 30 ms
+Throughput: 16666.67 exp_nagx/sec
+
+=== exp Specific Analysis ===
+Input range tested: [-0.785, 0.785]
+Output range: exp(-0.785) to exp(0.785) ≈ [0.456, 2.193]
+Function tested: exp(x) for x in [-0.785, 0.785]
+
+exp_nagx test completed successfully!
